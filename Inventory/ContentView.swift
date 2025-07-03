@@ -1,4 +1,3 @@
-//
 //  ContentView.swift
 //  Inventory
 //
@@ -9,53 +8,66 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
-
+    @State var selection: Int = 0
+    @State private var showItemCreationView: Bool = false
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        if #available(iOS 18.0, *) {
+            TabView(selection: $selection) {
+                // Home Tab
+                Tab("Home", systemImage: "house", value: 0) {
+                    InventoryView(showItemCreationView: $showItemCreationView)
+                }
+                
+                // Settings Tab
+                Tab("Settings", systemImage: "gearshape", value: 1) {
+                    NavigationView {
+                        Text("Settings")
+                            .font(.title)
+                            .fontWeight(.bold)
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                
+                // Search Action
+                Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
+                    SearchView()
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+            }
+            .sheet(isPresented: $showItemCreationView) {
+                ItemCreationView()
+            }
+            
+        } else {
+            TabView(selection: $selection) {
+                // Home Tab
+                InventoryView(showItemCreationView: $showItemCreationView)
+                    .tabItem {
+                        Label("Home", systemImage: "house")
                     }
+                    .tag(0) // Tag for Home Tab
+                
+                // Settings Tab
+                
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
                 }
+                .tag(1) // Tag for Settings Tab
             }
-        } detail: {
-            Text("Select an item")
+            .sheet(isPresented: $showItemCreationView) {
+                ItemCreationView()
+            }
         }
     }
-
+    
     private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+        showItemCreationView = true
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: Item.self)
 }
