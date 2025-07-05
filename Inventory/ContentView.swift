@@ -43,7 +43,11 @@ struct ContentView: View {
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
             }
-            
+            .sheet(isPresented: $showItemView) {
+                if let selectedItem = selectedItem {
+                    ItemView(item: bindingForItem(selectedItem))
+                }
+            }
         } else {
             TabView(selection: $selection) {
                 // Home Tab
@@ -54,10 +58,10 @@ struct ContentView: View {
                     .tag(0) // Tag for Home Tab
                 
                 // Settings Tab
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape")
-                }
-                .tag(1) // Tag for Settings Tab
+                    .tabItem {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                    .tag(1) // Tag for Settings Tab
             }
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
