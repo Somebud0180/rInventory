@@ -139,8 +139,8 @@ struct ItemView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    } else if !category.name.isEmpty {
-                        Text(category.name)
+                    } else {
+                        Text(!category.name.isEmpty ? category.name : "")
                             .font(.system(.footnote, design: .rounded))
                             .bold()
                             .minimumScaleFactor(0.5)
@@ -154,6 +154,7 @@ struct ItemView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .foregroundStyle(isEditing ? (newSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
+                                .frame(maxWidth: 192)
                     } else {
                         Spacer(minLength: 50)
                     }
