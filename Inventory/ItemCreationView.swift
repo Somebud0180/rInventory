@@ -11,7 +11,7 @@ struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-
+    
     // Form fields
     @State private var name: String = "New Item"
     @State private var locationName: String = ""
@@ -22,11 +22,13 @@ struct ItemCreationView: View {
     @State private var symbol: String = ""
     @State private var symbolColor: Color = .accentColor
     @State private var showSymbolPicker: Bool = false
+    @State private var showCropper: Bool = false
+    @State private var imageToCrop: UIImage? = nil
     
     // Fetch existing locations and categories
     @Query private var categories: [Category]
     @Query private var locations: [Location]
-
+    
     // Helper to get suggestions
     private var categorySuggestions: [String] {
         Array(Set(categories.map { $0.name })).sorted()
@@ -43,21 +45,20 @@ struct ItemCreationView: View {
     private var filteredLocationSuggestions: [String] {
         locationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(locationName) }
     }
-
+    
     var body: some View {
+        
         NavigationView {
             Form {
                 gridCard(
-                    name: name.isEmpty ? "New Item" : name,
-                    location: locationName.isEmpty ? "Location" : locationName,
-                    locColor: locationColor,
-                    background:
-                        (image != nil && image?.jpegData(compressionQuality: 0.8) != nil) ?
-                            .image(image!.jpegData(compressionQuality: 0.8)!) :
-                            (!symbol.isEmpty ? .symbol(symbol) : .symbol("square.grid.2x2")),
+                    name: name,
+                    location: Location(name: locationName, color: locationColor),
+                    category: Category(name: categoryName),
+                    background: image != nil ? .image(image!.jpegData(compressionQuality: 0.8)!) : .symbol(symbol),
                     symbolColor: symbol.isEmpty ? nil : symbolColor,
                     colorScheme: colorScheme
                 )
+                
                 .frame(maxWidth: .infinity, maxHeight: 250, alignment: .center)
                 .listRowSeparator(.hidden)
                 
@@ -184,14 +185,31 @@ struct ItemCreationView: View {
                 }
             }
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $image)
+                ImagePicker(image: $image, cropImage: { picked, completion in
+                    imageToCrop = picked
+                })
+            }
+            .onChange(of: imageToCrop) { _, newValue in
+                if newValue != nil {
+                    // Show cropper after image is loaded
+                    showCropper = true
+                }
+            }
+            .sheet(isPresented: $showCropper) {
+                if let img = imageToCrop {
+                    ImageCropperView(image: img) { cropped in
+                        image = cropped
+                        showCropper = false
+                        imageToCrop = nil
+                    }
+                }
             }
             .sheet(isPresented: $showSymbolPicker) {
                 SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: $symbol)
             }
         }
     }
-
+    
     private func saveItem() {
         // Find or create Location
         let location: Location
@@ -225,41 +243,6 @@ struct ItemCreationView: View {
             .split(separator: " ")
             .map { $0.capitalized }
             .joined(separator: " ")
-    }
-}
-
-// MARK: - ImagePicker Wrapper for UIKit
-import PhotosUI
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
-        config.selectionLimit = 1
-        config.filter = .images
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
-
-    class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let parent: ImagePicker
-        init(_ parent: ImagePicker) { self.parent = parent }
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            picker.dismiss(animated: true)
-            guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-            provider.loadObject(ofClass: UIImage.self) { image, _ in
-                DispatchQueue.main.async {
-                    self.parent.image = image as? UIImage
-                }
-            }
-        }
     }
 }
 

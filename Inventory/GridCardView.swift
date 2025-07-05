@@ -12,10 +12,10 @@ enum GridCardBackground {
     case image(Data)
 }
 
-func gridCard(name: String, location: String, locColor: Color?, category: String? = nil, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme) -> some View {
+func gridCard(name: String, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme) -> some View {
     return ZStack {
         RoundedRectangle(cornerRadius: 25.0)
-            .aspectRatio(contentMode: /*@START_MENU_TOKEN@*/.fill/*@END_MENU_TOKEN@*/)
+            .aspectRatio(contentMode: .fill)
             .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
         
         GeometryReader { geometry in
@@ -25,6 +25,7 @@ func gridCard(name: String, location: String, locColor: Color?, category: String
                     .resizable()
                     .scaledToFit()
                     .foregroundStyle(symbolColor ?? .accentColor)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                     .padding(25)
                 
             case .image(let data):
@@ -32,19 +33,20 @@ func gridCard(name: String, location: String, locColor: Color?, category: String
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .clipShape(RoundedRectangle(cornerRadius: 25.0))
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                 } else {
                     EmptyView()
                 }
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 25.0))
         
         LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
             .mask(RoundedRectangle(cornerRadius: 25.0)
-                .aspectRatio(contentMode: /*@START_MENU_TOKEN@*/.fill/*@END_MENU_TOKEN@*/))
+                .aspectRatio(contentMode: .fill))
         VStack {
-            if category != nil {
-                Text(category ?? "")
+            if !category.name.isEmpty {
+                Text(category.name)
                     .font(.system(.footnote, design: .rounded))
                     .bold()
                     .foregroundStyle(.ultraThickMaterial)
@@ -65,10 +67,10 @@ func gridCard(name: String, location: String, locColor: Color?, category: String
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .dynamicTypeSize(.xLarge ... .accessibility5)
-            Text(location)
+            Text(location.name)
                 .font(.system(.callout, design: .rounded))
                 .fontWeight(.medium)
-                .foregroundStyle(locColor ?? .white)
+                .foregroundStyle(location.color)
                 .shadow(
                     color: Color.black.opacity(0.3),
                     radius: 3,
@@ -80,7 +82,31 @@ func gridCard(name: String, location: String, locColor: Color?, category: String
                 .minimumScaleFactor(0.5)
                 .dynamicTypeSize(.xLarge ... .accessibility5)
         }.padding()
-    }.aspectRatio(1.0, contentMode: .fit)
+    }
+    .aspectRatio(1.0, contentMode: .fit)
+}
+
+func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
+    let location = item.location ?? Location(name: "Unknown", color: .white)
+    let category = item.category ?? Category(name: "")
+    
+    let background: GridCardBackground
+    if let imageData = item.imageData, !imageData.isEmpty {
+        background = .image(imageData)
+    } else if let symbol = item.symbol {
+        background = .symbol(symbol)
+    } else {
+        background = .symbol("questionmark")
+    }
+    
+    return gridCard(
+        name: item.name,
+        location: location,
+        category: category,
+        background: background,
+        symbolColor: item.symbolColor,
+        colorScheme: colorScheme
+    )
 }
 
 #Preview {

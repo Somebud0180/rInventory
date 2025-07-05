@@ -13,6 +13,9 @@ struct SearchView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
     @Query private var categories: [Category]
+    
+    @Binding var showItemView: Bool
+    @Binding var selectedItem: Item?
     @State private var searchText: String = ""
     @State private var selectedCategory: String = "My Inventory"
     
@@ -26,31 +29,18 @@ struct SearchView: View {
         } else {
             return categoryFiltered.filter { item in
                 item.name.localizedCaseInsensitiveContains(searchText) ||
-                item.location.name.localizedCaseInsensitiveContains(searchText)
+                item.location!.name.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
     
     let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
+        GridItem(.adaptive(minimum: 180, maximum: 300), spacing: 16)
     ]
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Search field
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    TextField("Search items...", text: $searchText)
-                        .autocorrectionDisabled()
-                }
-                .padding(10)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                
                 // Category picker
                 Menu {
                     Button("My Inventory") {
@@ -84,18 +74,14 @@ struct SearchView: View {
                             .foregroundColor(.gray)
                             .padding(10)
                     } else {
-                        LazyVGrid(columns: columns, content: {
+                        LazyVGrid(columns: columns, spacing: 16, content: {
                             
                             ForEach(filteredItems, id: \.id) { item in
-                                gridCard(
-                                    name: item.name,
-                                    location: item.location.name,
-                                    locColor: item.location.color,
-                                    category: item.category?.name,
-                                    background: item.imageData != nil ? .image(item.imageData!) : .symbol(item.symbol ?? "questionmark.circle"),
-                                    symbolColor: item.symbolColor,
-                                    colorScheme: colorScheme
-                                )
+                                gridCard(item: item, colorScheme: colorScheme)
+                                    .onTapGesture {
+                                        selectedItem = item
+                                        showItemView = true
+                                    }
                             }
                         })
                         .padding(.horizontal)
@@ -104,11 +90,12 @@ struct SearchView: View {
             }
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
-        }
+            .searchable(text: $searchText, prompt: "Search items and locations")
+        }.navigationViewStyle(.stack)
     }
 }
 
 #Preview {
-    SearchView()
+    ContentView(selection: 2)
         .modelContainer(for: Item.self)
 }

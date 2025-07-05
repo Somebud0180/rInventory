@@ -8,32 +8,29 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class Category {
-    var name: String
-    
-    init(name: String) {
-        self.name = name
-    }
-}
-
-@Model
 final class Item {
-    var id: UUID
-    var name: String
-    var location: Location
+    var id: UUID = UUID()
+    var name: String = ""
+    var quantity: Int? = 1
+    var location: Location?
     var category: Category?
     var imageData: Data?
     var symbol: String?
     var symbolColorData: Data?
+    var sortOrder: Int = 0
+    var modifiedDate: Date = Date()
     
-    init(_ id: UUID = UUID(), name: String, location: Location, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor) {
+    init(_ id: UUID = UUID(), name: String, quantity: Int? = 1, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date()) {
         self.id = id
         self.name = name
+        self.quantity = quantity
         self.location = location
         self.category = category
         self.imageData = imageData
         self.symbol = symbol
         self.symbolColorData = symbolColor?.rgbaData
+        self.sortOrder = sortOrder
+        self.modifiedDate = modifiedDate
     }
     
     var symbolColor: Color {
@@ -48,9 +45,22 @@ final class Item {
 }
 
 @Model
+final class Category {
+    var name: String = ""
+    @Relationship(deleteRule: .nullify, inverse: \Item.category)
+    var items: [Item]?
+    
+    init(name: String) {
+        self.name = name
+    }
+}
+
+@Model
 final class Location {
-    var name: String
+    var name: String = ""
     var colorData: Data?
+    @Relationship(deleteRule: .nullify, inverse: \Item.location)
+    var items: [Item]?
     
     init(name: String, color: Color? = .primary) {
         self.name = name
@@ -65,6 +75,27 @@ final class Location {
         set {
             colorData = newValue.rgbaData
         }
+    }
+}
+
+extension Item {
+    func update(
+        name: String? = nil,
+        quantity: Int? = nil,
+        location: Location? = nil,
+        category: Category? = nil,
+        imageData: Data? = nil,
+        symbol: String? = nil,
+        symbolColor: Color? = nil
+    ) {
+        if let name = name { self.name = name }
+        if let quantity = quantity { self.quantity = quantity }
+        if let location = location { self.location = location }
+        if let category = category { self.category = category }
+        if let imageData = imageData { self.imageData = imageData }
+        if let symbol = symbol { self.symbol = symbol }
+        if let symbolColor = symbolColor { self.symbolColor = symbolColor }
+        self.modifiedDate = Date()
     }
 }
 
@@ -89,11 +120,11 @@ extension Color {
     }
     /// Returns (red, green, blue, alpha) components as Double (0...1)
     var rgbaComponents: (Double, Double, Double, Double) {
-        #if os(macOS)
+#if os(macOS)
         typealias NativeColor = NSColor
-        #else
+#else
         typealias NativeColor = UIColor
-        #endif
+#endif
         guard let cgColor = self.cgColor else { return (1, 1, 1, 1) }
         let native = NativeColor(cgColor: cgColor)
         var r: CGFloat = 1, g: CGFloat = 1, b: CGFloat = 1, a: CGFloat = 1

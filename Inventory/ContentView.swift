@@ -11,15 +11,18 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
+    
     @State var selection: Int = 0
-    @State private var showItemCreationView: Bool = false
+    @State var selectedItem: Item? = nil
+    @State var showItemCreationView: Bool = false
+    @State var showItemView: Bool = false
     
     var body: some View {
         if #available(iOS 18.0, *) {
             TabView(selection: $selection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
-                    InventoryView(showItemCreationView: $showItemCreationView)
+                    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
                 }
                 
                 // Settings Tab
@@ -29,11 +32,12 @@ struct ContentView: View {
                             .font(.title)
                             .fontWeight(.bold)
                     }
+                    .navigationViewStyle(.stack)
                 }
                 
                 // Search Action
                 Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
-                    SearchView()
+                    SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
                 }
             }
             .sheet(isPresented: $showItemCreationView) {
@@ -43,14 +47,13 @@ struct ContentView: View {
         } else {
             TabView(selection: $selection) {
                 // Home Tab
-                InventoryView(showItemCreationView: $showItemCreationView)
+                InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
                     .tag(0) // Tag for Home Tab
                 
                 // Settings Tab
-                
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }
@@ -59,7 +62,28 @@ struct ContentView: View {
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
             }
+            .sheet(isPresented: $showItemView) {
+                if let selectedItem = selectedItem {
+                    ItemView(item: bindingForItem(selectedItem))
+                }
+            }
         }
+    }
+    
+    private func bindingForItem(_ item: Item) -> Binding<Item> {
+        return Binding(
+            get: {
+                // Return the current item from the model context to ensure we have the latest data
+                if let currentItem = items.first(where: { $0.id == item.id }) {
+                    return currentItem
+                }
+                return item
+            },
+            set: { newValue in
+                // Changes are automatically persisted through SwiftData's model context
+                // No explicit save needed as SwiftData handles this automatically
+            }
+        )
     }
     
     private func addItem() {
