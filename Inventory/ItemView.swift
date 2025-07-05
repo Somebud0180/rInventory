@@ -67,7 +67,12 @@ struct ItemView: View {
     }
     
     private var isLandscape: Bool {
-        orientation.isLandscape || horizontalSizeClass == .regular
+        // Return false for iPad devices to always use portrait layout
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return false
+        }
+        
+        return orientation.isLandscape || horizontalSizeClass == .regular
     }
     
     private var toolbarLikeView: some View {
