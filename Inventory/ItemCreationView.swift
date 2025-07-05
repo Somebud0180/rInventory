@@ -6,6 +6,7 @@
 
 import SwiftUI
 import SwiftData
+import SwiftyCrop
 
 struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
@@ -197,11 +198,16 @@ struct ItemCreationView: View {
             }
             .sheet(isPresented: $showCropper) {
                 if let img = imageToCrop {
-                    ImageCropperView(image: img) { cropped in
-                        image = cropped
-                        showCropper = false
-                        imageToCrop = nil
-                    }
+                    SwiftyCropView(
+                        imageToCrop: img,
+                        maskShape: .square,
+                        configuration: SwiftyCropConfiguration(),
+                        onComplete: { cropped in
+                            image = cropped
+                            showCropper = false
+                            imageToCrop = nil
+                        }
+                    )
                 }
             }
             .sheet(isPresented: $showSymbolPicker) {

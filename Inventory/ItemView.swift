@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import SwiftyCrop
 
 struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @Query private var categories: [Category]
@@ -32,8 +34,11 @@ struct ItemView: View {
     @State private var orientation = UIDeviceOrientation.unknown
     
     @State private var newName: String = ""
-    @State private var newLocation: Location = Location(name: "", color: .white)
-    @State private var newCategory: Category = Category(name: "")
+    
+    // Editing state variables decoupled from model instances
+    @State private var editCategoryName: String = ""
+    @State private var editLocationName: String = ""
+    @State private var editLocationColor: Color = .white
     @State private var newBackground: GridCardBackground = .symbol("questionmark")
     @State private var newSymbolColor: Color? = nil
     
@@ -50,7 +55,7 @@ struct ItemView: View {
     }
     
     private var filteredCategorySuggestions: [String] {
-        newCategory.name.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(newCategory.name) }
+        editCategoryName.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(editCategoryName) }
     }
     
     private var locationSuggestions: [String] {
@@ -58,11 +63,42 @@ struct ItemView: View {
     }
     
     private var filteredLocationSuggestions: [String] {
-        newLocation.name.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(newLocation.name) }
+        editLocationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(editLocationName) }
     }
     
     private var isLandscape: Bool {
         orientation.isLandscape || horizontalSizeClass == .regular
+    }
+    
+    private var toolbarLikeView: some View {
+        Group {
+            if isEditing {
+                HStack(spacing: 0) {
+                    if case .symbol = newBackground {
+                        ColorPicker("Symbol Color", selection: Binding(
+                            get: { newSymbolColor ?? .accentColor },
+                            set: { newSymbolColor = $0 }
+                        ))
+                        .labelsHidden()
+                        .frame(width: 36, height: 36)
+                        .padding(.horizontal, 4)
+                    }
+                    Menu {
+                        Button("Change Symbol") { showSymbolPicker = true }
+                        Button("Change Image") { showImagePicker = true }
+                    } label: {
+                        Image(systemName: "photo.circle").font(.title2)
+                            .adaptiveGlassButton()
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .padding(.horizontal, 4)
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+                .frame(height: 44, alignment: .center)
+                .adaptiveGlassBackground()
+            }
+        }
     }
     
     var body: some View {
@@ -87,34 +123,6 @@ struct ItemView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
             orientation = UIDevice.current.orientation
         }
-        // Only show the picker menu when editing
-        .navigationBarItems(trailing:
-                                Group {
-            if isEditing {
-                HStack(spacing: 8) {
-                    if case .symbol = newBackground {
-                        ColorPicker("Symbol Color", selection: Binding(
-                            get: { newSymbolColor ?? .accentColor },
-                            set: { newSymbolColor = $0 }
-                        ))
-                        .labelsHidden()
-                        .frame(width: 36, height: 36)
-                    }
-                    Menu {
-                        Button("Change Symbol") {
-                            showSymbolPicker = true
-                        }
-                        Button("Change Image") {
-                            showImagePicker = true
-                        }
-                    } label: {
-                        Image(systemName: "photo.circle")
-                            .font(.title2)
-                    }
-                }
-            }
-        }
-        )
         .sheet(isPresented: $showSymbolPicker) {
             // Extract the current symbol from newBackground
             SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: Binding(
@@ -159,13 +167,18 @@ struct ItemView: View {
         }
         .sheet(isPresented: $showCropper) {
             if let img = imageToCrop {
-                ImageCropperView(image: img) { cropped in
-                    if let data = cropped.pngData() {
-                        newBackground = .image(data)
+                SwiftyCropView(
+                    imageToCrop: img,
+                    maskShape: .square,
+                    configuration: SwiftyCropConfiguration(),
+                    onComplete: { cropped in
+                        if let cropped, let data = cropped.pngData() {
+                            newBackground = .image(data)
+                        }
+                        showCropper = false
+                        imageToCrop = nil
                     }
-                    showCropper = false
-                    imageToCrop = nil
-                }
+                )
             }
         }
     }
@@ -194,7 +207,7 @@ struct ItemView: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
-                            .frame(height: geometry.size.height * 0.5)
+                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                             .mask(
                                 LinearGradient(
                                     gradient: Gradient(stops: [
@@ -205,7 +218,7 @@ struct ItemView: View {
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
-                                .frame(height: geometry.size.height * 0.5)
+                                .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                             )
                     }
                 }
@@ -215,15 +228,20 @@ struct ItemView: View {
                         .aspectRatio(contentMode: .fill))
                     .ignoresSafeArea()
                 
-                VStack {
-                    categorySection
+                VStack(spacing: 16) {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        categorySection
+                        toolbarLikeView
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    
                     symbolSection
                     nameSection
                     locationSection
                     Spacer()
                     buttonSection
                 }
-                .padding(.horizontal, isEditing ? 12 : 24)
+                .padding(.horizontal, 24)
                 .padding(.vertical)
                 .frame(maxWidth: UIScreen.main.bounds.width, maxHeight: .infinity, alignment: .bottom)
             }
@@ -233,37 +251,36 @@ struct ItemView: View {
     private var landscapeLayout: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
-                // Left half - Symbol/Image
-                ZStack {
+                // Left half - Symbol/Image with toolbar overlay when editing
+                ZStack(alignment: .bottomLeading) {
                     if case let .image(data) = isEditing ? newBackground : background {
                         if let uiImage = UIImage(data: data) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: geometry.size.width * 0.55)
+                                .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
                                 .ignoresSafeArea(.all)
                                 .mask(
                                     LinearGradient(
                                         gradient: Gradient(stops: [
                                             .init(color: .white, location: 0.0),
                                             .init(color: .white, location: 0.7),
-                                            .init(color: .clear, location: 1.0)
+                                            .init(color: .clear, location: 0.9)
                                         ]),
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
-                                    
                                     .ignoresSafeArea(.all)
-                                    .frame(width: geometry.size.width * 0.55)
+                                    .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
                                 )
                         }
                     }
                     
                     if case let .symbol(symbol) = isEditing ? newBackground : background {
                         LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: geometry.size.width * 0.55)
                             .ignoresSafeArea(.all)
-
+                            .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.52)
+                        
                         VStack {
                             Spacer()
                             Image(systemName: symbol)
@@ -274,12 +291,17 @@ struct ItemView: View {
                                 .padding()
                             Spacer()
                         }
-                        .padding(.top, geometry.safeAreaInsets.top)
-                        .padding(.bottom, geometry.safeAreaInsets.bottom)
-                        .frame(width: geometry.size.width * 0.5, height: geometry.size.height, alignment: .center)
+                        .padding(.leading, geometry.safeAreaInsets.leading)
+                    }
+                    
+                    if isEditing {
+                        toolbarLikeView
+                            .ignoresSafeArea(.all)
+                            .padding(.bottom, 8)
+                            .padding(.leading, max(geometry.safeAreaInsets.leading, 12))
                     }
                 }
-                .frame(width: geometry.size.width * 0.5)
+                .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
                 
                 // Right half - Content
                 VStack(alignment: .leading, spacing: 16) {
@@ -298,6 +320,7 @@ struct ItemView: View {
                 .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
                 .padding(.horizontal, 24)
             }
+            .frame(height: geometry.size.height * 1)
         }
     }
     
@@ -307,7 +330,7 @@ struct ItemView: View {
             if isEditing {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
-                        TextField("Category", text: $newCategory.name)
+                        TextField("Category", text: $editCategoryName)
                             .font(.system(.footnote, design: .rounded))
                             .bold()
                             .minimumScaleFactor(0.5)
@@ -315,7 +338,6 @@ struct ItemView: View {
                             .foregroundStyle(.white.opacity(0.95))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Image(systemName: "pencil")
                             .foregroundColor(.white.opacity(0.7))
@@ -325,7 +347,7 @@ struct ItemView: View {
                             HStack {
                                 ForEach(filteredCategorySuggestions, id: \.self) { cat in
                                     Button(cat) {
-                                        newCategory.name = cat
+                                        editCategoryName = cat
                                     }
                                     .padding(6)
                                     .background(Color.gray.opacity(0.2))
@@ -415,22 +437,16 @@ struct ItemView: View {
             if isEditing {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
-                        TextField("Location", text: $newLocation.name)
+                        TextField("Location", text: $editLocationName)
                             .font(.system(.callout, design: .rounded))
                             .fontWeight(.medium)
-                            .foregroundColor(newLocation.color)
+                            .foregroundColor(editLocationColor)
                             .minimumScaleFactor(0.5)
                             .dynamicTypeSize(.xLarge ... .accessibility5)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .onChange(of: newLocation.name) { oldValue, newValue in
-                                if let found = locations.first(where: { $0.name == newValue }) {
-                                    newLocation.color = found.color
-                                } else {
-                                    newLocation.color = .white
-                                }
-                            }
-                        ColorPicker("Location Color", selection: $newLocation.color)
+                        
+                        ColorPicker("Location Color", selection: $editLocationColor)
                             .labelsHidden()
                             .frame(width: 28, height: 28)
                         Image(systemName: "pencil")
@@ -441,11 +457,11 @@ struct ItemView: View {
                             HStack {
                                 ForEach(filteredLocationSuggestions, id: \.self) { loc in
                                     Button(loc) {
-                                        newLocation.name = loc
+                                        editLocationName = loc
                                         if let found = locations.first(where: { $0.name == loc }) {
-                                            newLocation.color = found.color
+                                            editLocationColor = found.color
                                         } else {
-                                            newLocation.color = .white
+                                            editLocationColor = .white
                                         }
                                     }
                                     .padding(6)
@@ -485,8 +501,9 @@ struct ItemView: View {
                         isEditing = true
                         // Load current item values into edit variables
                         newName = item.name
-                        newLocation = item.location ?? Location(name: "Unknown", color: .white)
-                        newCategory = item.category ?? Category(name: "")
+                        editLocationName = item.location?.name ?? "Unknown"
+                        editLocationColor = item.location?.color ?? .white
+                        editCategoryName = item.category?.name ?? ""
                         switch background {
                         case .symbol(let symbol):
                             newBackground = .symbol(symbol)
@@ -507,18 +524,42 @@ struct ItemView: View {
             } else {
                 Button(action: {
                     withAnimation() {
+                        // Construct Category and Location based on edited names and colors
+                        var finalCategory: Category? = nil
+                        let trimmedCategoryName = editCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmedCategoryName.isEmpty {
+                            if let existingCategory = categories.first(where: { $0.name == trimmedCategoryName }) {
+                                finalCategory = existingCategory
+                            } else {
+                                finalCategory = Category(name: trimmedCategoryName)
+                            }
+                        }
+                        
+                        var finalLocation: Location? = nil
+                        let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmedLocationName.isEmpty {
+                            if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
+                                finalLocation = existingLocation
+                            } else {
+                                finalLocation = Location(name: trimmedLocationName, color: editLocationColor)
+                            }
+                        }
+                        
+                        // Save item with updated details
                         saveItem(
                             name: newName,
-                            location: newLocation,
-                            category: newCategory,
+                            category: finalCategory,
+                            location: finalLocation,
                             background: newBackground,
                             symbolColor: newSymbolColor
                         )
+                        
                         isEditing = false
-                        // After saving, update display variables
+                        
+                        // Update display variables from saved data
                         name = newName
-                        location = newLocation
-                        category = newCategory
+                        category = finalCategory ?? Category(name: "")
+                        location = finalLocation ?? Location(name: "Unknown", color: .white)
                         background = newBackground
                         symbolColor = newSymbolColor
                     }
@@ -528,7 +569,7 @@ struct ItemView: View {
                         .bold()
                         .padding()
                 }
-                .adaptiveGlassButton(isEditing)
+                .adaptiveGlassEditButton(isEditing)
                 .foregroundColor(.white)
             }
             
@@ -553,33 +594,15 @@ struct ItemView: View {
                     .bold()
                     .padding()
             }
-            .adaptiveGlass()
+            .adaptiveGlassButton()
         }
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
     
-    func saveItem(name: String, location: Location, category: Category, background: GridCardBackground, symbolColor: Color?) {
-        // Handle category - create new one if it doesn't exist
-        var finalCategory: Category? = nil
-        if !category.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            if let existingCategory = categories.first(where: { $0.name == category.name.trimmingCharacters(in: .whitespacesAndNewlines) }) {
-                finalCategory = existingCategory
-            } else {
-                // Create new category if it doesn't exist
-                finalCategory = category
-            }
-        }
-        
-        // Handle location - create new one if it doesn't exist
-        var finalLocation: Location? = nil
-        if !location.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            if let existingLocation = locations.first(where: { $0.name == location.name.trimmingCharacters(in: .whitespacesAndNewlines) }) {
-                finalLocation = existingLocation
-            } else {
-                // Create new location if it doesn't exist
-                finalLocation = location
-            }
-        }
+    func saveItem(name: String, category: Category?, location: Location?, background: GridCardBackground, symbolColor: Color?) {
+        // Store references to old category and location for cleanup
+        let oldCategory = item.category
+        let oldLocation = item.location
         
         // Prepare parameters for Item.update
         var updateImageData: Data? = nil
@@ -587,7 +610,7 @@ struct ItemView: View {
         var updateSymbolColor: Color? = nil
         
         // Handle background changes
-        switch newBackground {
+        switch background {
         case let .symbol(symbol):
             updateSymbol = symbol
             updateSymbolColor = symbolColor ?? .accentColor
@@ -602,12 +625,19 @@ struct ItemView: View {
         item.update(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             quantity: item.quantity, // Keep existing quantity
-            location: finalLocation,
-            category: finalCategory,
+            location: location,
+            category: category,
             imageData: updateImageData,
             symbol: updateSymbol,
             symbolColor: updateSymbolColor
         )
+        
+        // Clean up orphaned entities after the update
+        oldCategory?.deleteIfEmpty(from: modelContext)
+        oldLocation?.deleteIfEmpty(from: modelContext)
+        
+        // Save the context to persist changes
+        try? modelContext.save()
     }
 }
 
@@ -623,4 +653,3 @@ struct ItemView: View {
     
     return ItemView(item: $item)
 }
-

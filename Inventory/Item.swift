@@ -97,6 +97,50 @@ extension Item {
         if let symbolColor = symbolColor { self.symbolColor = symbolColor }
         self.modifiedDate = Date()
     }
+    
+    /// Removes orphaned categories and locations that have no items
+    static func cleanupOrphanedEntities(in context: ModelContext) {
+        // Clean up categories with no items
+        let categoryDescriptor = FetchDescriptor<Category>()
+        if let categories = try? context.fetch(categoryDescriptor) {
+            for category in categories {
+                if category.items?.isEmpty ?? true {
+                    context.delete(category)
+                }
+            }
+        }
+        
+        // Clean up locations with no items
+        let locationDescriptor = FetchDescriptor<Location>()
+        if let locations = try? context.fetch(locationDescriptor) {
+            for location in locations {
+                if location.items?.isEmpty ?? true {
+                    context.delete(location)
+                }
+            }
+        }
+        
+        // Save changes
+        try? context.save()
+    }
+}
+
+extension Category {
+    /// Deletes this category if it has no items
+    func deleteIfEmpty(from context: ModelContext) {
+        if items?.isEmpty ?? true {
+            context.delete(self)
+        }
+    }
+}
+
+extension Location {
+    /// Deletes this location if it has no items
+    func deleteIfEmpty(from context: ModelContext) {
+        if items?.isEmpty ?? true {
+            context.delete(self)
+        }
+    }
 }
 
 extension Color {

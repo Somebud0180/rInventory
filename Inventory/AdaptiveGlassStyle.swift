@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct AdaptiveGlassButtonModifier: ViewModifier {
+// Liquid Glass / Tinted (Edit) Button Modifier
+struct AdaptiveGlassEditButtonModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     let isEditing: Bool
     
@@ -25,15 +26,9 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
     }
 }
 
-extension View {
-    func adaptiveGlassButton(_ isEditing: Bool = false) -> some View {
-        self.modifier(AdaptiveGlassButtonModifier(isEditing: isEditing))
-    }
-}
-
-struct AdaptiveGlassModifier: ViewModifier {
+// Liquid Glass / Tinted Button Background
+struct AdaptiveGlassButtonModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
-    let isEditing: Bool
     let tint: Color?
     
     func body(content: Content) -> some View {
@@ -51,8 +46,35 @@ struct AdaptiveGlassModifier: ViewModifier {
     }
 }
 
+
+// Liquid Glass / Ultra Thin Capsule Background Style
+struct AdaptiveGlassBackground: ViewModifier {
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular
+                    .tint(colorScheme == .dark ? .gray.opacity(0.2) : .white.opacity(0.9))
+                )
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Capsule())
+            
+        }
+    }
+}
+
 extension View {
-    func adaptiveGlass(_ isEditing: Bool = false, tint: Color? = nil) -> some View {
-        self.modifier(AdaptiveGlassModifier(isEditing: isEditing, tint: tint))
+    func adaptiveGlassEditButton(_ isEditing: Bool = false) -> some View {
+        self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
+    }
+    
+    func adaptiveGlassButton(tint: Color? = nil) -> some View {
+        self.modifier(AdaptiveGlassButtonModifier(tint: tint))
+    }
+    
+    func adaptiveGlassBackground() -> some View {
+        self.modifier(AdaptiveGlassBackground())
     }
 }

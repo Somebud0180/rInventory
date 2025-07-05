@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
+		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -140,6 +142,7 @@
 			);
 			name = Inventory;
 			packageProductDependencies = (
+				AAFA44752E19690600AD6351 /* SwiftyCrop */,
 			);
 			productName = Inventory;
 			productReference = AAC9D5932E16056A0066997C /* Inventory.app */;
@@ -223,6 +226,9 @@
 			);
 			mainGroup = AAC9D58A2E16056A0066997C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAC9D5942E16056A0066997C /* Products */;
 			projectDirPath = "";
@@ -610,6 +616,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/benedom/SwiftyCrop";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AAFA44752E19690600AD6351 /* SwiftyCrop */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
+			productName = SwiftyCrop;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AAC9D58B2E16056A0066997C /* Project object */;
 }
