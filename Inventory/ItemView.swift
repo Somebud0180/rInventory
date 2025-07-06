@@ -75,6 +75,43 @@ struct ItemView: View {
         return orientation.isLandscape || horizontalSizeClass == .regular
     }
     
+    let usesLiquidGlass: Bool = {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }()
+    
+    var swiftyCropConfiguration: SwiftyCropConfiguration {
+        SwiftyCropConfiguration(
+            maxMagnificationScale: 4.0,
+            maskRadius: 130,
+            cropImageCircular: false,
+            rotateImage: false,
+            rotateImageWithButtons: true,
+            usesLiquidGlassDesign: usesLiquidGlass,
+            zoomSensitivity: 2.0,
+            rectAspectRatio: 4/3,
+            texts: SwiftyCropConfiguration.Texts(
+                cancelButton: "Cancel",
+                interactionInstructions: "",
+                saveButton: "Save"
+            ),
+            fonts: SwiftyCropConfiguration.Fonts(
+                cancelButton: Font.system(size: 12),
+                interactionInstructions: Font.system(size: 14),
+                saveButton: Font.system(size: 12)
+            ),
+            colors: SwiftyCropConfiguration.Colors(
+                cancelButton: Color.red,
+                interactionInstructions: Color.white,
+                saveButton: Color.blue,
+                background: Color.gray
+            )
+        )
+    }
+    
     private var toolbarLikeView: some View {
         Group {
             if isEditing {
@@ -165,8 +202,8 @@ struct ItemView: View {
             })
         }
         .onChange(of: imageToCrop) { _, newValue in
-            if let img = newValue, let data = img.pngData() {
-                newBackground = .image(data)
+            if newValue != nil {
+                // Show cropper after image is loaded
                 showCropper = true
             }
         }
@@ -175,7 +212,7 @@ struct ItemView: View {
                 SwiftyCropView(
                     imageToCrop: img,
                     maskShape: .square,
-                    configuration: SwiftyCropConfiguration(),
+                    configuration: swiftyCropConfiguration,
                     onComplete: { cropped in
                         if let cropped, let data = cropped.pngData() {
                             newBackground = .image(data)
@@ -519,8 +556,9 @@ struct ItemView: View {
                         }
                     }
                 }) {
-                    Image(systemName: "pencil")
-                        .frame(width: 25, height: 25)
+                    Label("Save Edits", systemImage: "pencil")
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: 25, minHeight: 25)
                         .bold()
                         .padding()
                 }
@@ -569,8 +607,9 @@ struct ItemView: View {
                         symbolColor = newSymbolColor
                     }
                 }) {
-                    Image(systemName: "pencil")
-                        .frame(width: 25, height: 25)
+                    Label("Save Edits", systemImage: "pencil")
+                        .labelStyle(.titleAndIcon)
+                        .frame(maxWidth: .infinity, minHeight: 25)
                         .bold()
                         .padding()
                 }
@@ -590,16 +629,31 @@ struct ItemView: View {
             .adaptiveGlassButton()
             .foregroundColor(.red)
             
-            Button(action: {
-                dismiss()
-            }) {
-                Text("Dismiss")
-                    .foregroundColor(colorScheme == .light ? .black : .white)
-                    .frame(maxWidth: .infinity, minHeight: 25)
-                    .bold()
-                    .padding()
+            if !isEditing {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Label("Dismiss", systemImage: "xmark")
+                        .labelStyle(.titleOnly)
+                        .frame(maxWidth: .infinity, minHeight: 25)
+                        .bold()
+                        .padding()
+                }
+                .adaptiveGlassButton()
+                .foregroundColor(colorScheme == .light ? .black : .white)
+            } else {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Label("Dismiss", systemImage: "xmark")
+                        .labelStyle(.iconOnly)
+                        .frame(maxWidth: 25, minHeight: 25)
+                        .bold()
+                        .padding()
+                }
+                .adaptiveGlassButton()
+                .foregroundColor(colorScheme == .light ? .black : .white)
             }
-            .adaptiveGlassButton()
         }
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
@@ -658,3 +712,4 @@ struct ItemView: View {
     
     return ItemView(item: $item)
 }
+

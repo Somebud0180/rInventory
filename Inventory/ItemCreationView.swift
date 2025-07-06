@@ -47,8 +47,44 @@ struct ItemCreationView: View {
         locationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(locationName) }
     }
     
+    let usesLiquidGlass: Bool = {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }()
+    
+    var swiftyCropConfiguration: SwiftyCropConfiguration {
+        SwiftyCropConfiguration(
+            maxMagnificationScale: 4.0,
+            maskRadius: 130,
+            cropImageCircular: false,
+            rotateImage: false,
+            rotateImageWithButtons: true,
+            usesLiquidGlassDesign: usesLiquidGlass,
+            zoomSensitivity: 2.0,
+            rectAspectRatio: 4/3,
+            texts: SwiftyCropConfiguration.Texts(
+                cancelButton: "Cancel",
+                interactionInstructions: "",
+                saveButton: "Save"
+            ),
+            fonts: SwiftyCropConfiguration.Fonts(
+                cancelButton: Font.system(size: 12),
+                interactionInstructions: Font.system(size: 14),
+                saveButton: Font.system(size: 12)
+            ),
+            colors: SwiftyCropConfiguration.Colors(
+                cancelButton: Color.red,
+                interactionInstructions: Color.white,
+                saveButton: Color.blue,
+                background: Color.gray
+            )
+        )
+    }
+    
     var body: some View {
-        
         NavigationView {
             Form {
                 gridCard(
@@ -201,7 +237,7 @@ struct ItemCreationView: View {
                     SwiftyCropView(
                         imageToCrop: img,
                         maskShape: .square,
-                        configuration: SwiftyCropConfiguration(),
+                        configuration: swiftyCropConfiguration,
                         onComplete: { cropped in
                             image = cropped
                             showCropper = false
