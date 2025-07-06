@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 enum GridCardBackground {
     case symbol(String)
@@ -44,44 +45,36 @@ func gridCard(name: String, location: Location, category: Category, background: 
         LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
             .mask(RoundedRectangle(cornerRadius: 25.0)
                 .aspectRatio(contentMode: .fill))
-        VStack {
+        VStack(alignment: .leading, spacing: 0) {
             if !category.name.isEmpty {
                 Text(category.name)
                     .font(.system(.footnote, design: .rounded))
                     .bold()
-                    .foregroundStyle(.ultraThickMaterial)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(.white.opacity(0.95))
+                    .padding(8)
+                    .adaptiveGlassBackground(tintStrength: 0.5)
             }
             Spacer(minLength: 50)
-            Text(name)
-                .font(.system(.title2, design: .rounded))
-                .fontWeight(.bold)
-                .foregroundStyle(.white.opacity(0.95))
-                .shadow(
-                    color: Color.black.opacity(0.3),
-                    radius: 3,
-                    x: 0,
-                    y: 2
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                .dynamicTypeSize(.xLarge ... .accessibility5)
-            Text(location.name)
-                .font(.system(.callout, design: .rounded))
-                .fontWeight(.medium)
-                .foregroundStyle(location.color)
-                .shadow(
-                    color: Color.black.opacity(0.3),
-                    radius: 3,
-                    x: 0,
-                    y: 2
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .lineLimit(2)
-                .minimumScaleFactor(0.5)
-                .dynamicTypeSize(.xLarge ... .accessibility5)
-        }.padding()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(name)
+                    .font(.system(.title, design: .rounded))
+                    .fontWeight(.bold)
+                    .lineLimit(1)
+                    .foregroundStyle(.white.opacity(0.95))
+                if !location.name.isEmpty {
+                    Text(location.name)
+                        .font(.system(.callout, design: .rounded))
+                        .fontWeight(.medium)
+                        .lineLimit(2)
+                        .foregroundStyle(location.color)
+                }
+            }
+            .padding(4)
+            .padding(.horizontal, 4)
+            .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
     }
     .aspectRatio(1.0, contentMode: .fit)
 }
@@ -111,4 +104,7 @@ func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
 
 #Preview {
     ItemCreationView()
+        .modelContainer(for: Item.self)
+        .modelContainer(for: Category.self)
+        .modelContainer(for: Location.self)
 }

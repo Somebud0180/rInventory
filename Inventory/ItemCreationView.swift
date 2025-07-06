@@ -10,25 +10,25 @@ import SwiftyCrop
 
 struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     
-    // Form fields
+    @Query private var categories: [Category]
+    @Query private var locations: [Location]
+    
+    // State variables for UI
+    @State private var showSymbolPicker: Bool = false
+    @State private var showImagePicker: Bool = false
+    @State private var showCropper: Bool = false
+    @State private var imageToCrop: UIImage? = nil
+    
+    // Item creation variables
     @State private var name: String = "New Item"
     @State private var locationName: String = ""
     @State private var locationColor: Color = .white
     @State private var categoryName: String = ""
-    @State private var image: UIImage? = nil
-    @State private var showImagePicker: Bool = false
-    @State private var symbol: String = ""
+    @State private var background: GridCardBackground = .symbol("square.grid.2x2")
     @State private var symbolColor: Color = .accentColor
-    @State private var showSymbolPicker: Bool = false
-    @State private var showCropper: Bool = false
-    @State private var imageToCrop: UIImage? = nil
-    
-    // Fetch existing locations and categories
-    @Query private var categories: [Category]
-    @Query private var locations: [Location]
     
     // Helper to get suggestions
     private var categorySuggestions: [String] {
@@ -47,6 +47,7 @@ struct ItemCreationView: View {
         locationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(locationName) }
     }
     
+    // Helper to determine if Liquid Glass design is available
     let usesLiquidGlass: Bool = {
         if #available(iOS 26.0, *) {
             return true
@@ -91,11 +92,10 @@ struct ItemCreationView: View {
                     name: name,
                     location: Location(name: locationName, color: locationColor),
                     category: Category(name: categoryName),
-                    background: image != nil ? .image(image!.jpegData(compressionQuality: 0.8)!) : .symbol(symbol),
-                    symbolColor: symbol.isEmpty ? nil : symbolColor,
+                    background: background,
+                    symbolColor: symbolColor,
                     colorScheme: colorScheme
                 )
-                
                 .frame(maxWidth: .infinity, maxHeight: 250, alignment: .center)
                 .listRowSeparator(.hidden)
                 
@@ -105,6 +105,7 @@ struct ItemCreationView: View {
                         .padding(.bottom, 4)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
+                    
                     HStack(alignment: .center, spacing: 12) {
                         TextField("Location", text: $locationName)
                             .font(.body)
@@ -117,13 +118,14 @@ struct ItemCreationView: View {
                                     locationColor = .white
                                 }
                             }
+                        
                         if !locationName.isEmpty {
-                            ColorPicker("", selection: $locationColor, supportsOpacity: false)
+                            ColorPicker("Location Color", selection: $locationColor, supportsOpacity: false)
                                 .labelsHidden()
                                 .frame(width: 32, height: 32)
-                                .clipShape(Circle())
                         }
                     }
+                    
                     if !filteredLocationSuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
@@ -170,14 +172,14 @@ struct ItemCreationView: View {
                 
                 Section(header: Text("Select an icon")) {
                     HStack {
-                        if let image = image {
-                            Image(uiImage: image)
+                        if case .image(let data) = background, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 60, height: 60)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
-                        Button(image == nil ? "Select Image" : "Change Image") {
+                        Button(imageButtonTitle) {
                             showImagePicker = true
                         }
                     }
@@ -186,105 +188,158 @@ struct ItemCreationView: View {
                         Button {
                             showSymbolPicker = true
                         } label: {
-                            if !symbol.isEmpty {
+                            if case .symbol(let symbol) = background, !symbol.isEmpty {
                                 HStack(spacing: 8) {
+                                    Text("Change Symbol: ")
                                     Image(systemName: symbol)
-                                    Text(formattedSymbolName(symbol))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                    Spacer()
                                 }
                             } else {
-                                Text("Pick a Symbol")
+                                Text("Select a Symbol")
                             }
                         }
-                        
-                        Spacer()
-                        
-                        if !symbol.isEmpty {
-                            ColorPicker("", selection: $symbolColor, supportsOpacity: false)
+                        if case .symbol = background {
+                            ColorPicker("Symbol Color", selection: $symbolColor, supportsOpacity: false)
                                 .labelsHidden()
-                                .frame(width: 32, height: 32)
-                                .clipShape(Circle())
+                                .frame(width: 24, height: 24)
+                                .padding(.leading, 12)
                         }
                     }
                 }
                 
                 Section {
                     Button("Save") {
-                        saveItem()
+                        saveItem(name: name, locationName: locationName, locationColor: locationColor, categoryName: categoryName, background: background, symbolColor: symbolColor)
                     }
-                    .disabled(name.isEmpty || locationName.isEmpty)
+                    .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+        }
+        .sheet(isPresented: $showSymbolPicker) {
+            SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: Binding(
+                get: {
+                    if case .symbol(let symbol) = background { return symbol } else { return "" }
+                },
+                set: { newSymbol in
+                    background = .symbol(newSymbol)
                 }
-            }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $image, cropImage: { picked, completion in
-                    imageToCrop = picked
-                })
-            }
-            .onChange(of: imageToCrop) { _, newValue in
-                if newValue != nil {
-                    // Show cropper after image is loaded
-                    showCropper = true
+            ))
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: Binding(
+                get: {
+                    if case let .image(data) = background {
+                        return UIImage(data: data)
+                    } else {
+                        return nil
+                    }
+                },
+                set: { newImage in
+                    if let newImage, let data = newImage.pngData() {
+                        background = .image(data)
+                    }
                 }
+            ), cropImage: { picked, completion in
+                imageToCrop = picked
+            })
+        }
+        .onChange(of: imageToCrop) { _, newValue in
+            if newValue != nil {
+                // Show cropper after image is loaded
+                showCropper = true
             }
-            .sheet(isPresented: $showCropper) {
-                if let img = imageToCrop {
-                    SwiftyCropView(
-                        imageToCrop: img,
-                        maskShape: .square,
-                        configuration: swiftyCropConfiguration,
-                        onComplete: { cropped in
-                            image = cropped
-                            showCropper = false
-                            imageToCrop = nil
+        }
+        .sheet(isPresented: $showCropper) {
+            if let img = imageToCrop {
+                SwiftyCropView(
+                    imageToCrop: img,
+                    maskShape: .square,
+                    configuration: swiftyCropConfiguration,
+                    onComplete: { cropped in
+                        if let cropped, let data = cropped.pngData() {
+                            background = .image(data)
                         }
-                    )
-                }
-            }
-            .sheet(isPresented: $showSymbolPicker) {
-                SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: $symbol)
+                        showCropper = false
+                        imageToCrop = nil
+                    }
+                )
             }
         }
     }
     
-    private func saveItem() {
-        // Find or create Location
-        let location: Location
-        if let existingLoc = locations.first(where: { $0.name == locationName }) {
-            location = existingLoc
+    // MARK: - Computed Properties
+    
+    private var imageButtonTitle: String {
+        if case .image = background {
+            return "Change Image"
         } else {
-            location = Location(name: locationName, color: locationColor)
-            modelContext.insert(location)
+            return "Select Image"
         }
-        // Find or create Category
-        var category: Category? = nil
-        if !categoryName.isEmpty {
-            if let existingCat = categories.first(where: { $0.name == categoryName }) {
-                category = existingCat
-            } else {
-                let newCat = Category(name: categoryName)
-                modelContext.insert(newCat)
-                category = newCat
-            }
+    }
+    
+    private var isBackgroundValid: Bool {
+        switch background {
+        case .symbol(let symbol):
+            return !symbol.isEmpty
+        case .image(let data):
+            return data != nil
         }
-        // Prepare image data
-        let imageData = image?.jpegData(compressionQuality: 0.8)
-        let newItem = Item(name: name, location: location, category: category, imageData: imageData, symbol: symbol.isEmpty ? nil : symbol, symbolColor: symbol.isEmpty ? nil : symbolColor)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func saveItem(name: String, locationName: String, locationColor: Color, categoryName: String, background: GridCardBackground, symbolColor: Color) {
+        let location = findOrCreateLocation(locationName: locationName, locationColor: locationColor)
+        let category = findOrCreateCategory(categoryName: categoryName)
+        let (imageData, symbol, symbolColor) = extractBackgroundData(background: background)
+        
+        let newItem = Item(
+            name: name,
+            location: location,
+            category: category,
+            imageData: imageData,
+            symbol: symbol,
+            symbolColor: symbolColor
+        )
+        
         modelContext.insert(newItem)
         dismiss()
     }
     
-    private func formattedSymbolName(_ symbol: String) -> String {
-        symbol
-            .replacingOccurrences(of: ".", with: " ")
-            .split(separator: " ")
-            .map { $0.capitalized }
-            .joined(separator: " ")
+    private func findOrCreateLocation(locationName: String, locationColor: Color) -> Location {
+        if let existingLocation = locations.first(where: { $0.name == locationName }) {
+            return existingLocation
+        } else {
+            let newLocation = Location(name: locationName, color: locationColor)
+            modelContext.insert(newLocation)
+            return newLocation
+        }
+    }
+    
+    private func findOrCreateCategory(categoryName: String) -> Category? {
+        guard !categoryName.isEmpty else { return nil }
+        
+        if let existingCategory = categories.first(where: { $0.name == categoryName }) {
+            return existingCategory
+        } else {
+            let newCategory = Category(name: categoryName)
+            modelContext.insert(newCategory)
+            return newCategory
+        }
+    }
+    
+    private func extractBackgroundData(background: GridCardBackground) -> (Data?, String?, Color?) {
+        switch background {
+        case let .symbol(symbol):
+            return (nil, symbol, symbolColor)
+        case let .image(data):
+            return (data, nil, nil)
+        }
     }
 }
 

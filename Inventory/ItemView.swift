@@ -18,36 +18,30 @@ struct ItemView: View {
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     
-    enum GridCardBackground {
-        case symbol(String)
-        case image(Data)
-    }
-    
     @Binding var item: Item
     
+    // State variables for UI
     @State var isEditing: Bool = false
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
-    
     @State private var imageToCrop: UIImage? = nil
     @State private var orientation = UIDeviceOrientation.unknown
     
-    @State private var newName: String = ""
-    
-    // Editing state variables decoupled from model instances
-    @State private var editCategoryName: String = ""
-    @State private var editLocationName: String = ""
-    @State private var editLocationColor: Color = .white
-    @State private var newBackground: GridCardBackground = .symbol("questionmark")
-    @State private var newSymbolColor: Color? = nil
-    
-    // Item display variables - moved out of body
+    // Item display variables - Original values
     @State private var name: String = ""
     @State private var location: Location = Location(name: "Unknown", color: .white)
     @State private var category: Category = Category(name: "")
     @State private var background: GridCardBackground = .symbol("questionmark")
     @State private var symbolColor: Color? = nil
+    
+    // Item editing variables
+    @State private var editName: String = ""
+    @State private var editCategoryName: String = ""
+    @State private var editLocationName: String = ""
+    @State private var editLocationColor: Color = .white
+    @State private var editBackground: GridCardBackground = .symbol("questionmark")
+    @State private var editSymbolColor: Color? = nil
     
     // Helper to get suggestions
     private var categorySuggestions: [String] {
@@ -66,6 +60,7 @@ struct ItemView: View {
         editLocationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(editLocationName) }
     }
     
+    // Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
         // Return false for iPad devices to always use portrait layout
         if UIDevice.current.userInterfaceIdiom == .pad {
@@ -75,6 +70,7 @@ struct ItemView: View {
         return orientation.isLandscape || horizontalSizeClass == .regular
     }
     
+    // Helper to determine if Liquid Glass design is available
     let usesLiquidGlass: Bool = {
         if #available(iOS 26.0, *) {
             return true
@@ -112,37 +108,6 @@ struct ItemView: View {
         )
     }
     
-    private var toolbarLikeView: some View {
-        Group {
-            if isEditing {
-                HStack(spacing: 0) {
-                    if case .symbol = newBackground {
-                        ColorPicker("Symbol Color", selection: Binding(
-                            get: { newSymbolColor ?? .accentColor },
-                            set: { newSymbolColor = $0 }
-                        ))
-                        .labelsHidden()
-                        .frame(width: 36, height: 36)
-                        .padding(.horizontal, 4)
-                    }
-                    Menu {
-                        Button("Change Symbol") { showSymbolPicker = true }
-                        Button("Change Image") { showImagePicker = true }
-                    } label: {
-                        Image(systemName: "photo.circle").font(.title2)
-                            .adaptiveGlassButton()
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .padding(.horizontal, 4)
-                    }
-                    .menuStyle(.borderlessButton)
-                }
-                .frame(height: 44, alignment: .center)
-                .adaptiveGlassBackground()
-            }
-        }
-    }
-    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -159,6 +124,10 @@ struct ItemView: View {
             }
         }
         .onAppear {
+            if !isValidItem(item) {
+                dismiss()
+            }
+            
             orientation = UIDevice.current.orientation
             initializeDisplayVariables()
         }
@@ -166,10 +135,10 @@ struct ItemView: View {
             orientation = UIDevice.current.orientation
         }
         .sheet(isPresented: $showSymbolPicker) {
-            // Extract the current symbol from newBackground
+            // Extract the current symbol from editBackground
             SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: Binding(
                 get: {
-                    if case let .symbol(symbol) = newBackground {
+                    if case let .symbol(symbol) = editBackground {
                         return symbol
                     } else {
                         return ""
@@ -177,7 +146,7 @@ struct ItemView: View {
                 },
                 set: { newValue in
                     if !newValue.isEmpty {
-                        newBackground = .symbol(newValue)
+                        editBackground = .symbol(newValue)
                         symbolColor = symbolColor ?? .accentColor
                     }
                 }
@@ -186,7 +155,7 @@ struct ItemView: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: Binding(
                 get: {
-                    if case let .image(data) = newBackground {
+                    if case let .image(data) = editBackground {
                         return UIImage(data: data)
                     } else {
                         return nil
@@ -194,7 +163,7 @@ struct ItemView: View {
                 },
                 set: { newImage in
                     if let newImage, let data = newImage.pngData() {
-                        newBackground = .image(data)
+                        editBackground = .image(data)
                     }
                 }
             ), cropImage: { picked, completion in
@@ -215,7 +184,7 @@ struct ItemView: View {
                     configuration: swiftyCropConfiguration,
                     onComplete: { cropped in
                         if let cropped, let data = cropped.pngData() {
-                            newBackground = .image(data)
+                            editBackground = .image(data)
                         }
                         showCropper = false
                         imageToCrop = nil
@@ -244,7 +213,7 @@ struct ItemView: View {
     private var portraitLayout: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                if case let .image(data) = isEditing ? newBackground : background {
+                if case let .image(data) = isEditing ? editBackground : background {
                     if let uiImage = UIImage(data: data) {
                         Image(uiImage: uiImage)
                             .resizable()
@@ -270,12 +239,12 @@ struct ItemView: View {
                         .aspectRatio(contentMode: .fill))
                     .ignoresSafeArea()
                 
-                VStack(spacing: 16) {
-                    VStack(alignment: .trailing, spacing: 8) {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
                         categorySection
-                        toolbarLikeView
+                        toolbarView
                     }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     symbolSection
                     nameSection
@@ -283,6 +252,7 @@ struct ItemView: View {
                     Spacer()
                     buttonSection
                 }
+                .padding(.top, 8)
                 .padding(.horizontal, 24)
                 .padding(.vertical)
                 .frame(maxWidth: UIScreen.main.bounds.width, maxHeight: .infinity, alignment: .bottom)
@@ -295,7 +265,7 @@ struct ItemView: View {
             HStack(spacing: 0) {
                 // Left half - Symbol/Image with toolbar overlay when editing
                 ZStack(alignment: .bottomLeading) {
-                    if case let .image(data) = isEditing ? newBackground : background {
+                    if case let .image(data) = isEditing ? editBackground : background {
                         if let uiImage = UIImage(data: data) {
                             Image(uiImage: uiImage)
                                 .resizable()
@@ -318,7 +288,7 @@ struct ItemView: View {
                         }
                     }
                     
-                    if case let .symbol(symbol) = isEditing ? newBackground : background {
+                    if case let .symbol(symbol) = isEditing ? editBackground : background {
                         LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .leading, endPoint: .trailing)
                             .ignoresSafeArea(.all)
                             .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.52)
@@ -328,7 +298,7 @@ struct ItemView: View {
                             Image(systemName: symbol)
                                 .resizable()
                                 .scaledToFit()
-                                .foregroundStyle(isEditing ? (newSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
+                                .foregroundStyle(isEditing ? (editSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
                                 .frame(maxWidth: min(192, geometry.size.width * 0.3))
                                 .padding()
                             Spacer()
@@ -337,7 +307,7 @@ struct ItemView: View {
                     }
                     
                     if isEditing {
-                        toolbarLikeView
+                        toolbarView
                             .ignoresSafeArea(.all)
                             .padding(.bottom, 8)
                             .padding(.leading, max(geometry.safeAreaInsets.leading, 12))
@@ -366,6 +336,37 @@ struct ItemView: View {
         }
     }
     
+    private var toolbarView: some View {
+        Group {
+            if isEditing {
+                HStack(spacing: 0) {
+                    Menu {
+                        Button("Change Symbol") { showSymbolPicker = true }
+                        Button("Change Image") { showImagePicker = true }
+                    } label: {
+                        Image(systemName: "photo.circle").font(.title2)
+                            .adaptiveGlassButton()
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .padding(.horizontal, 4)
+                    }
+                    .menuStyle(.borderlessButton)
+                    if case .symbol = editBackground {
+                        ColorPicker("Symbol Color", selection: Binding(
+                            get: { editSymbolColor ?? .accentColor },
+                            set: { editSymbolColor = $0 }
+                        ))
+                        .labelsHidden()
+                        .frame(width: 36, height: 36)
+                        .padding(.horizontal, 4)
+                    }
+                }
+                .frame(height: 44, alignment: .center)
+                .adaptiveGlassBackground()
+            }
+        }
+    }
+    
     // Extract common sections into computed properties
     private var categorySection: some View {
         Group {
@@ -373,10 +374,9 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         TextField("Category", text: $editCategoryName)
-                            .font(.system(.footnote, design: .rounded))
+                            .font(.system(.callout, design: .rounded))
                             .bold()
                             .minimumScaleFactor(0.5)
-                            .dynamicTypeSize(.xLarge ... .accessibility5)
                             .foregroundStyle(.white.opacity(0.95))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
@@ -401,13 +401,15 @@ struct ItemView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text(!category.name.isEmpty ? category.name : "")
-                    .font(.system(.footnote, design: .rounded))
-                    .bold()
-                    .minimumScaleFactor(0.5)
-                    .dynamicTypeSize(.xLarge ... .accessibility5)
-                    .foregroundStyle(.white.opacity(0.95))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !category.name.isEmpty {
+                    Text(category.name)
+                        .font(.system(.callout, design: .rounded))
+                        .bold()
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(8)
+                        .adaptiveGlassBackground(tintStrength: 0.5)
+                }
             }
         }
     }
@@ -415,14 +417,14 @@ struct ItemView: View {
     private var symbolSection: some View {
         Group {
             if !isLandscape {
-                if case let .symbol(symbol) = isEditing ? newBackground : background {
+                if case let .symbol(symbol) = isEditing ? editBackground : background {
                     Image(systemName: symbol)
                         .resizable()
                         .scaledToFit()
-                        .foregroundStyle(isEditing ? (newSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
-                        .frame(maxWidth: 192)
+                        .foregroundStyle(isEditing ? (editSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
+                        .frame(maxWidth: .infinity, maxHeight: 256, alignment: .center)
                 } else {
-                    Spacer(minLength: 50)
+                    Spacer(minLength: 64)
                 }
             } else {
                 EmptyView()
@@ -434,20 +436,13 @@ struct ItemView: View {
         Group {
             if isEditing {
                 HStack(alignment: .center, spacing: 8) {
-                    TextField("Name", text: $newName)
-                        .font(.system(.title2, design: .rounded))
+                    TextField("Name", text: $editName)
+                        .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.95))
-                        .shadow(
-                            color: Color.black.opacity(0.3),
-                            radius: 3,
-                            x: 0,
-                            y: 2
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .lineLimit(1)
+                        .foregroundColor(.white.opacity(0.95))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .minimumScaleFactor(0.5)
-                        .dynamicTypeSize(.xLarge ... .accessibility5)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.clear, lineWidth: 0)
@@ -457,19 +452,11 @@ struct ItemView: View {
                 }
             } else {
                 Text(name)
-                    .font(.system(.title2, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.95))
-                    .shadow(
-                        color: Color.black.opacity(0.3),
-                        radius: 3,
-                        x: 0,
-                        y: 2
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(1)
+                    .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.5)
-                    .dynamicTypeSize(.xLarge ... .accessibility5)
             }
         }
     }
@@ -480,11 +467,10 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         TextField("Location", text: $editLocationName)
-                            .font(.system(.callout, design: .rounded))
-                            .fontWeight(.medium)
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.bold)
                             .foregroundColor(editLocationColor)
                             .minimumScaleFactor(0.5)
-                            .dynamicTypeSize(.xLarge ... .accessibility5)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                         
@@ -517,8 +503,8 @@ struct ItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
-                    .font(.system(.callout, design: .rounded))
-                    .fontWeight(.medium)
+                    .font(.system(.headline, design: .rounded))
+                    .fontWeight(.bold)
                     .foregroundStyle(location.color)
                     .shadow(
                         color: Color.black.opacity(0.3),
@@ -529,7 +515,6 @@ struct ItemView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
-                    .dynamicTypeSize(.xLarge ... .accessibility5)
             }
         }
     }
@@ -542,17 +527,17 @@ struct ItemView: View {
                     withAnimation() {
                         isEditing = true
                         // Load current item values into edit variables
-                        newName = item.name
+                        editName = item.name
                         editLocationName = item.location?.name ?? "Unknown"
                         editLocationColor = item.location?.color ?? .white
                         editCategoryName = item.category?.name ?? ""
                         switch background {
                         case .symbol(let symbol):
-                            newBackground = .symbol(symbol)
-                            newSymbolColor = symbolColor ?? .accentColor
+                            editBackground = .symbol(symbol)
+                            editSymbolColor = symbolColor ?? .accentColor
                         case .image(let data):
-                            newBackground = .image(data)
-                            newSymbolColor = nil
+                            editBackground = .image(data)
+                            editSymbolColor = nil
                         }
                     }
                 }) {
@@ -590,21 +575,21 @@ struct ItemView: View {
                         
                         // Save item with updated details
                         saveItem(
-                            name: newName,
+                            name: editName,
                             category: finalCategory,
                             location: finalLocation,
-                            background: newBackground,
-                            symbolColor: newSymbolColor
+                            background: editBackground,
+                            symbolColor: editSymbolColor
                         )
                         
                         isEditing = false
                         
                         // Update display variables from saved data
-                        name = newName
+                        name = editName
                         category = finalCategory ?? Category(name: "")
                         location = finalLocation ?? Location(name: "Unknown", color: .white)
-                        background = newBackground
-                        symbolColor = newSymbolColor
+                        background = editBackground
+                        symbolColor = editSymbolColor
                     }
                 }) {
                     Label("Save Edits", systemImage: "pencil")
@@ -658,7 +643,12 @@ struct ItemView: View {
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
     
-    func saveItem(name: String, category: Category?, location: Location?, background: GridCardBackground, symbolColor: Color?) {
+    private func isValidItem(_ item: Item) -> Bool {
+        // Example: Check if the item exists in the database or has a valid ID/Name
+        return !item.name.isEmpty
+    }
+    
+    private func saveItem(name: String, category: Category?, location: Location?, background: GridCardBackground, symbolColor: Color?) {
         // Store references to old category and location for cleanup
         let oldCategory = item.category
         let oldLocation = item.location

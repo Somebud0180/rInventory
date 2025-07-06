@@ -13,9 +13,9 @@ struct ContentView: View {
     @Query private var items: [Item]
     
     @State var selection: Int = 0
-    @State var selectedItem: Item? = nil
-    @State var showItemCreationView: Bool = false
-    @State var showItemView: Bool = false
+    @State private var selectedItem: Item? = nil
+    @State private var showItemCreationView: Bool = false
+    @State private var showItemView: Bool = false
     
     var body: some View {
         if #available(iOS 18.0, *) {
@@ -81,6 +81,7 @@ struct ContentView: View {
                 if let currentItem = items.first(where: { $0.id == item.id }) {
                     return currentItem
                 }
+                showItemView = false // Hide the view if the item is not found
                 return item
             },
             set: { newValue in

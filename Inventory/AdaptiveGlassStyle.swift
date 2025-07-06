@@ -48,19 +48,22 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
 
 
 // Liquid Glass / Ultra Thin Capsule Background Style
-struct AdaptiveGlassBackground: ViewModifier {
+struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
+    let tintStrength: CGFloat
+    let shape: S
     
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .glassEffect(.regular
-                    .tint(colorScheme == .dark ? .gray.opacity(0.2) : .white.opacity(0.9))
-                )
+                .glassEffect(
+                    .regular.tint(colorScheme == .dark ? .gray.opacity(0.2) : .gray.opacity(tintStrength)),
+                    in: shape)
         } else {
             content
-                .background(.ultraThinMaterial, in: Capsule())
-            
+                .background(
+                    .ultraThinMaterial,
+                    in: shape)
         }
     }
 }
@@ -74,7 +77,7 @@ extension View {
         self.modifier(AdaptiveGlassButtonModifier(tint: tint))
     }
     
-    func adaptiveGlassBackground() -> some View {
-        self.modifier(AdaptiveGlassBackground())
+    func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.9, shape: S = Capsule()) -> some View {
+        self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, shape: shape))
     }
 }
