@@ -96,7 +96,8 @@ struct ItemCreationView: View {
                     category: Category(name: categoryName),
                     background: background,
                     symbolColor: symbolColor,
-                    colorScheme: colorScheme
+                    colorScheme: colorScheme,
+                    largeFont: true
                 )
                 .frame(maxWidth: .infinity, maxHeight: 250, alignment: .center)
                 .listRowSeparator(.hidden)

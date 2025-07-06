@@ -13,7 +13,8 @@ enum GridCardBackground {
     case image(Data)
 }
 
-func gridCard(name: String, quantity: Int, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme) -> some View {
+func gridCard(name: String, quantity: Int, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false) -> some View {
+    let largeFont = largeFont ?? false
     return ZStack {
         RoundedRectangle(cornerRadius: 25.0)
             .aspectRatio(contentMode: .fill)
@@ -62,19 +63,20 @@ func gridCard(name: String, quantity: Int, location: Location, category: Categor
                         .bold()
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
+                        .padding(.horizontal, 4)
                         .adaptiveGlassBackground(tintStrength: 0.5)
                 }
             }
-            Spacer(minLength: 50)
+            Spacer()
             VStack(alignment: .leading, spacing: 0) {
                 Text(name)
-                    .font(.system(.title, design: .rounded))
+                    .font(largeFont ? .system(.title, design: .rounded) : .system(.title3, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .foregroundStyle(.white.opacity(0.95))
                 if !location.name.isEmpty {
                     Text(location.name)
-                        .font(.system(.callout, design: .rounded))
+                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
                         .fontWeight(.medium)
                         .lineLimit(2)
                         .foregroundStyle(location.color)
@@ -85,7 +87,7 @@ func gridCard(name: String, quantity: Int, location: Location, category: Categor
             .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+        .padding(12)
     }
     .aspectRatio(1.0, contentMode: .fit)
 }

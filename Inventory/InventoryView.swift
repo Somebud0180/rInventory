@@ -246,7 +246,7 @@ struct InventoryView: View {
     }
     
     private var inventoryGrid: some View {
-        LazyVGrid(columns: columns, spacing: 16) {
+        LazyVGrid(columns: columns) {
             if items.isEmpty {
                 gridCard(item: emptyItem, colorScheme: colorScheme)
             } else {

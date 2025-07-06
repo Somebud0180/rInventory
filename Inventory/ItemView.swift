@@ -220,7 +220,7 @@ struct ItemView: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
+                            .frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
                             .mask(
                                 LinearGradient(
                                     gradient: Gradient(stops: [
@@ -230,8 +230,19 @@ struct ItemView: View {
                                     ]),
                                     startPoint: .top,
                                     endPoint: .bottom
-                                )
-                                .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
+                                ).frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
+                            )
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .clear, location: 0.0),
+                                        .init(color: .white, location: 0.1),
+                                        .init(color: .white, location: 0.9),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
                             )
                     }
                 }
@@ -259,9 +270,9 @@ struct ItemView: View {
                     buttonSection
                 }
                 .padding(.top, 8)
-                .padding(.horizontal, 24)
                 .padding(.vertical)
-                .frame(maxWidth: UIScreen.main.bounds.width, maxHeight: .infinity, alignment: .bottom)
+                .padding(.horizontal, 24 * (UIDevice.current.userInterfaceIdiom == .pad ? 7.5 : 9))
+                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
             }
         }
     }
@@ -342,7 +353,7 @@ struct ItemView: View {
                 .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
                 .padding(.horizontal, 24)
             }
-            .frame(height: geometry.size.height * 1)
+            .frame(height: geometry.size.height)
         }
     }
     
