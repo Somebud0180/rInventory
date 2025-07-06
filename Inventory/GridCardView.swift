@@ -13,7 +13,7 @@ enum GridCardBackground {
     case image(Data)
 }
 
-func gridCard(name: String, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme) -> some View {
+func gridCard(name: String, quantity: Int, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme) -> some View {
     return ZStack {
         RoundedRectangle(cornerRadius: 25.0)
             .aspectRatio(contentMode: .fill)
@@ -46,13 +46,24 @@ func gridCard(name: String, location: Location, category: Category, background: 
             .mask(RoundedRectangle(cornerRadius: 25.0)
                 .aspectRatio(contentMode: .fill))
         VStack(alignment: .leading, spacing: 0) {
-            if !category.name.isEmpty {
-                Text(category.name)
-                    .font(.system(.footnote, design: .rounded))
-                    .bold()
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(8)
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+            HStack {
+                if !category.name.isEmpty {
+                    Text(category.name)
+                        .font(.system(.footnote, design: .rounded))
+                        .bold()
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(8)
+                        .adaptiveGlassBackground(tintStrength: 0.5)
+                }
+                Spacer()
+                if quantity > 0 {
+                    Text("\(quantity)")
+                        .font(.system(.footnote, design: .rounded))
+                        .bold()
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(8)
+                        .adaptiveGlassBackground(tintStrength: 0.5)
+                }
             }
             Spacer(minLength: 50)
             VStack(alignment: .leading, spacing: 0) {
@@ -94,6 +105,7 @@ func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
     
     return gridCard(
         name: item.name,
+        quantity: item.quantity,
         location: location,
         category: category,
         background: background,

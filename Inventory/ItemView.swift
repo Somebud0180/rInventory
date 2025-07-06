@@ -30,6 +30,7 @@ struct ItemView: View {
     
     // Item display variables - Original values
     @State private var name: String = ""
+    @State private var quantity: Int = 0
     @State private var location: Location = Location(name: "Unknown", color: .white)
     @State private var category: Category = Category(name: "")
     @State private var background: GridCardBackground = .symbol("questionmark")
@@ -44,20 +45,20 @@ struct ItemView: View {
     @State private var editSymbolColor: Color? = nil
     
     // Helper to get suggestions
-    private var categorySuggestions: [String] {
-        Array(Set(categories.map { $0.name })).sorted()
-    }
-    
-    private var filteredCategorySuggestions: [String] {
-        editCategoryName.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(editCategoryName) }
-    }
-    
     private var locationSuggestions: [String] {
         Array(Set(locations.map { $0.name })).sorted()
     }
     
     private var filteredLocationSuggestions: [String] {
         editLocationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(editLocationName) }
+    }
+    
+    private var categorySuggestions: [String] {
+        Array(Set(categories.map { $0.name })).sorted()
+    }
+    
+    private var filteredCategorySuggestions: [String] {
+        editCategoryName.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(editCategoryName) }
     }
     
     // Helper to determine if the device is in landscape mode
@@ -196,7 +197,8 @@ struct ItemView: View {
     
     private func initializeDisplayVariables() {
         name = item.name
-        location = item.location ?? Location(name: "Unknown", color: .white)
+        quantity = item.quantity
+        location = item.location ?? Location(name: "The Void", color: .gray)
         category = item.category ?? Category(name: "")
         
         if let imageData = item.imageData, !imageData.isEmpty {
@@ -241,7 +243,11 @@ struct ItemView: View {
                 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
-                        categorySection
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }
                         toolbarView
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -318,7 +324,11 @@ struct ItemView: View {
                 // Right half - Content
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 12) {
-                        categorySection
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }
                         nameSection
                         locationSection
                     }
@@ -408,8 +418,25 @@ struct ItemView: View {
                         .minimumScaleFactor(0.5)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
+                        .frame(minHeight: 32)
                         .adaptiveGlassBackground(tintStrength: 0.5)
                 }
+            }
+        }
+    }
+    
+    private var quantitySection: some View {
+        Group {
+            if quantity > 0 {
+                Text(String(quantity))
+                    .font(.system(.body, design: .rounded))
+                    .bold()
+                    .minimumScaleFactor(0.5)
+                    .foregroundStyle(.white.opacity(0.95))
+                    .padding(8)
+                    .padding(.horizontal, 6)
+                    .frame(minHeight: 32)
+                    .adaptiveGlassBackground(tintStrength: 0.5)
             }
         }
     }
@@ -528,8 +555,8 @@ struct ItemView: View {
                         isEditing = true
                         // Load current item values into edit variables
                         editName = item.name
-                        editLocationName = item.location?.name ?? "Unknown"
-                        editLocationColor = item.location?.color ?? .white
+                        editLocationName = item.location?.name ?? "The Void"
+                        editLocationColor = item.location?.color ?? .gray
                         editCategoryName = item.category?.name ?? ""
                         switch background {
                         case .symbol(let symbol):
@@ -576,8 +603,9 @@ struct ItemView: View {
                         // Save item with updated details
                         saveItem(
                             name: editName,
-                            category: finalCategory,
+                            quantity: quantity,
                             location: finalLocation,
+                            category: finalCategory,
                             background: editBackground,
                             symbolColor: editSymbolColor
                         )
@@ -586,8 +614,9 @@ struct ItemView: View {
                         
                         // Update display variables from saved data
                         name = editName
+                        quantity = max(quantity, 0) // Ensure quantity is non-negative
+                        location = finalLocation ?? Location(name: "The Void", color: .gray)
                         category = finalCategory ?? Category(name: "")
-                        location = finalLocation ?? Location(name: "Unknown", color: .white)
                         background = editBackground
                         symbolColor = editSymbolColor
                     }
@@ -648,10 +677,10 @@ struct ItemView: View {
         return !item.name.isEmpty
     }
     
-    private func saveItem(name: String, category: Category?, location: Location?, background: GridCardBackground, symbolColor: Color?) {
+    private func saveItem(name: String, quantity: Int, location: Location?, category: Category?, background: GridCardBackground, symbolColor: Color?) {
         // Store references to old category and location for cleanup
-        let oldCategory = item.category
         let oldLocation = item.location
+        let oldCategory = item.category
         
         // Prepare parameters for Item.update
         var updateImageData: Data? = nil
@@ -673,7 +702,7 @@ struct ItemView: View {
         // Use the Item.update function with all parameters
         item.update(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            quantity: item.quantity, // Keep existing quantity
+            quantity: max(quantity, 0), // Ensure quantity is non-negative
             location: location,
             category: category,
             imageData: updateImageData,
@@ -682,8 +711,8 @@ struct ItemView: View {
         )
         
         // Clean up orphaned entities after the update
-        oldCategory?.deleteIfEmpty(from: modelContext)
         oldLocation?.deleteIfEmpty(from: modelContext)
+        oldCategory?.deleteIfEmpty(from: modelContext)
         
         // Save the context to persist changes
         try? modelContext.save()
@@ -693,6 +722,7 @@ struct ItemView: View {
 #Preview {
     @Previewable @State var item = Item(
         name: "Sample Item",
+        quantity: 1,
         location: Location(name: "Sample Location", color: .blue),
         category: Category(name: "Sample Category"),
         imageData: nil,

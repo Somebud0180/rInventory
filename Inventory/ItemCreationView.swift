@@ -24,6 +24,7 @@ struct ItemCreationView: View {
     
     // Item creation variables
     @State private var name: String = "New Item"
+    @State private var quantity: Int = 0
     @State private var locationName: String = ""
     @State private var locationColor: Color = .white
     @State private var categoryName: String = ""
@@ -90,6 +91,7 @@ struct ItemCreationView: View {
             Form {
                 gridCard(
                     name: name,
+                    quantity: quantity,
                     location: Location(name: locationName, color: locationColor),
                     category: Category(name: categoryName),
                     background: background,
@@ -287,7 +289,7 @@ struct ItemCreationView: View {
         case .symbol(let symbol):
             return !symbol.isEmpty
         case .image(let data):
-            return data != nil
+            return data == data
         }
     }
     
@@ -300,6 +302,7 @@ struct ItemCreationView: View {
         
         let newItem = Item(
             name: name,
+            quantity: max(quantity, 0), // Ensure quantity is non-negative
             location: location,
             category: category,
             imageData: imageData,

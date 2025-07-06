@@ -11,7 +11,7 @@ import SwiftUI
 final class Item {
     var id: UUID = UUID()
     var name: String = ""
-    var quantity: Int? = 1
+    var quantity: Int = 0
     var location: Location?
     var category: Category?
     var imageData: Data?
@@ -20,7 +20,7 @@ final class Item {
     var sortOrder: Int = 0
     var modifiedDate: Date = Date()
     
-    init(_ id: UUID = UUID(), name: String, quantity: Int? = 1, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date()) {
+    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date()) {
         self.id = id
         self.name = name
         self.quantity = quantity
