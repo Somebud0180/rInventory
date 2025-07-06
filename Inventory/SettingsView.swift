@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import SwiftData
 import CloudKit
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     
     private var iCloudStatusDescription: String {
