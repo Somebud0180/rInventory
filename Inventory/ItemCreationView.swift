@@ -65,7 +65,7 @@ struct ItemCreationView: View {
             rotateImage: false,
             rotateImageWithButtons: true,
             usesLiquidGlassDesign: usesLiquidGlass,
-            zoomSensitivity: 2.0,
+            zoomSensitivity: 4.0,
             rectAspectRatio: 4/3,
             texts: SwiftyCropConfiguration.Texts(
                 cancelButton: "Cancel",
@@ -271,6 +271,7 @@ struct ItemCreationView: View {
                         imageToCrop = nil
                     }
                 )
+                .interactiveDismissDisabled()
             }
         }
     }

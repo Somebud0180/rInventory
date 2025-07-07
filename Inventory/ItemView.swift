@@ -83,7 +83,7 @@ struct ItemView: View {
             rotateImage: false,
             rotateImageWithButtons: true,
             usesLiquidGlassDesign: usesLiquidGlass,
-            zoomSensitivity: 2.0,
+            zoomSensitivity: 4.0,
             rectAspectRatio: 4/3,
             texts: SwiftyCropConfiguration.Texts(
                 cancelButton: "Cancel",
@@ -189,6 +189,7 @@ struct ItemView: View {
                         imageToCrop = nil
                     }
                 )
+                .interactiveDismissDisabled()
             }
         }
     }
@@ -230,18 +231,6 @@ struct ItemView: View {
                                     endPoint: .bottom
                                 ).frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                             )
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .clear, location: 0.0),
-                                        .init(color: .white, location: 0.1),
-                                        .init(color: .white, location: 0.9),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
-                            )
                     }
                 }
                 
@@ -269,8 +258,8 @@ struct ItemView: View {
                 }
                 .padding(.top, 8)
                 .padding(.vertical)
-                .padding(.horizontal, 24 * 9)
-                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: geometry.size.width * 0.5)
             }
         }
     }
@@ -420,72 +409,6 @@ struct ItemView: View {
         }
     }
     
-    private var iPadLandscapeLayout: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                if case let .image(data) = isEditing ? editBackground : background {
-                    if let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .white, location: 0.0),
-                                        .init(color: .white, location: 0.7),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ).frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
-                            )
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .clear, location: 0.0),
-                                        .init(color: .white, location: 0.1),
-                                        .init(color: .white, location: 0.9),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
-                            )
-                    }
-                }
-                
-                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-                    .mask(RoundedRectangle(cornerRadius: 25.0)
-                        .aspectRatio(contentMode: .fill))
-                    .ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }
-                        toolbarView
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    symbolSection
-                    nameSection
-                    locationSection
-                    Spacer()
-                    buttonSection
-                }
-                .padding(.top, 8)
-                .padding(.vertical)
-                .padding(.horizontal, 24 * 3.5)
-                .padding(.vertical, geometry.safeAreaInsets.top)
-                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
-            }
-        }
-    }
-    
     private var toolbarView: some View {
         Group {
             if isEditing {
@@ -523,6 +446,9 @@ struct ItemView: View {
             if isEditing {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.white.opacity(0.7))
+                        
                         TextField("Category", text: $editCategoryName)
                             .font(.system(.callout, design: .rounded))
                             .bold()
@@ -530,9 +456,7 @@ struct ItemView: View {
                             .foregroundStyle(.white.opacity(0.95))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                        
-                        Image(systemName: "pencil")
-                            .foregroundColor(.white.opacity(0.7))
+                            .frame(minHeight: 12)
                     }
                     if !filteredCategorySuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -603,6 +527,9 @@ struct ItemView: View {
         Group {
             if isEditing {
                 HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "pencil")
+                        .foregroundColor(.white.opacity(0.7))
+                    
                     TextField("Name", text: $editName)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
@@ -614,8 +541,6 @@ struct ItemView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.clear, lineWidth: 0)
                         )
-                    Image(systemName: "pencil")
-                        .foregroundColor(.white.opacity(0.7))
                 }
             } else {
                 Text(name)
@@ -633,6 +558,9 @@ struct ItemView: View {
             if isEditing {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.white.opacity(0.7))
+                        
                         TextField("Location", text: $editLocationName)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.bold)
@@ -644,8 +572,6 @@ struct ItemView: View {
                         ColorPicker("Location Color", selection: $editLocationColor)
                             .labelsHidden()
                             .frame(width: 28, height: 28)
-                        Image(systemName: "pencil")
-                            .foregroundColor(.white.opacity(0.7))
                     }
                     if !filteredLocationSuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
