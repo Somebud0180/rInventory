@@ -18,8 +18,21 @@ struct ContentView: View {
     @State private var showItemView: Bool = false
     
     var body: some View {
+        tabView()
+            .sheet(isPresented: $showItemCreationView) {
+                ItemCreationView()
+            }
+            .sheet(isPresented: $showItemView, onDismiss: {selectedItem = nil}) {
+                if let selectedItem = selectedItem {
+                    ItemView(item: bindingForItem(selectedItem))
+                }
+            }
+    }
+    
+    
+    private func tabView() -> some View {
         if #available(iOS 18.0, *) {
-            TabView(selection: $selection) {
+            return TabView(selection: $selection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
                     InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
@@ -40,16 +53,8 @@ struct ContentView: View {
                     SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
                 }
             }
-            .sheet(isPresented: $showItemCreationView) {
-                ItemCreationView()
-            }
-            .sheet(isPresented: $showItemView) {
-                if let selectedItem = selectedItem {
-                    ItemView(item: bindingForItem(selectedItem))
-                }
-            }
         } else {
-            TabView(selection: $selection) {
+            return TabView(selection: $selection) {
                 // Home Tab
                 InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
                     .tabItem {
@@ -63,25 +68,12 @@ struct ContentView: View {
                     }
                     .tag(1) // Tag for Settings Tab
             }
-            .sheet(isPresented: $showItemCreationView) {
-                ItemCreationView()
-            }
-            .sheet(isPresented: $showItemView) {
-                if let selectedItem = selectedItem {
-                    ItemView(item: bindingForItem(selectedItem))
-                }
-            }
         }
     }
     
     private func bindingForItem(_ item: Item) -> Binding<Item> {
         return Binding(
             get: {
-                // Return the current item from the model context to ensure we have the latest data
-                if let currentItem = items.first(where: { $0.id == item.id }) {
-                    return currentItem
-                }
-                showItemView = false // Hide the view if the item is not found
                 return item
             },
             set: { newValue in

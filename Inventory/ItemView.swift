@@ -63,11 +63,6 @@ struct ItemView: View {
     
     // Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
-        // Return false for iPad devices to always use portrait layout
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return false
-        }
-        
         return orientation.isLandscape || horizontalSizeClass == .regular
     }
     
@@ -117,7 +112,10 @@ struct ItemView: View {
                     .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .ignoresSafeArea()
                 
-                if isLandscape {
+                
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    iPadLayout
+                } else if isLandscape {
                     landscapeLayout
                 } else {
                     portraitLayout
@@ -220,7 +218,7 @@ struct ItemView: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
+                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                             .mask(
                                 LinearGradient(
                                     gradient: Gradient(stops: [
@@ -230,7 +228,7 @@ struct ItemView: View {
                                     ]),
                                     startPoint: .top,
                                     endPoint: .bottom
-                                ).frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
+                                ).frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                             )
                             .mask(
                                 LinearGradient(
@@ -271,7 +269,72 @@ struct ItemView: View {
                 }
                 .padding(.top, 8)
                 .padding(.vertical)
-                .padding(.horizontal, 24 * (UIDevice.current.userInterfaceIdiom == .pad ? 7.5 : 9))
+                .padding(.horizontal, 24 * 9)
+                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
+            }
+        }
+    }
+    
+    private var iPadLayout: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                if case let .image(data) = isEditing ? editBackground : background {
+                    if let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .white, location: 0.0),
+                                        .init(color: .white, location: 0.7),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                            )
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .clear, location: 0.0),
+                                        .init(color: .white, location: 0.1),
+                                        .init(color: .white, location: 0.9),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                            )
+                    }
+                }
+                
+                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
+                    .mask(RoundedRectangle(cornerRadius: 25.0)
+                        .aspectRatio(contentMode: .fill))
+                    .ignoresSafeArea()
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }
+                        toolbarView
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    symbolSection
+                    nameSection
+                    locationSection
+                    Spacer()
+                    buttonSection
+                }
+                .padding(.top, 8)
+                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 520 - geometry.size.width) * 0.18), 120)))
+                .padding(.horizontal, max(12, min(geometry.size.width * 0.10, 48)))
                 .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
             }
         }
@@ -354,6 +417,72 @@ struct ItemView: View {
                 .padding(.horizontal, 24)
             }
             .frame(height: geometry.size.height)
+        }
+    }
+    
+    private var iPadLandscapeLayout: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                if case let .image(data) = isEditing ? editBackground : background {
+                    if let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .white, location: 0.0),
+                                        .init(color: .white, location: 0.7),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ).frame(width: geometry.size.width * (UIDevice.current.userInterfaceIdiom == .pad ? 0.65 : 0.6), height: geometry.size.height * (UIDevice.current.userInterfaceIdiom == .pad ? 0.6 : 0.5))
+                            )
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .clear, location: 0.0),
+                                        .init(color: .white, location: 0.1),
+                                        .init(color: .white, location: 0.9),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                            )
+                    }
+                }
+                
+                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
+                    .mask(RoundedRectangle(cornerRadius: 25.0)
+                        .aspectRatio(contentMode: .fill))
+                    .ignoresSafeArea()
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }
+                        toolbarView
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    symbolSection
+                    nameSection
+                    locationSection
+                    Spacer()
+                    buttonSection
+                }
+                .padding(.top, 8)
+                .padding(.vertical)
+                .padding(.horizontal, 24 * 3.5)
+                .padding(.vertical, geometry.safeAreaInsets.top)
+                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
+            }
         }
     }
     
