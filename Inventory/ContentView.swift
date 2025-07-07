@@ -3,6 +3,7 @@
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
+//  Main view of the Inventory app, containing tabs for Home, Settings, and Search.
 
 import SwiftUI
 import SwiftData

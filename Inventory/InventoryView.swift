@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
+//  Main view for displaying and managing inventory items, with sorting and filtering capabilities.
 
 import SwiftUI
 import SwiftData

@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/4/25.
 //
+//  A SwiftUI wrapper for PHPickerViewController to select images from the photo library.
 
 import SwiftUI
 import PhotosUI
