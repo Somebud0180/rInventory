@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
+//  This view allows users to search for items and filter them by category. It displays a grid of items that match the search criteria and selected category.
 
 import SwiftUI
 import SwiftData

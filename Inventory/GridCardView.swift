@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
+//  This view displays the grid card for an item, showing its symbol or image, name, quantity, location, and category.
 
 import SwiftUI
 import SwiftData

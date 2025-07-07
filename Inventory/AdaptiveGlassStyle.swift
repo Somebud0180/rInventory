@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/4/25.
 //
+//  This file contains adaptive glass style modifiers for buttons and backgrounds. Made to enable the new Liquid Glass design while maintaining compatibility with earlier iOS versions.
 
 import SwiftUI
 

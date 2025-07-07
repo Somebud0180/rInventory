@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/5/25.
 //
+//  A view for managing app settings.
 
 import SwiftUI
 import SwiftData

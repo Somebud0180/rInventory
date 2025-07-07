@@ -1,7 +1,10 @@
+//
+//  DataModel.swift
 //  Inventory
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
+//  Contains the data model definitions for Item, Category, and Location. As well as utility methods for managing these models.
 
 import Foundation
 import SwiftData

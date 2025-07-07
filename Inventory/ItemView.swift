@@ -4,6 +4,7 @@
 //
 //  Created by Ethan John Lagera on 7/4/25.
 //
+//  View for displaying and editing an individual item in the inventory.
 
 import SwiftUI
 import SwiftData
