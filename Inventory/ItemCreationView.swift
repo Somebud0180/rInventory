@@ -17,6 +17,7 @@ struct ItemCreationView: View {
     
     @Query private var categories: [Category]
     @Query private var locations: [Location]
+    @Query private var items: [Item]
     
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
@@ -214,7 +215,20 @@ struct ItemCreationView: View {
                 
                 Section {
                     Button("Save") {
-                        saveItem(name: name, locationName: locationName, locationColor: locationColor, categoryName: categoryName, background: background, symbolColor: symbolColor)
+                        Item.saveItem(
+                            name: name,
+                            quantity: quantity,
+                            locationName: locationName,
+                            locationColor: locationColor,
+                            categoryName: categoryName,
+                            background: background,
+                            symbolColor: symbolColor,
+                            items: items,
+                            locations: locations,
+                            categories: categories,
+                            context: modelContext
+                        )
+                        dismiss()
                     }
                     .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
                 }
@@ -296,60 +310,7 @@ struct ItemCreationView: View {
             return data == data
         }
     }
-    
-    // MARK: - Helper Methods
-    
-    private func saveItem(name: String, locationName: String, locationColor: Color, categoryName: String, background: GridCardBackground, symbolColor: Color) {
-        let location = findOrCreateLocation(locationName: locationName, locationColor: locationColor)
-        let category = findOrCreateCategory(categoryName: categoryName)
-        let (imageData, symbol, symbolColor) = extractBackgroundData(background: background)
-        
-        let newItem = Item(
-            name: name,
-            quantity: max(quantity, 0), // Ensure quantity is non-negative
-            location: location,
-            category: category,
-            imageData: imageData,
-            symbol: symbol,
-            symbolColor: symbolColor
-        )
-        
-        modelContext.insert(newItem)
-        dismiss()
-    }
-    
-    private func findOrCreateLocation(locationName: String, locationColor: Color) -> Location {
-        if let existingLocation = locations.first(where: { $0.name == locationName }) {
-            return existingLocation
-        } else {
-            let newLocation = Location(name: locationName, color: locationColor)
-            modelContext.insert(newLocation)
-            return newLocation
-        }
-    }
-    
-    private func findOrCreateCategory(categoryName: String) -> Category? {
-        guard !categoryName.isEmpty else { return nil }
-        
-        if let existingCategory = categories.first(where: { $0.name == categoryName }) {
-            return existingCategory
-        } else {
-            let newCategory = Category(name: categoryName)
-            modelContext.insert(newCategory)
-            return newCategory
-        }
-    }
-    
-    private func extractBackgroundData(background: GridCardBackground) -> (Data?, String?, Color?) {
-        switch background {
-        case let .symbol(symbol):
-            return (nil, symbol, symbolColor)
-        case let .image(data):
-            return (data, nil, nil)
-        }
-    }
 }
-
 #Preview {
     ItemCreationView()
         .modelContainer(for: Item.self)

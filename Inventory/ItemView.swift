@@ -18,6 +18,7 @@ struct ItemView: View {
     
     @Query private var categories: [Category]
     @Query private var locations: [Location]
+    @Query private var items: [Item]
     
     @Binding var item: Item
     
@@ -667,14 +668,15 @@ struct ItemView: View {
                             }
                         }
                         
-                        // Save item with updated details
-                        saveItem(
+                        // Save item with updated details using Item instance method
+                        item.updateItem(
                             name: editName,
                             quantity: quantity,
                             location: finalLocation,
                             category: finalCategory,
                             background: editBackground,
-                            symbolColor: editSymbolColor
+                            symbolColor: editSymbolColor,
+                            context: modelContext
                         )
                         
                         isEditing = false
@@ -699,7 +701,9 @@ struct ItemView: View {
             }
             
             Button(action: {
-                // Delete action stub
+                // Delete action using Item instance method
+                item.deleteItem(context: modelContext, items: items)
+                dismiss()
             }) {
                 Label("Delete", systemImage: "trash")
                     .labelStyle(.iconOnly)
@@ -742,47 +746,6 @@ struct ItemView: View {
     private func isValidItem(_ item: Item) -> Bool {
         // Example: Check if the item exists in the database or has a valid ID/Name
         return !item.name.isEmpty
-    }
-    
-    private func saveItem(name: String, quantity: Int, location: Location?, category: Category?, background: GridCardBackground, symbolColor: Color?) {
-        // Store references to old category and location for cleanup
-        let oldLocation = item.location
-        let oldCategory = item.category
-        
-        // Prepare parameters for Item.update
-        var updateImageData: Data? = nil
-        var updateSymbol: String? = nil
-        var updateSymbolColor: Color? = nil
-        
-        // Handle background changes
-        switch background {
-        case let .symbol(symbol):
-            updateSymbol = symbol
-            updateSymbolColor = symbolColor ?? .accentColor
-            updateImageData = nil // Clear image data when switching to symbol
-        case let .image(data):
-            updateImageData = data
-            updateSymbol = nil // Clear symbol when switching to image
-            updateSymbolColor = nil
-        }
-        
-        // Use the Item.update function with all parameters
-        item.update(
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            quantity: max(quantity, 0), // Ensure quantity is non-negative
-            location: location,
-            category: category,
-            imageData: updateImageData,
-            symbol: updateSymbol,
-            symbolColor: updateSymbolColor
-        )
-        
-        // Clean up orphaned entities after the update
-        oldLocation?.deleteIfEmpty(from: modelContext)
-        oldCategory?.deleteIfEmpty(from: modelContext)
-        
-        // Save the context to persist changes
-        try? modelContext.save()
     }
 }
 

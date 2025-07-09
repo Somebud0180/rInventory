@@ -82,48 +82,121 @@ final class Location {
 }
 
 extension Item {
-    func update(
-        name: String? = nil,
-        quantity: Int? = nil,
-        location: Location? = nil,
-        category: Category? = nil,
-        imageData: Data? = nil,
-        symbol: String? = nil,
-        symbolColor: Color? = nil
+    /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
+    static func saveItem(
+        name: String,
+        quantity: Int,
+        locationName: String,
+        locationColor: Color,
+        categoryName: String,
+        background: GridCardBackground,
+        symbolColor: Color,
+        items: [Item],
+        locations: [Location],
+        categories: [Category],
+        context: ModelContext
     ) {
-        if let name = name { self.name = name }
-        if let quantity = quantity { self.quantity = quantity }
-        if let location = location { self.location = location }
-        if let category = category { self.category = category }
-        if let imageData = imageData { self.imageData = imageData }
-        if let symbol = symbol { self.symbol = symbol }
-        if let symbolColor = symbolColor { self.symbolColor = symbolColor }
-        self.modifiedDate = Date()
-    }
-    
-    /// Removes orphaned categories and locations that have no items
-    static func cleanupOrphanedEntities(in context: ModelContext) {
-        // Clean up categories with no items
-        let categoryDescriptor = FetchDescriptor<Category>()
-        if let categories = try? context.fetch(categoryDescriptor) {
-            for category in categories {
-                if category.items?.isEmpty ?? true {
-                    context.delete(category)
-                }
+        // Helper to find or create location
+        func findOrCreateLocation(locationName: String, locationColor: Color) -> Location {
+            if let existing = locations.first(where: { $0.name == locationName }) {
+                return existing
+            } else {
+                let newLoc = Location(name: locationName, color: locationColor)
+                context.insert(newLoc)
+                return newLoc
             }
         }
-        
-        // Clean up locations with no items
-        let locationDescriptor = FetchDescriptor<Location>()
-        if let locations = try? context.fetch(locationDescriptor) {
-            for location in locations {
-                if location.items?.isEmpty ?? true {
-                    context.delete(location)
-                }
+        // Helper to find or create category
+        func findOrCreateCategory(categoryName: String) -> Category? {
+            guard !categoryName.isEmpty else { return nil }
+            if let existing = categories.first(where: { $0.name == categoryName }) {
+                return existing
+            } else {
+                let newCat = Category(name: categoryName)
+                context.insert(newCat)
+                return newCat
             }
+        }
+        // Extract background
+        let (imageData, symbol, usedSymbolColor): (Data?, String?, Color?) = {
+            switch background {
+            case let .symbol(symbol):
+                return (nil, symbol, symbolColor)
+            case let .image(data):
+                return (data, nil, nil)
+            }
+        }()
+        let sortOrder = (items.map { $0.sortOrder }.max() ?? -1) + 1
+        let item = Item(
+            name: name,
+            quantity: max(quantity, 0),
+            location: findOrCreateLocation(locationName: locationName, locationColor: locationColor),
+            category: findOrCreateCategory(categoryName: categoryName),
+            imageData: imageData,
+            symbol: symbol,
+            symbolColor: usedSymbolColor,
+            sortOrder: sortOrder
+        )
+        context.insert(item)
+        try? context.save()
+    }
+
+    /// Updates this Item and persists, cleaning up orphans.
+    func updateItem(
+        name: String,
+        quantity: Int,
+        location: Location?,
+        category: Category?,
+        background: GridCardBackground,
+        symbolColor: Color?,
+        context: ModelContext
+    ) {
+        let oldLocation = self.location
+        let oldCategory = self.category
+        var updateImageData: Data? = nil
+        var updateSymbol: String? = nil
+        var updateSymbolColor: Color? = nil
+        switch background {
+        case let .symbol(symbol):
+            updateSymbol = symbol
+            updateSymbolColor = symbolColor ?? .accentColor
+            updateImageData = nil
+        case let .image(data):
+            updateImageData = data
+            updateSymbol = nil
+            updateSymbolColor = nil
         }
         
         // Save changes
+        self.name = name
+        self.location = location
+        self.category = category
+        self.imageData = updateImageData
+        self.symbol = updateSymbol
+        self.symbolColor = updateSymbolColor ?? .accentColor
+        self.modifiedDate = Date()
+        
+        oldLocation?.deleteIfEmpty(from: context)
+        oldCategory?.deleteIfEmpty(from: context)
+        try? context.save()
+    }
+
+    /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
+    func deleteItem(
+        context: ModelContext,
+        items: [Item]
+    ) {
+        let oldLocation = self.location
+        let oldCategory = self.category
+        let deletedOrder = self.sortOrder
+        context.delete(self)
+        oldLocation?.deleteIfEmpty(from: context)
+        oldCategory?.deleteIfEmpty(from: context)
+        // Cascade sortOrder
+        let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
+        for otherItem in itemsToUpdate {
+            otherItem.sortOrder -= 1
+        }
         try? context.save()
     }
 }
