@@ -77,6 +77,19 @@ struct ItemView: View {
         }
     }()
     
+    private var roundedRectGradient: LinearGradient {
+        switch background {
+        case .image:
+            return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .symbol:
+            if colorScheme == .dark {
+                return LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            } else {
+                return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
+    }
+    
     var swiftyCropConfiguration: SwiftyCropConfiguration {
         SwiftyCropConfiguration(
             maxMagnificationScale: 4.0,
@@ -109,9 +122,17 @@ struct ItemView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                if case let .image(data) = background, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                        .blur(radius: 44)
+                }
+                
                 RoundedRectangle(cornerRadius: 25.0)
                     .aspectRatio(contentMode: .fill)
-                    .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .foregroundStyle(roundedRectGradient)
                     .ignoresSafeArea()
                 
                 
@@ -224,22 +245,21 @@ struct ItemView: View {
                         LinearGradient(
                             gradient: Gradient(stops: [
                                 .init(color: .white, location: 0.0),
-                                .init(color: .white, location: 0.7),
+                                .init(color: .white, location: 0.8),
                                 .init(color: .clear, location: 1.0)
                             ]),
                             startPoint: .top,
                             endPoint: .bottom
                         )
+                        .blur(radius: 12)
                         .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
                     )
                 )
                 
-                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-                    .mask(RoundedRectangle(cornerRadius: 25.0)
-                        .aspectRatio(contentMode: .fill))
+                LinearGradient(colors: [.clear, .black.opacity(0.9)], startPoint: .center, endPoint: .bottom)
                     .ignoresSafeArea()
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .center) {
                             categorySection
@@ -250,7 +270,7 @@ struct ItemView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Spacer(minLength: 64)
+                    Spacer(minLength: 96)
                     nameSection
                     locationSection
                     Spacer()
@@ -277,12 +297,13 @@ struct ItemView: View {
                             LinearGradient(
                                 gradient: Gradient(stops: [
                                     .init(color: .white, location: 0.0),
-                                    .init(color: .white, location: 0.7),
+                                    .init(color: .white, location: 0.8),
                                     .init(color: .clear, location: 1.0)
                                 ]),
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
+                            .blur(radius: 12)
                             .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
                         )
                     )
@@ -327,41 +348,41 @@ struct ItemView: View {
                 ItemBackgroundView(
                     background: isEditing ? editBackground : background,
                     symbolColor: isEditing ? editSymbolColor : symbolColor,
-                    frame: CGSize(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6),
+                    frame: CGSize(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5),
                     mask: AnyView(
-                        ZStack {
-                            // Vertical Gradient
-                            LinearGradient(
-                                gradient: Gradient(stops: [
-                                    .init(color: .white, location: 0.0),
-                                    .init(color: .white, location: 0.7),
-                                    .init(color: .clear, location: 1.0)
-                                ]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            // Horizontal Gradient
-                            LinearGradient(
+                        // Vertical Gradient
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .white, location: 0.2),
+                                .init(color: .white, location: 0.8),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .blur(radius: 12)
+                        .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
+                        // Horizontal Gradient
+                            .mask(LinearGradient(
                                 gradient: Gradient(stops: [
                                     .init(color: .clear, location: 0.0),
-                                    .init(color: .white, location: 0.1),
-                                    .init(color: .white, location: 0.9),
+                                    .init(color: .white, location: 0.2),
+                                    .init(color: .white, location: 0.8),
                                     .init(color: .clear, location: 1.0)
                                 ]),
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
-                        }
-                        .frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                                .blur(radius: 12)
+                                .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5))
                     )
                 )
                 
-                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-                    .mask(RoundedRectangle(cornerRadius: 25.0)
-                        .aspectRatio(contentMode: .fill))
+                LinearGradient(colors: [.clear, .black.opacity(0.9)], startPoint: .center, endPoint: .bottom)
                     .ignoresSafeArea()
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .center) {
                             categorySection
@@ -370,18 +391,15 @@ struct ItemView: View {
                         }
                         toolbarView
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Spacer(minLength: 96)
+                    Spacer(minLength: 128)
                     nameSection
                     locationSection
                     Spacer()
                     buttonSection
                 }
-                .padding(.top, 8)
-                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 520 - geometry.size.width) * 0.18), 120)))
+                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 500 - geometry.size.width) * 0.18), 120)))
                 .padding(.horizontal, max(12, min(geometry.size.width * 0.10, 48)))
-                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
             }
         }
     }
@@ -483,9 +501,9 @@ struct ItemView: View {
             } else {
                 if !category.name.isEmpty {
                     Text(category.name)
+                        .minimumScaleFactor(0.5)
                         .font(.system(.callout, design: .rounded))
                         .bold()
-                        .minimumScaleFactor(0.5)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .frame(minHeight: 32)
@@ -499,9 +517,9 @@ struct ItemView: View {
         Group {
             if quantity > 0 {
                 Text(String(quantity))
+                    .minimumScaleFactor(0.5)
                     .font(.system(.body, design: .rounded))
                     .bold()
-                    .minimumScaleFactor(0.5)
                     .foregroundStyle(.white.opacity(0.95))
                     .padding(8)
                     .padding(.horizontal, 6)
@@ -523,8 +541,8 @@ struct ItemView: View {
                         .fontWeight(.bold)
                         .lineLimit(1)
                         .foregroundColor(.white.opacity(0.95))
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .minimumScaleFactor(0.5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.clear, lineWidth: 0)
@@ -532,11 +550,11 @@ struct ItemView: View {
                 }
             } else {
                 Text(name)
+                    .minimumScaleFactor(0.5)
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .foregroundStyle(.white.opacity(0.95))
-                    .minimumScaleFactor(0.5)
             }
         }
     }
@@ -584,18 +602,14 @@ struct ItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
+                    .minimumScaleFactor(0.5)
                     .font(.system(.headline, design: .rounded))
                     .fontWeight(.bold)
                     .foregroundStyle(location.color)
-                    .shadow(
-                        color: Color.black.opacity(0.3),
-                        radius: 3,
-                        x: 0,
-                        y: 2
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.5)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 12)
+                    .adaptiveGlassBackground(tintStrength: 0.5)
             }
         }
     }

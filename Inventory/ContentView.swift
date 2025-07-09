@@ -25,7 +25,11 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showItemView, onDismiss: {selectedItem = nil}) {
                 if let selectedItem = selectedItem {
-                    ItemView(item: bindingForItem(selectedItem))
+                    if selectedItem.name.isEmpty {
+                        ProgressView("Loading Item...")
+                    } else {
+                        ItemView(item: bindingForItem(selectedItem))
+                    }
                 }
             }
     }
