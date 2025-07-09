@@ -216,25 +216,23 @@ struct ItemView: View {
     private var portraitLayout: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                if case let .image(data) = isEditing ? editBackground : background {
-                    if let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .white, location: 0.0),
-                                        .init(color: .white, location: 0.7),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ).frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
-                            )
-                    }
-                }
+                ItemBackgroundView(
+                    background: isEditing ? editBackground : background,
+                    symbolColor: isEditing ? editSymbolColor : symbolColor,
+                    frame: CGSize(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5),
+                    mask: AnyView(
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .white, location: 0.0),
+                                .init(color: .white, location: 0.7),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
+                    )
+                )
                 
                 LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
                     .mask(RoundedRectangle(cornerRadius: 25.0)
@@ -252,7 +250,7 @@ struct ItemView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    symbolSection
+                    Spacer(minLength: 64)
                     nameSection
                     locationSection
                     Spacer()
@@ -266,116 +264,28 @@ struct ItemView: View {
         }
     }
     
-    private var iPadLayout: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                if case let .image(data) = isEditing ? editBackground : background {
-                    if let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .white, location: 0.0),
-                                        .init(color: .white, location: 0.7),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
-                            )
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(stops: [
-                                        .init(color: .clear, location: 0.0),
-                                        .init(color: .white, location: 0.1),
-                                        .init(color: .white, location: 0.9),
-                                        .init(color: .clear, location: 1.0)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ).frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
-                            )
-                    }
-                }
-                
-                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-                    .mask(RoundedRectangle(cornerRadius: 25.0)
-                        .aspectRatio(contentMode: .fill))
-                    .ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }
-                        toolbarView
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    symbolSection
-                    nameSection
-                    locationSection
-                    Spacer()
-                    buttonSection
-                }
-                .padding(.top, 8)
-                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 520 - geometry.size.width) * 0.18), 120)))
-                .padding(.horizontal, max(12, min(geometry.size.width * 0.10, 48)))
-                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
-            }
-        }
-    }
-    
     private var landscapeLayout: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
                 // Left half - Symbol/Image with toolbar overlay when editing
                 ZStack(alignment: .bottomLeading) {
-                    if case let .image(data) = isEditing ? editBackground : background {
-                        if let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
-                                .ignoresSafeArea(.all)
-                                .mask(
-                                    LinearGradient(
-                                        gradient: Gradient(stops: [
-                                            .init(color: .white, location: 0.0),
-                                            .init(color: .white, location: 0.7),
-                                            .init(color: .clear, location: 0.9)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                    .ignoresSafeArea(.all)
-                                    .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
-                                )
-                        }
-                    }
-                    
-                    if case let .symbol(symbol) = isEditing ? editBackground : background {
-                        LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .leading, endPoint: .trailing)
-                            .ignoresSafeArea(.all)
-                            .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.52)
-                        
-                        VStack {
-                            Spacer()
-                            Image(systemName: symbol)
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundStyle(isEditing ? (editSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
-                                .frame(maxWidth: min(192, geometry.size.width * 0.3))
-                                .padding()
-                            Spacer()
-                        }
-                        .padding(.leading, geometry.safeAreaInsets.leading)
-                    }
+                    ItemBackgroundView(
+                        background: isEditing ? editBackground : background,
+                        symbolColor: isEditing ? editSymbolColor : symbolColor,
+                        frame: CGSize(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52),
+                        mask: AnyView(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .white, location: 0.0),
+                                    .init(color: .white, location: 0.7),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
+                        )
+                    )
                     
                     if isEditing {
                         toolbarView
@@ -408,6 +318,100 @@ struct ItemView: View {
                 .padding(.horizontal, 24)
             }
             .frame(height: geometry.size.height)
+        }
+    }
+    
+    private var iPadLayout: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                ItemBackgroundView(
+                    background: isEditing ? editBackground : background,
+                    symbolColor: isEditing ? editSymbolColor : symbolColor,
+                    frame: CGSize(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6),
+                    mask: AnyView(
+                        ZStack {
+                            // Vertical Gradient
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .white, location: 0.0),
+                                    .init(color: .white, location: 0.7),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            // Horizontal Gradient
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .white, location: 0.1),
+                                    .init(color: .white, location: 0.9),
+                                    .init(color: .clear, location: 1.0)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        }
+                        .frame(width: geometry.size.width * 0.65, height: geometry.size.height * 0.6)
+                    )
+                )
+                
+                LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
+                    .mask(RoundedRectangle(cornerRadius: 25.0)
+                        .aspectRatio(contentMode: .fill))
+                    .ignoresSafeArea()
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }
+                        toolbarView
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Spacer(minLength: 96)
+                    nameSection
+                    locationSection
+                    Spacer()
+                    buttonSection
+                }
+                .padding(.top, 8)
+                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 520 - geometry.size.width) * 0.18), 120)))
+                .padding(.horizontal, max(12, min(geometry.size.width * 0.10, 48)))
+                .frame(maxWidth: geometry.size.width, maxHeight: .infinity, alignment: .bottom)
+            }
+        }
+    }
+    
+    /// View for displaying either an image or a symbol background with a mask.
+    private struct ItemBackgroundView: View {
+        let background: GridCardBackground
+        let symbolColor: Color?
+        let frame: CGSize
+        let mask: AnyView
+        
+        var body: some View {
+            switch background {
+            case .image(let data):
+                if let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: frame.width, height: frame.height)
+                        .mask(mask)
+                }
+            case .symbol(let symbol):
+                Image(systemName: symbol)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(symbolColor ?? .accentColor)
+                    .padding(.top, 44)
+                    .frame(width: frame.width * 0.75, height: frame.height)
+                    .mask(mask)
+            }
         }
     }
     
@@ -454,8 +458,8 @@ struct ItemView: View {
                         TextField("Category", text: $editCategoryName)
                             .font(.system(.callout, design: .rounded))
                             .bold()
-                            .minimumScaleFactor(0.5)
                             .foregroundStyle(.white.opacity(0.95))
+                            .minimumScaleFactor(0.5)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                             .frame(minHeight: 12)
@@ -503,24 +507,6 @@ struct ItemView: View {
                     .padding(.horizontal, 6)
                     .frame(minHeight: 32)
                     .adaptiveGlassBackground(tintStrength: 0.5)
-            }
-        }
-    }
-    
-    private var symbolSection: some View {
-        Group {
-            if !isLandscape {
-                if case let .symbol(symbol) = isEditing ? editBackground : background {
-                    Image(systemName: symbol)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(isEditing ? (editSymbolColor ?? .accentColor) : (symbolColor ?? .accentColor))
-                        .frame(maxWidth: .infinity, maxHeight: 256, alignment: .center)
-                } else {
-                    Spacer(minLength: 64)
-                }
-            } else {
-                EmptyView()
             }
         }
     }
@@ -762,4 +748,3 @@ struct ItemView: View {
     
     return ItemView(item: $item)
 }
-

@@ -47,6 +47,7 @@ func gridCard(name: String, quantity: Int, location: Location, category: Categor
         LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
             .mask(RoundedRectangle(cornerRadius: 25.0)
                 .aspectRatio(contentMode: .fill))
+        
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 if !category.name.isEmpty {
