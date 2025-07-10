@@ -146,7 +146,7 @@ struct InventoryView: View {
             }
         } label: {
             SortMenuLabel(sortType: sortType, iconName: iconName(for: sortType), menuPresented: $sortMenuPresented)
-                .adaptiveGlassButton(tint: Color(.systemGray5))
+                .adaptiveGlassButton()
         }
     }
     

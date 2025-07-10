@@ -28,6 +28,7 @@ struct ItemCreationView: View {
     // Item creation variables
     @State private var name: String = "New Item"
     @State private var quantity: Int = 0
+    @State private var isQuantityEnabled: Bool = false
     @State private var locationName: String = ""
     @State private var locationColor: Color = .white
     @State private var categoryName: String = ""
@@ -94,7 +95,7 @@ struct ItemCreationView: View {
             Form {
                 gridCard(
                     name: name,
-                    quantity: quantity,
+                    quantity: isQuantityEnabled ? quantity : 0,
                     location: Location(name: locationName, color: locationColor),
                     category: Category(name: categoryName),
                     background: background,
@@ -176,6 +177,16 @@ struct ItemCreationView: View {
                     }
                 }
                 
+                Section(header: Text("Quantity")) {
+                    Toggle(isOn: $isQuantityEnabled) {
+                        Text("Enable Quantity")
+                    }
+                    Stepper(value: $quantity, in: 0...100, step: 1) {
+                        Text("Quantity: \(quantity)")
+                            .foregroundStyle(isQuantityEnabled ? .primary : .secondary)
+                    }.disabled(!isQuantityEnabled)
+                }
+                
                 Section(header: Text("Select an icon")) {
                     HStack {
                         if case .image(let data) = background, let uiImage = UIImage(data: data) {
@@ -217,7 +228,7 @@ struct ItemCreationView: View {
                     Button("Save") {
                         Item.saveItem(
                             name: name,
-                            quantity: quantity,
+                            quantity: isQuantityEnabled ? quantity : 0,
                             locationName: locationName,
                             locationColor: locationColor,
                             categoryName: categoryName,

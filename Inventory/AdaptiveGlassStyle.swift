@@ -30,10 +30,10 @@ struct AdaptiveGlassEditButtonModifier: ViewModifier {
 // Liquid Glass / Tinted Button Background
 struct AdaptiveGlassButtonModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
-    let tint: Color?
+    let tintStrength: CGFloat
     
     func body(content: Content) -> some View {
-        let tintColor = tint ?? (colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9))
+        let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength)
         if #available(iOS 26.0, *) {
             content
                 .glassEffect(.regular
@@ -74,11 +74,12 @@ extension View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
-    func adaptiveGlassButton(tint: Color? = nil) -> some View {
-        self.modifier(AdaptiveGlassButtonModifier(tint: tint))
+    func adaptiveGlassButton(tintStrength: CGFloat = 0.9) -> some View {
+        self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength))
     }
     
     func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.9, shape: S = Capsule()) -> some View {
         self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, shape: shape))
     }
 }
+

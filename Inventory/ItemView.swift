@@ -41,6 +41,7 @@ struct ItemView: View {
     
     // Item editing variables
     @State private var editName: String = ""
+    @State private var editQuantity: Int = 0
     @State private var editCategoryName: String = ""
     @State private var editLocationName: String = ""
     @State private var editLocationColor: Color = .white
@@ -539,16 +540,48 @@ struct ItemView: View {
     
     private var quantitySection: some View {
         Group {
-            if quantity > 0 {
-                Text(String(quantity))
-                    .minimumScaleFactor(0.5)
-                    .font(.system(.body, design: .rounded))
-                    .bold()
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(8)
-                    .padding(.horizontal, 6)
-                    .frame(minHeight: 32)
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+            if isEditing {
+                if editQuantity > 0 {
+                    Menu {
+                        Button("Disable Quantity") { editQuantity = 0 }
+                    } label: {
+                        Text(String(quantity))
+                            .minimumScaleFactor(0.5)
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundStyle(.white.opacity(0.95))
+                            .padding(8)
+                            .padding(.horizontal, 6)
+                            .frame(minHeight: 32)
+                            .adaptiveGlassBackground(tintStrength: 0.5)
+                    }
+                } else {
+                    Menu {
+                        Button("Enable Quantity") { editQuantity = 1 }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .minimumScaleFactor(0.5)
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.95))
+                            .padding(7) // to match padding of Text
+                            .frame(minWidth: 32, minHeight: 32)
+                            .adaptiveGlassButton(tintStrength: 0.5)
+
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+            } else {
+                if quantity > 0 {
+                    Text(String(quantity))
+                        .minimumScaleFactor(0.5)
+                        .font(.system(.body, design: .rounded))
+                        .bold()
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(8)
+                        .padding(.horizontal, 6)
+                        .frame(minHeight: 32)
+                        .adaptiveGlassBackground(tintStrength: 0.5)
+                }
             }
         }
     }
@@ -647,6 +680,7 @@ struct ItemView: View {
                         isEditing = true
                         // Load current item values into edit variables
                         editName = item.name
+                        editQuantity = item.quantity
                         editLocationName = item.location?.name ?? "The Void"
                         editLocationColor = item.location?.color ?? .gray
                         editCategoryName = item.category?.name ?? ""
@@ -695,7 +729,7 @@ struct ItemView: View {
                         // Save item with updated details using Item instance method
                         item.updateItem(
                             name: editName,
-                            quantity: quantity,
+                            quantity: editQuantity,
                             location: finalLocation,
                             category: finalCategory,
                             background: editBackground,
@@ -707,7 +741,7 @@ struct ItemView: View {
                         
                         // Update display variables from saved data
                         name = editName
-                        quantity = max(quantity, 0) // Ensure quantity is non-negative
+                        quantity = max(editQuantity, 0) // Ensure quantity is non-negative
                         location = finalLocation ?? Location(name: "The Void", color: .gray)
                         category = finalCategory ?? Category(name: "")
                         background = editBackground
