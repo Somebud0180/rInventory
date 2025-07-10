@@ -189,9 +189,13 @@ extension Item {
         let oldLocation = self.location
         let oldCategory = self.category
         let deletedOrder = self.sortOrder
+        
         context.delete(self)
+        
+        // Clean up old location/category if they are empty
         oldLocation?.deleteIfEmpty(from: context)
         oldCategory?.deleteIfEmpty(from: context)
+        
         // Cascade sortOrder
         let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
         for otherItem in itemsToUpdate {
@@ -204,6 +208,9 @@ extension Item {
 extension Category {
     /// Deletes this category if it has no items
     func deleteIfEmpty(from context: ModelContext) {
+        // Save any changes (such as deletions) before checking emptiness
+        try? context.save()
+        
         if items?.isEmpty ?? true {
             context.delete(self)
         }
@@ -213,6 +220,9 @@ extension Category {
 extension Location {
     /// Deletes this location if it has no items
     func deleteIfEmpty(from context: ModelContext) {
+        // Save any changes (such as deletions) before checking emptiness
+        try? context.save()
+        
         if items?.isEmpty ?? true {
             context.delete(self)
         }
