@@ -24,6 +24,7 @@ struct ItemView: View {
     
     // State variables for UI
     @State var isEditing: Bool = false
+    @State private var isKeyboardVisible: Bool = false
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
@@ -153,8 +154,25 @@ struct ItemView: View {
             orientation = UIDevice.current.orientation
             initializeDisplayVariables()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation (.smooth) {
+                isKeyboardVisible = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation (.smooth) {
+                isKeyboardVisible = false
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            orientation = UIDevice.current.orientation
+            withAnimation (.smooth) {
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .flatMap { $0.windows }
+                    .first { $0.isKeyWindow }?
+                    .endEditing(true)
+                orientation = UIDevice.current.orientation
+            }
         }
         .sheet(isPresented: $showSymbolPicker) {
             // Extract the current symbol from editBackground
@@ -236,11 +254,13 @@ struct ItemView: View {
     
     private var portraitLayout: some View {
         GeometryReader { geometry in
+            let adjustedWidth = geometry.size.width * (isKeyboardVisible ? 0.8 : 0.5)
+            let adjustedHeight = geometry.size.width * (isKeyboardVisible ? 0.8 : 0.5)
             ZStack(alignment: .top) {
                 ItemBackgroundView(
                     background: isEditing ? editBackground : background,
                     symbolColor: isEditing ? editSymbolColor : symbolColor,
-                    frame: CGSize(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5),
+                    frame: CGSize(width: adjustedWidth, height: adjustedHeight),
                     mask: AnyView(
                         LinearGradient(
                             gradient: Gradient(stops: [
@@ -252,7 +272,7 @@ struct ItemView: View {
                             endPoint: .bottom
                         )
                         .blur(radius: 12)
-                        .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
+                        .frame(width: adjustedWidth, height: adjustedHeight)
                     )
                 )
                 
@@ -268,31 +288,32 @@ struct ItemView: View {
                         }
                         toolbarView
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Spacer(minLength: 96)
+                    Spacer(minLength: 128)
                     nameSection
                     locationSection
                     Spacer()
                     buttonSection
                 }
-                .padding(.top, 8)
+                .padding(.top, 12)
                 .padding(.vertical)
                 .padding(.horizontal, 20)
-                .frame(maxWidth: geometry.size.width * 0.5)
+                .ignoresSafeArea(.keyboard)
+                .frame(width: adjustedWidth)
             }
         }
     }
     
     private var landscapeLayout: some View {
         GeometryReader { geometry in
+            let adjustedHeight = geometry.size.width * (isKeyboardVisible ? 0.25 : 0.5)
             HStack(spacing: 0) {
                 // Left half - Symbol/Image with toolbar overlay when editing
                 ZStack(alignment: .bottomLeading) {
                     ItemBackgroundView(
                         background: isEditing ? editBackground : background,
                         symbolColor: isEditing ? editSymbolColor : symbolColor,
-                        frame: CGSize(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5),
+                        frame: CGSize(width: geometry.size.width * 0.6, height: adjustedHeight),
                         mask: AnyView(
                             LinearGradient(
                                 gradient: Gradient(stops: [
@@ -305,40 +326,41 @@ struct ItemView: View {
                                 endPoint: .trailing
                             )
                             .blur(radius: 12)
-                            .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
+                            .frame(width: geometry.size.width * 0.5, height: adjustedHeight)
                         )
                     )
+                    .ignoresSafeArea(.all)
                     
                     if isEditing {
                         toolbarView
                             .padding(.bottom, 8)
-                            .padding(.leading, max(geometry.safeAreaInsets.leading, 12))
                     }
                 }
-                .ignoresSafeArea(.all)
-                .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
+                .frame(maxWidth: geometry.size.width * 0.5, maxHeight: adjustedHeight)
                 
                 // Right half - Content
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
+                ScrollView {
+                    VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .center) {
+                                categorySection
+                                Spacer()
+                                quantitySection
+                            }
+                            nameSection
+                            locationSection
                         }
-                        nameSection
-                        locationSection
+                        
+                        Spacer(minLength: 200)
+                        buttonSection
                     }
-                    .padding(.top, 24)
-                    
-                    Spacer()
-                    
-                    buttonSection
-                        .padding(.bottom, 12)
+                    .padding(.top, 12)
+                    .padding(.vertical, 12)
                 }
-                .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
-                .padding(.horizontal, 24)
+                .frame(maxWidth: geometry.size.width * 0.5, maxHeight: adjustedHeight)
             }
+            .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
+            .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
             .frame(height: geometry.size.height)
         }
     }
@@ -428,7 +450,7 @@ struct ItemView: View {
                     .resizable()
                     .scaledToFit()
                     .foregroundStyle(symbolColor ?? .accentColor)
-                    .padding(.top, 44)
+                    .padding(.top, 32)
                     .frame(width: frame.width * 0.75, height: frame.height)
                     .mask(mask)
             }
@@ -460,7 +482,7 @@ struct ItemView: View {
                         .padding(.horizontal, 4)
                     }
                 }
-                .frame(height: 44, alignment: .center)
+                .frame(height: 44, alignment: .leading)
                 .adaptiveGlassBackground()
             }
         }
@@ -473,7 +495,7 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                         
                         TextField("Category", text: $editCategoryName)
                             .font(.system(.callout, design: .rounded))
@@ -482,7 +504,7 @@ struct ItemView: View {
                             .minimumScaleFactor(0.5)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .frame(minHeight: 12)
+                            .frame(minHeight: 22)
                     }
                     if !filteredCategorySuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -536,13 +558,13 @@ struct ItemView: View {
             if isEditing {
                 HStack(alignment: .center, spacing: 8) {
                     Image(systemName: "pencil")
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(0.7))
                     
                     TextField("Name", text: $editName)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .lineLimit(1)
-                        .foregroundColor(.white.opacity(0.95))
+                        .foregroundStyle(.white.opacity(0.95))
                         .minimumScaleFactor(0.5)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
@@ -567,12 +589,12 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                         
                         TextField("Location", text: $editLocationName)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.bold)
-                            .foregroundColor(editLocationColor)
+                            .foregroundStyle(editLocationColor)
                             .minimumScaleFactor(0.5)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
@@ -645,7 +667,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
             } else {
                 Button(action: {
                     withAnimation() {
@@ -699,7 +721,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassEditButton(isEditing)
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
             }
             
             Button(action: {
@@ -714,7 +736,7 @@ struct ItemView: View {
                     .padding()
             }
             .adaptiveGlassButton()
-            .foregroundColor(.red)
+            .foregroundStyle(.red)
             
             if !isEditing {
                 Button(action: {
@@ -727,7 +749,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundColor(colorScheme == .light ? .black : .white)
+                .foregroundStyle(colorScheme == .light ? .black : .white)
             } else {
                 Button(action: {
                     dismiss()
@@ -739,7 +761,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundColor(colorScheme == .light ? .black : .white)
+                .foregroundStyle(colorScheme == .light ? .black : .white)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: 50)
