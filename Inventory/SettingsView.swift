@@ -69,7 +69,9 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
                 }
                 Group {
-                    Section("General") {
+                    Section("Grid View") {
+                        Toggle("Show Counter For Single Items", isOn: .constant(true))
+                            .disabled(true) // Placeholder for actual functionality
                     }
                 }
                 Group {

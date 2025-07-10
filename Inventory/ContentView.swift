@@ -100,4 +100,6 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: Item.self)
+        .modelContainer(for: Location.self)
+        .modelContainer(for: Category.self)
 }
