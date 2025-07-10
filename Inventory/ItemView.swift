@@ -292,11 +292,12 @@ struct ItemView: View {
                     ItemBackgroundView(
                         background: isEditing ? editBackground : background,
                         symbolColor: isEditing ? editSymbolColor : symbolColor,
-                        frame: CGSize(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52),
+                        frame: CGSize(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5),
                         mask: AnyView(
                             LinearGradient(
                                 gradient: Gradient(stops: [
-                                    .init(color: .white, location: 0.0),
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .white, location: 0.2),
                                     .init(color: .white, location: 0.8),
                                     .init(color: .clear, location: 1.0)
                                 ]),
@@ -304,17 +305,17 @@ struct ItemView: View {
                                 endPoint: .trailing
                             )
                             .blur(radius: 12)
-                            .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.52)
+                            .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
                         )
                     )
                     
                     if isEditing {
                         toolbarView
-                            .ignoresSafeArea(.all)
                             .padding(.bottom, 8)
                             .padding(.leading, max(geometry.safeAreaInsets.leading, 12))
                     }
                 }
+                .ignoresSafeArea(.all)
                 .frame(width: geometry.size.width * 0.5, height: geometry.size.height * 0.5)
                 
                 // Right half - Content
@@ -418,6 +419,7 @@ struct ItemView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
+                        .ignoresSafeArea()
                         .frame(width: frame.width, height: frame.height)
                         .mask(mask)
                 }
