@@ -293,6 +293,7 @@ struct ItemView: View {
                     Spacer(minLength: 128)
                     nameSection
                     locationSection
+                    quantityStepperSection
                     Spacer()
                     buttonSection
                 }
@@ -314,7 +315,7 @@ struct ItemView: View {
                     ItemBackgroundView(
                         background: isEditing ? editBackground : background,
                         symbolColor: isEditing ? editSymbolColor : symbolColor,
-                        frame: CGSize(width: geometry.size.width * 0.6, height: adjustedHeight),
+                        frame: CGSize(width: geometry.size.width * 0.5, height: adjustedHeight),
                         mask: AnyView(
                             LinearGradient(
                                 gradient: Gradient(stops: [
@@ -327,7 +328,7 @@ struct ItemView: View {
                                 endPoint: .trailing
                             )
                             .blur(radius: 12)
-                            .frame(width: geometry.size.width * 0.5, height: adjustedHeight)
+                            .frame(width: geometry.size.width * 0.45, height: adjustedHeight)
                         )
                     )
                     .ignoresSafeArea(.all)
@@ -337,12 +338,12 @@ struct ItemView: View {
                             .padding(.bottom, 8)
                     }
                 }
-                .frame(maxWidth: geometry.size.width * 0.5, maxHeight: adjustedHeight)
+                .frame(maxWidth: geometry.size.width * 0.45, maxHeight: adjustedHeight)
                 
                 // Right half - Content
                 ScrollView {
                     VStack(alignment: .leading) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .center) {
                                 categorySection
                                 Spacer()
@@ -350,15 +351,16 @@ struct ItemView: View {
                             }
                             nameSection
                             locationSection
+                            quantityStepperSection
                         }
                         
-                        Spacer(minLength: 200)
+                        Spacer(minLength: 128)
                         buttonSection
                     }
                     .padding(.top, 12)
                     .padding(.vertical, 12)
                 }
-                .frame(maxWidth: geometry.size.width * 0.5, maxHeight: adjustedHeight)
+                .frame(maxWidth: geometry.size.width * 0.55, maxHeight: adjustedHeight)
             }
             .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
             .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
@@ -419,6 +421,7 @@ struct ItemView: View {
                     Spacer(minLength: 128)
                     nameSection
                     locationSection
+                    quantityStepperSection
                     Spacer()
                     buttonSection
                 }
@@ -543,9 +546,13 @@ struct ItemView: View {
             if isEditing {
                 if editQuantity > 0 {
                     Menu {
-                        Button("Disable Quantity") { editQuantity = 0 }
+                        Button("Disable Quantity") {
+                            // MARK: - Identify best save behavior for editQuantity (save immediately or on save button press)
+                            updateQuantity(editQuantity)
+                            editQuantity = 0
+                        }
                     } label: {
-                        Text(String(quantity))
+                        Text(String(editQuantity))
                             .minimumScaleFactor(0.5)
                             .font(.system(.body, design: .rounded))
                             .bold()
@@ -557,7 +564,7 @@ struct ItemView: View {
                     }
                 } else {
                     Menu {
-                        Button("Enable Quantity") { editQuantity = 1 }
+                        Button("Enable Quantity") { editQuantity = max(1, quantity) }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .minimumScaleFactor(0.5)
@@ -634,7 +641,8 @@ struct ItemView: View {
                         
                         ColorPicker("Location Color", selection: $editLocationColor)
                             .labelsHidden()
-                            .frame(width: 28, height: 28)
+                            .padding(.trailing, 12)
+                            .frame(width: 24, height: 24)
                     }
                     if !filteredLocationSuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -669,6 +677,40 @@ struct ItemView: View {
                     .adaptiveGlassBackground(tintStrength: 0.5)
             }
         }
+    }
+    
+    private var quantityStepperSection: some View {
+        Group {
+            if isEditing {
+                if editQuantity > 0 {
+                    Stepper(value: $editQuantity, in: 1...1000, step: 1) {
+                        Text("Quantity: \(editQuantity)")
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundStyle(.white.opacity(0.95))
+                    }
+                    .padding(.leading, 4)
+                    .padding(8)
+                    .adaptiveGlassBackground(tintStrength: 0.5)
+                }
+            } else {
+                if quantity > 0 {
+                    Stepper(value: $quantity, in: 1...1000, step: 1) {
+                        Text("Quantity: \(quantity)")
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundStyle(.white.opacity(0.95))
+                    }
+                    .onChange(of: quantity) {
+                        updateQuantity(quantity)
+                    }
+                    .padding(.leading, 4)
+                    .padding(8)
+                    .adaptiveGlassBackground(tintStrength: 0.5)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
     
     private var buttonSection: some View {
@@ -798,7 +840,15 @@ struct ItemView: View {
                 .foregroundStyle(colorScheme == .light ? .black : .white)
             }
         }
+        .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: 50)
+    }
+    
+    private func updateQuantity(_ newValue: Int) {
+        if newValue >= 0 {
+            quantity = newValue
+            item.updateItem(quantity: newValue, context: modelContext)
+        }
     }
     
     private func isValidItem(_ item: Item) -> Bool {
@@ -820,3 +870,4 @@ struct ItemView: View {
     
     return ItemView(item: $item)
 }
+

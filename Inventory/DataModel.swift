@@ -143,37 +143,48 @@ extension Item {
 
     /// Updates this Item and persists, cleaning up orphans.
     func updateItem(
-        name: String,
-        quantity: Int,
-        location: Location?,
-        category: Category?,
-        background: GridCardBackground,
-        symbolColor: Color?,
+        name: String? = nil,
+        quantity: Int? = nil,
+        location: Location? = nil,
+        category: Category? = nil,
+        background: GridCardBackground? = nil,
+        symbolColor: Color? = nil,
         context: ModelContext
     ) {
         let oldLocation = self.location
         let oldCategory = self.category
-        var updateImageData: Data? = nil
-        var updateSymbol: String? = nil
-        var updateSymbolColor: Color? = nil
-        switch background {
-        case let .symbol(symbol):
-            updateSymbol = symbol
-            updateSymbolColor = symbolColor ?? .accentColor
-            updateImageData = nil
-        case let .image(data):
-            updateImageData = data
-            updateSymbol = nil
-            updateSymbolColor = nil
+        
+        if let name = name {
+            self.name = name
+        }
+        if let quantity = quantity {
+            self.quantity = quantity
+        }
+        if let location = location {
+            self.location = location
+        }
+        if let category = category {
+            self.category = category
         }
         
-        // Save changes
-        self.name = name
-        self.location = location
-        self.category = category
-        self.imageData = updateImageData
-        self.symbol = updateSymbol
-        self.symbolColor = updateSymbolColor ?? .accentColor
+        if let background = background {
+            switch background {
+            case let .symbol(symbol):
+                self.symbol = symbol
+                if let color = symbolColor {
+                    self.symbolColor = color
+                }
+                self.imageData = nil
+            case let .image(data):
+                self.imageData = data
+                self.symbol = nil
+                self.symbolColor = .accentColor
+            }
+        } else if let color = symbolColor {
+            // Allow updating symbolColor if passed without background
+            self.symbolColor = color
+        }
+        
         self.modifiedDate = Date()
         
         oldLocation?.deleteIfEmpty(from: context)
@@ -262,3 +273,4 @@ extension Color {
         return (Double(r), Double(g), Double(b), Double(a))
     }
 }
+

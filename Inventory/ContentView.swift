@@ -45,11 +45,7 @@ struct ContentView: View {
                 
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    NavigationView {
-                        Text("Settings")
-                            .font(.title)
-                            .fontWeight(.bold)
-                    }
+                    SettingsView()
                     .navigationViewStyle(.stack)
                 }
                 
@@ -68,10 +64,18 @@ struct ContentView: View {
                     .tag(0) // Tag for Home Tab
                 
                 // Settings Tab
+                SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }
                     .tag(1) // Tag for Settings Tab
+                
+                // Search Tab
+                SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
+                    .tabItem {
+                        Label("Search", systemImage: "magnifyingglass")
+                    }
+                    .tag(2) // Tag for Search Tab
             }
         }
     }

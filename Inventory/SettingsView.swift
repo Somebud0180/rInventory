@@ -73,6 +73,14 @@ struct SettingsView: View {
                     }
                 }
                 Group {
+                    Section(header: Text("Accessibility"), footer: Text("Transitions appear when rotating the device or opening the keyboard.")) {
+                        Toggle("Disable Transitions", isOn: .constant(false))
+                            .disabled(true) // Placeholder for actual functionality
+                        Toggle("Reduce Motion", isOn: .constant(false))
+                            .disabled(true) // Placeholder for actual functionality
+                    }
+                }
+                Group {
                     Section(header: Text("iCloud Sync"), footer: Text("Sync your inventory across all devices using iCloud.")) {
                         HStack {
                             Text("iCloud Status:")

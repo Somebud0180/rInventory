@@ -364,4 +364,6 @@ struct ItemGridCard: View {
     @Previewable @State var selectedItem: Item? = nil
     InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
         .modelContainer(for: Item.self)
+        .modelContainer(for: Location.self)
+        .modelContainer(for: Category.self)
 }

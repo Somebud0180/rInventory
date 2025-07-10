@@ -97,6 +97,10 @@ struct SearchView: View {
 }
 
 #Preview {
-    ContentView(selection: 2)
+    @Previewable @State var showItemView: Bool = false
+    @Previewable @State var selectedItem: Item? = nil
+    SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
         .modelContainer(for: Item.self)
+        .modelContainer(for: Location.self)
+        .modelContainer(for: Category.self)
 }
