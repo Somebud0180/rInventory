@@ -16,13 +16,14 @@ struct AdaptiveGlassEditButtonModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .glassEffect(.regular
+                .glassEffect(
+                    .regular
                     .tint(isEditing ? Color.blue.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9))
                     .interactive()
                 )
         } else {
             content
-                .background(isEditing ? Color.blue.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9))
+                .background(isEditing ? Color.blue.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9), in: Capsule())
         }
     }
 }
@@ -33,16 +34,26 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
     let tintStrength: CGFloat
     
     func body(content: Content) -> some View {
-        let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength)
         if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular
-                    .tint(tintColor)
-                    .interactive()
-                )
+            let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength)
+            if tintStrength == 0.0 {
+                content
+                    .glassEffect(
+                        .regular
+                        .interactive()
+                    )
+            } else {
+                content
+                    .glassEffect(
+                        .regular
+                        .tint(tintColor)
+                        .interactive()
+                    )
+            }
         } else {
+            let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength == 0.0 ? 0.2 : tintStrength)
             content
-                .background(tintColor)
+                .background(tintColor, in: Capsule())
         }
     }
 }
@@ -55,10 +66,12 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     let shape: S
     
     func body(content: Content) -> some View {
+        let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength)
         if #available(iOS 26.0, *) {
             content
                 .glassEffect(
-                    .regular.tint(colorScheme == .dark ? .gray.opacity(0.2) : .gray.opacity(tintStrength)),
+                    .regular
+                    .tint(tintColor),
                     in: shape)
         } else {
             content
@@ -74,11 +87,11 @@ extension View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
-    func adaptiveGlassButton(tintStrength: CGFloat = 0.9) -> some View {
+    func adaptiveGlassButton(tintStrength: CGFloat = 0.8) -> some View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength))
     }
     
-    func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.9, shape: S = Capsule()) -> some View {
+    func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, shape: S = Capsule()) -> some View {
         self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, shape: shape))
     }
 }

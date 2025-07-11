@@ -64,7 +64,6 @@ struct SearchView: View {
                     }
                     .frame(minWidth: 150)
                     .padding(.vertical, 4)
-                    .contentShape(Rectangle())
                     .animation(.none, value: selectedCategory)
                 }
                 .padding(.vertical)

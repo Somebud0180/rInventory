@@ -691,7 +691,7 @@ struct ItemView: View {
                     }
                     .padding(.leading, 4)
                     .padding(8)
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+                    .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
             } else {
                 if quantity > 0 {
@@ -706,7 +706,7 @@ struct ItemView: View {
                     }
                     .padding(.leading, 4)
                     .padding(8)
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+                    .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
             }
         }

@@ -27,7 +27,7 @@ struct ItemCreationView: View {
     
     // Item creation variables
     @State private var name: String = "New Item"
-    @State private var quantity: Int = 0
+    @State private var quantity: Int = 1
     @State private var isQuantityEnabled: Bool = false
     @State private var locationName: String = ""
     @State private var locationColor: Color = .white
@@ -181,7 +181,7 @@ struct ItemCreationView: View {
                     Toggle(isOn: $isQuantityEnabled) {
                         Text("Enable Quantity")
                     }
-                    Stepper(value: $quantity, in: 0...100, step: 1) {
+                    Stepper(value: $quantity, in: 1...100, step: 1) {
                         Text("Quantity: \(quantity)")
                             .foregroundStyle(isQuantityEnabled ? .primary : .secondary)
                     }.disabled(!isQuantityEnabled)

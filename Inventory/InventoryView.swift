@@ -44,6 +44,7 @@ struct InventoryView: View {
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
     
+    @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var sortType: SortType = .order
     @State private var selectedCategory: String = "My Inventory"
@@ -72,14 +73,13 @@ struct InventoryView: View {
                 headerSection
                     .padding(.horizontal, 20)
                 
-                categorySelector
-                
-                HStack {
+                HStack(alignment: .bottom) {
+                    categorySelector
+                        .padding(.horizontal)
                     Spacer()
                     sortMenu
                         .padding(.horizontal)
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
                 
                 Spacer(minLength: 30)
                 
@@ -115,23 +115,96 @@ struct InventoryView: View {
     
     private var categorySelector: some View {
         Menu {
-            Button("My Inventory") { selectedCategory = "My Inventory" }
+            Button("My Inventory") {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    selectedCategory = "My Inventory"
+                }
+            }
             ForEach(categories, id: \.name) { category in
-                Button(category.name) { selectedCategory = category.name }
+                Button(category.name) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        selectedCategory = category.name
+                    }
+                }
             }
         } label: {
-            HStack {
-                Text(selectedCategory)
-                    .font(.headline)
-                    .foregroundStyle(colorScheme == .light ? .black : .white)
-                    .lineLimit(1)
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
+            CategoryMenuLabel(categoryName: selectedCategory, menuPresented: $categoryMenuPresented)
+        }
+        .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
+    }
+    
+    struct CategoryMenuLabel: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let categoryName: String
+        @Binding var menuPresented: Bool
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
+        @State private var lastCategoryName: String = ""
+        
+        init(categoryName: String, menuPresented: Binding<Bool>) {
+            self.categoryName = categoryName
+            self._menuPresented = menuPresented
+            _lastCategoryName = State(initialValue: categoryName)
+        }
+        
+        var body: some View {
+            ZStack {
+                // Visible label
+                HStack {
+                    Text(categoryName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
+                .frame(minHeight: 32)
+                .frame(width: displayedWidth)
+                .foregroundColor(.primary)
+                .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
+                
+                // Hidden label for measurement
+                HStack {
+                    Text(categoryName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(key: WidthPreferenceKey.self, value: geo.size.width)
+                    }
+                )
+                .hidden()
             }
-            .frame(minWidth: 150)
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .animation(.none, value: selectedCategory)
+            .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
+                let width = max(newWidth, 50)
+                measuredWidth = width
+            }
+            .onChange(of: categoryName) {
+                lastCategoryName = categoryName
+                // Wait until menu is closed before expanding
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    if !menuPresented {
+                        displayedWidth = measuredWidth
+                    }
+                }
+            }
+            .onChange(of: menuPresented) {
+                if !menuPresented {
+                    displayedWidth = measuredWidth
+                }
+            }
+            .onAppear {
+                displayedWidth = measuredWidth
+            }
         }
     }
     
@@ -139,15 +212,17 @@ struct InventoryView: View {
         Menu {
             ForEach(SortType.allCases) { type in
                 Button {
-                    sortType = type
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        sortType = type
+                    }
                 } label: {
                     Label(type.rawValue, systemImage: iconName(for: type))
                 }
             }
         } label: {
             SortMenuLabel(sortType: sortType, iconName: iconName(for: sortType), menuPresented: $sortMenuPresented)
-                .adaptiveGlassButton()
         }
+        .adaptiveGlassButton(tintStrength: 0.0)
     }
     
     struct SortMenuLabel: View {
@@ -180,7 +255,6 @@ struct InventoryView: View {
                 .padding(.vertical, 8)
                 .frame(width: displayedWidth)
                 .frame(minHeight: 44)
-                .contentShape(Rectangle())
                 .foregroundColor(.primary)
                 
                 // Hidden label for measurement
@@ -211,18 +285,13 @@ struct InventoryView: View {
                 // Wait until menu is closed before expanding
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     if !menuPresented {
-                        withAnimation(.easeInOut(duration: 0.35)) {
-                            displayedWidth = measuredWidth
-                        }
+                        displayedWidth = measuredWidth
                     }
                 }
             }
             .onChange(of: menuPresented) {
                 if !menuPresented {
-                    // When menu closes, animate to new width if needed
-                    withAnimation(.easeInOut(duration: 0.35)) {
-                        displayedWidth = measuredWidth
-                    }
+                    displayedWidth = measuredWidth
                 }
             }
             .onAppear {
@@ -335,16 +404,30 @@ struct ItemGridCard: View {
     let onTap: () -> Void
     let onDragChanged: (Bool) -> Void
     let onDrop: (UUID) -> Void
-    
+
+    @State private var isPressed = false
+    @State private var isHovered = false
+
     var body: some View {
         Button(action: {
-            onTap()
+            withAnimation(.interactiveSpring()) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.interactiveSpring()) {
+                    isPressed = false
+                }
+                onTap()
+            }
         }) {
             gridCard(item: item, colorScheme: colorScheme)
         }
         .buttonStyle(PlainButtonStyle())
         .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
-        .scaleEffect(draggedItem?.id == item.id ? 0.95 : 1.0)
+        .scaleEffect(draggedItem?.id == item.id ? 0.95 : (isPressed ? 1.05 : (isHovered ? 1.02 : 1.0)))
+        .animation(.interactiveSpring(), value: isPressed)
+        .animation(.interactiveSpring(), value: isHovered)
         .draggable(ItemIdentifier(id: item.id)) {
             gridCard(item: item, colorScheme: colorScheme)
                 .frame(width: 150, height: 150)
@@ -354,6 +437,11 @@ struct ItemGridCard: View {
             guard let droppedItem = droppedItems.first else { return false }
             onDrop(droppedItem.id)
             return true
+        }
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
         }
     }
 }

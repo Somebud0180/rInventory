@@ -23,13 +23,19 @@ struct ContentView: View {
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
             }
-            .sheet(isPresented: $showItemView, onDismiss: {selectedItem = nil}) {
-                if let selectedItem = selectedItem {
-                    if selectedItem.name.isEmpty {
-                        ProgressView("Loading Item...")
-                    } else {
-                        ItemView(item: bindingForItem(selectedItem))
-                    }
+            .sheet(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
+                if !(selectedItem == nil), let selectedItem = selectedItem {
+                    ItemView(item: bindingForItem(selectedItem))
+                } else {
+                    ProgressView("Loading item...")
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                                if selectedItem == nil {
+                                    showItemView = false
+                                    selectedItem = nil
+                                }
+                            }
+                        }
                 }
             }
     }
@@ -83,6 +89,10 @@ struct ContentView: View {
     private func bindingForItem(_ item: Item) -> Binding<Item> {
         return Binding(
             get: {
+                // Fetch the item from the model context
+                if let fetchedItem = items.first(where: { $0.id == item.id }) {
+                    return fetchedItem
+                }
                 return item
             },
             set: { newValue in
