@@ -277,7 +277,7 @@ struct ItemView: View {
                     )
                 )
                 
-                LinearGradient(colors: [.clear, .black.opacity(0.9)], startPoint: .center, endPoint: .bottom)
+                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
                     .ignoresSafeArea()
                 
                 VStack(alignment: .leading, spacing: 12) {
@@ -405,7 +405,7 @@ struct ItemView: View {
                     )
                 )
                 
-                LinearGradient(colors: [.clear, .black.opacity(0.9)], startPoint: .center, endPoint: .bottom)
+                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
                     .ignoresSafeArea()
                 
                 VStack(alignment: .leading, spacing: 12) {
@@ -825,7 +825,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(colorScheme == .light ? .black : .white)
+                .foregroundStyle(.white)
             } else {
                 Button(action: {
                     dismiss()
@@ -837,7 +837,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(colorScheme == .light ? .black : .white)
+                .foregroundStyle(.white)
             }
         }
         .padding(.horizontal, 10)
@@ -852,8 +852,8 @@ struct ItemView: View {
     }
     
     private func isValidItem(_ item: Item) -> Bool {
-        // Example: Check if the item exists in the database or has a valid ID/Name
-        return !item.name.isEmpty
+        // Example: Check if the item has a valid background
+        return !item.name.isEmpty && (item.imageData != nil || item.symbol != nil)
     }
 }
 
