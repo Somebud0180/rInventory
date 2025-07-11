@@ -19,6 +19,7 @@ struct SearchView: View {
     @Binding var selectedItem: Item?
     @State private var searchText: String = ""
     @State private var selectedCategory: String = "My Inventory"
+    @State private var categoryMenuPresented: Bool = false
     
     private var filteredItems: [Item] {
         let categoryFiltered = selectedCategory == "My Inventory" ?
@@ -43,29 +44,7 @@ struct SearchView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Category picker
-                Menu {
-                    Button("My Inventory") {
-                        selectedCategory = "My Inventory"
-                    }
-                    ForEach(categories, id: \.name) { category in
-                        Button(category.name) {
-                            selectedCategory = category.name
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedCategory)
-                            .font(.headline)
-                            .foregroundStyle(colorScheme == .light ? .black : .white)
-                            .lineLimit(1)
-                        
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.gray)
-                    }
-                    .frame(minWidth: 150)
-                    .padding(.vertical, 4)
-                    .animation(.none, value: selectedCategory)
-                }
+                categorySelector
                 .padding(.vertical)
                 
                 ScrollView {
@@ -77,11 +56,10 @@ struct SearchView: View {
                         LazyVGrid(columns: columns, spacing: 16, content: {
                             
                             ForEach(filteredItems, id: \.id) { item in
-                                gridCard(item: item, colorScheme: colorScheme)
-                                    .onTapGesture {
-                                        selectedItem = item
-                                        showItemView = true
-                                    }
+                                ItemSearchGridCard(item: item, colorScheme: colorScheme) {
+                                    selectedItem = item
+                                    showItemView = true
+                                }
                             }
                         })
                         .padding(.horizontal)
@@ -92,6 +70,140 @@ struct SearchView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items and locations")
         }.navigationViewStyle(.stack)
+    }
+    
+    private var categorySelector: some View {
+        Menu {
+            Button("My Inventory") {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    selectedCategory = "My Inventory"
+                }
+            }
+            ForEach(categories, id: \.name) { category in
+                Button(category.name) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        selectedCategory = category.name
+                    }
+                }
+            }
+        } label: {
+            CategoryMenuLabel(categoryName: selectedCategory, menuPresented: $categoryMenuPresented)
+        }
+        .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
+    }
+    
+    struct CategoryMenuLabel: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let categoryName: String
+        @Binding var menuPresented: Bool
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
+        @State private var lastCategoryName: String = ""
+        
+        init(categoryName: String, menuPresented: Binding<Bool>) {
+            self.categoryName = categoryName
+            self._menuPresented = menuPresented
+            _lastCategoryName = State(initialValue: categoryName)
+        }
+        
+        var body: some View {
+            ZStack {
+                // Visible label
+                HStack {
+                    Text(categoryName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
+                .frame(minHeight: 32)
+                .frame(width: displayedWidth)
+                .foregroundColor(.primary)
+                .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
+                
+                // Hidden label for measurement
+                HStack {
+                    Text(categoryName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(key: WidthPreferenceKey.self, value: geo.size.width)
+                    }
+                )
+                .hidden()
+            }
+            .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
+                let width = max(newWidth, 50)
+                measuredWidth = width
+            }
+            .onChange(of: categoryName) {
+                lastCategoryName = categoryName
+                // Wait until menu is closed before expanding
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    if !menuPresented {
+                        displayedWidth = measuredWidth
+                    }
+                }
+            }
+            .onChange(of: menuPresented) {
+                if !menuPresented {
+                    displayedWidth = measuredWidth
+                }
+            }
+            .onAppear {
+                displayedWidth = measuredWidth
+            }
+        }
+    }
+    
+    private struct WidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 100
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
+        }
+    }
+    
+    struct ItemSearchGridCard: View {
+        let item: Item
+        let colorScheme: ColorScheme
+        let onTap: () -> Void
+        
+        @State private var isPressed = false
+        @State private var isHovered = false
+        
+        var body: some View {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isPressed = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isPressed = false
+                    onTap()
+                }
+            } label: {
+                gridCard(item: item, colorScheme: colorScheme)
+                    .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
+                    .animation(.easeInOut(duration: 0.2), value: isPressed)
+                    .animation(.easeInOut(duration: 0.2), value: isHovered)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHovered = hovering
+                }
+            }
+        }
     }
 }
 

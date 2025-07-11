@@ -273,7 +273,7 @@ struct ItemView: View {
                             endPoint: .bottom
                         )
                         .blur(radius: 12)
-                        .frame(width: adjustedWidth, height: adjustedHeight)
+                        .frame(width: adjustedWidth, height: adjustedHeight - 22)
                     )
                 )
                 

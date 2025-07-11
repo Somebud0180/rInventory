@@ -321,7 +321,7 @@ struct InventoryView: View {
                 gridCard(item: emptyItem, colorScheme: colorScheme)
             } else {
                 ForEach(filteredItems, id: \.id) { item in
-                    ItemGridCard(
+                    ItemInventoryGridCard(
                         item: item,
                         colorScheme: colorScheme,
                         draggedItem: $draggedItem,
@@ -397,7 +397,7 @@ struct InventoryView: View {
     }
 }
 
-struct ItemGridCard: View {
+struct ItemInventoryGridCard: View {
     let item: Item
     let colorScheme: ColorScheme
     @Binding var draggedItem: Item?
@@ -425,7 +425,7 @@ struct ItemGridCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
-        .scaleEffect(draggedItem?.id == item.id ? 0.95 : (isPressed ? 1.05 : (isHovered ? 1.02 : 1.0)))
+        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
         .animation(.interactiveSpring(), value: isPressed)
         .animation(.interactiveSpring(), value: isHovered)
         .draggable(ItemIdentifier(id: item.id)) {
