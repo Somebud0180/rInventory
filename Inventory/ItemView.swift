@@ -24,7 +24,6 @@ struct ItemView: View {
     
     // State variables for UI
     @State var isEditing: Bool = false
-    @State private var isKeyboardVisible: Bool = false
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
@@ -79,19 +78,6 @@ struct ItemView: View {
         }
     }()
     
-    private var roundedRectGradient: LinearGradient {
-        switch background {
-        case .image:
-            return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .symbol:
-            if colorScheme == .dark {
-                return LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            } else {
-                return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-        }
-    }
-    
     var swiftyCropConfiguration: SwiftyCropConfiguration {
         SwiftyCropConfiguration(
             maxMagnificationScale: 4.0,
@@ -123,29 +109,33 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                if case let .image(data) = background, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                        .blur(radius: 44)
+            GeometryReader { geometry in
+                ZStack {
+                    if case let .image(data) = background, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .ignoresSafeArea(.all)
+                            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                            .blur(radius: 44)
+                    }
+                    
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        iPadLayout(geometry)
+                    } else if isLandscape {
+                        landscapeLayout(geometry)
+                            .ignoresSafeArea(.keyboard)
+                    } else {
+                        portraitLayout(geometry)
+                            .ignoresSafeArea(.keyboard)
+                    }
                 }
-                
-                RoundedRectangle(cornerRadius: 25.0)
-                    .aspectRatio(contentMode: .fill)
-                    .foregroundStyle(roundedRectGradient)
-                    .ignoresSafeArea()
-                
-                
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    iPadLayout
-                } else if isLandscape {
-                    landscapeLayout
-                } else {
-                    portraitLayout
-                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
+            .if(UIDevice.current.userInterfaceIdiom != .pad) { view in
+                view.ignoresSafeArea(.keyboard)
+            }
+            .background(backgroundGradient)
         }
         .onAppear {
             if !isValidItem(item) {
@@ -155,23 +145,8 @@ struct ItemView: View {
             orientation = UIDevice.current.orientation
             initializeDisplayVariables()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            withAnimation (.smooth) {
-                isKeyboardVisible = true
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation (.smooth) {
-                isKeyboardVisible = false
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
             withAnimation (.smooth) {
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .flatMap { $0.windows }
-                    .first { $0.isKeyWindow }?
-                    .endEditing(true)
                 orientation = UIDevice.current.orientation
             }
         }
@@ -236,6 +211,38 @@ struct ItemView: View {
         }
     }
     
+    private var backgroundGradient: AnyView {
+        return AnyView(
+            ZStack {
+                if case let .image(data) = background, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .blur(radius: 44)
+                }
+                
+                Rectangle()
+                    .foregroundStyle(backgroundLinearGradient)
+                    .ignoresSafeArea()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            })
+    }
+    
+    private var backgroundLinearGradient: LinearGradient {
+        switch background {
+        case .image:
+            return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .symbol:
+            if colorScheme == .dark {
+                return LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            } else {
+                return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
+    }
+    
     private func initializeDisplayVariables() {
         name = item.name
         quantity = item.quantity
@@ -253,69 +260,69 @@ struct ItemView: View {
         symbolColor = item.symbolColor
     }
     
-    private var portraitLayout: some View {
-        GeometryReader { geometry in
-            let adjustedWidth = geometry.size.width * (isKeyboardVisible ? 0.8 : 0.5)
-            let adjustedHeight = geometry.size.width * (isKeyboardVisible ? 0.8 : 0.5)
-            ZStack(alignment: .top) {
-                ItemBackgroundView(
-                    background: isEditing ? editBackground : background,
-                    symbolColor: isEditing ? editSymbolColor : symbolColor,
-                    frame: CGSize(width: adjustedWidth, height: adjustedHeight),
-                    mask: AnyView(
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: .white, location: 0.0),
-                                .init(color: .white, location: 0.8),
-                                .init(color: .clear, location: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .blur(radius: 12)
-                        .frame(width: adjustedWidth, height: adjustedHeight - 22)
+    private func portraitLayout(_ geometry: GeometryProxy) -> some View {
+        return ZStack(alignment: .top) {
+            ItemBackgroundView(
+                background: isEditing ? editBackground : background,
+                symbolColor: isEditing ? editSymbolColor : symbolColor,
+                mask: AnyView(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.8),
+                            .init(color: .clear, location: 1.0)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
+                    .blur(radius: 12)
+                    .frame(maxHeight: geometry.size.height * 0.45)
                 )
-                
-                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
-                    .ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }
-                        toolbarView
-                    }
-                    
-                    Spacer(minLength: 128)
-                    nameSection
-                    locationSection
-                    quantityStepperSection
+            )
+            .frame(maxHeight: geometry.size.height * 0.48)
+            
+            
+            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
+                .ignoresSafeArea(.all)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center) {
+                    categorySection
                     Spacer()
-                    buttonSection
+                    quantitySection
                 }
-                .padding(.top, 12)
-                .padding(.vertical)
-                .padding(.horizontal, 20)
-                .ignoresSafeArea(.keyboard)
-                .frame(width: adjustedWidth)
+                
+                // Wrap in ZStack to overlay toolbar on top of content
+                ZStack(alignment: .topLeading) {
+                    toolbarView
+                    
+                    VStack(alignment: .leading) {
+                        Spacer()
+                            .frame(maxHeight: 256)
+                        
+                        nameSection
+                        locationSection
+                            .padding(.bottom, 12)
+                        quantityStepperSection
+                        Spacer()
+                        buttonSection
+                    }
+                }
             }
+            .padding(.top, 6)
+            .padding(.vertical)
+            .padding(.horizontal, 20)
         }
+        .frame(width: geometry.size.width, height: geometry.size.height)
     }
     
-    private var landscapeLayout: some View {
-        GeometryReader { geometry in
-            let adjustedHeight = geometry.size.width * (isKeyboardVisible ? 0.25 : 0.5)
-            HStack(spacing: 0) {
+    private func landscapeLayout(_ geometry: GeometryProxy) -> some View {
+            return HStack(spacing: 0) {
                 // Left half - Symbol/Image with toolbar overlay when editing
                 ZStack(alignment: .bottomLeading) {
                     ItemBackgroundView(
                         background: isEditing ? editBackground : background,
                         symbolColor: isEditing ? editSymbolColor : symbolColor,
-                        frame: CGSize(width: geometry.size.width * 0.5, height: adjustedHeight),
                         mask: AnyView(
                             LinearGradient(
                                 gradient: Gradient(stops: [
@@ -328,55 +335,53 @@ struct ItemView: View {
                                 endPoint: .trailing
                             )
                             .blur(radius: 12)
-                            .frame(width: geometry.size.width * 0.45, height: adjustedHeight)
+                            .frame(width: geometry.size.width * 0.46, height: .infinity)
                         )
                     )
-                    .ignoresSafeArea(.all)
                     
                     if isEditing {
                         toolbarView
                             .padding(.bottom, 8)
                     }
                 }
-                .frame(maxWidth: geometry.size.width * 0.45, maxHeight: adjustedHeight)
+                .frame(width: geometry.size.width * 0.48, height: geometry.size.height)
                 
                 // Right half - Content
-                ScrollView {
-                    VStack(alignment: .leading) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .center) {
-                                categorySection
-                                Spacer()
-                                quantitySection
-                            }
-                            nameSection
-                            locationSection
-                            quantityStepperSection
-                        }
+                VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .center) {
+                            categorySection
+                            Spacer()
+                            quantitySection
+                        }.padding(.bottom, 12)
                         
-                        Spacer(minLength: 128)
-                        buttonSection
+                        nameSection
+                        locationSection
+                            .padding(.bottom, 12)
+                        quantityStepperSection
                     }
-                    .padding(.top, 12)
-                    .padding(.vertical, 12)
+                    
+                    Spacer()
+                    buttonSection
                 }
-                .frame(maxWidth: geometry.size.width * 0.55, maxHeight: adjustedHeight)
+                .padding(.top, 12)
+                .padding(.vertical, 12)
+                .scrollClipDisabled()
+                .frame(maxWidth: geometry.size.width * 0.52, maxHeight: geometry.size.height)
             }
             .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
             .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
             .frame(height: geometry.size.height)
-        }
     }
     
-    private var iPadLayout: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
+    private func iPadLayout(_ geometry: GeometryProxy) -> some View {
+        return ZStack(alignment: .bottom) {
+            // Background - either image or symbol, with a gradient mask
+            ZStack(alignment: .bottomLeading) {
                 ItemBackgroundView(
                     background: isEditing ? editBackground : background,
                     symbolColor: isEditing ? editSymbolColor : symbolColor,
-                    frame: CGSize(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5),
                     mask: AnyView(
-                        // Vertical Gradient
                         LinearGradient(
                             gradient: Gradient(stops: [
                                 .init(color: .clear, location: 0.0),
@@ -384,58 +389,47 @@ struct ItemView: View {
                                 .init(color: .white, location: 0.8),
                                 .init(color: .clear, location: 1.0)
                             ]),
-                            startPoint: .top,
-                            endPoint: .bottom
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
                         .blur(radius: 12)
-                        .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5)
-                        // Horizontal Gradient
-                            .mask(LinearGradient(
-                                gradient: Gradient(stops: [
-                                    .init(color: .clear, location: 0.0),
-                                    .init(color: .white, location: 0.2),
-                                    .init(color: .white, location: 0.8),
-                                    .init(color: .clear, location: 1.0)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                                .blur(radius: 12)
-                                .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.5))
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     )
                 )
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            
+            // Card - contains all the item details and controls
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center) {
+                    categorySection
+                    Spacer()
+                    quantitySection
+                }
                 
-                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
-                    .ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }
+                HStack() {
+                    nameSection
+                    if isEditing {
                         toolbarView
                     }
-                    
-                    Spacer(minLength: 128)
-                    nameSection
-                    locationSection
-                    quantityStepperSection
-                    Spacer()
-                    buttonSection
                 }
-                .padding(.vertical, max(24, min(geometry.size.height * 0.06 + (max(0, 500 - geometry.size.width) * 0.18), 120)))
-                .padding(.horizontal, max(12, min(geometry.size.width * 0.10, 48)))
+                locationSection
+                quantityStepperSection
+                buttonSection
+                    .padding(.bottom, 6)
             }
+            .padding(12)
+            .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
+            .frame(maxWidth: geometry.size.width * 0.65, maxHeight: geometry.size.height * 0.45, alignment: .bottom)
+            .padding(.bottom, 12 - geometry.safeAreaInsets.bottom * 0.26)
         }
+        .frame(width: geometry.size.width, height: geometry.size.height)
     }
     
     /// View for displaying either an image or a symbol background with a mask.
     private struct ItemBackgroundView: View {
         let background: GridCardBackground
         let symbolColor: Color?
-        let frame: CGSize
         let mask: AnyView
         
         var body: some View {
@@ -445,17 +439,19 @@ struct ItemView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .ignoresSafeArea()
-                        .frame(width: frame.width, height: frame.height)
+                        .ignoresSafeArea(.all)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .mask(mask)
                 }
             case .symbol(let symbol):
                 Image(systemName: symbol)
                     .resizable()
                     .scaledToFit()
+                    .ignoresSafeArea(.all)
+                    .padding(.top, 24)
+                    .padding(22)
                     .foregroundStyle(symbolColor ?? .accentColor)
-                    .padding(.top, 32)
-                    .frame(width: frame.width * 0.75, height: frame.height)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .mask(mask)
             }
         }
@@ -562,6 +558,7 @@ struct ItemView: View {
                             .frame(minHeight: 32)
                             .adaptiveGlassBackground(tintStrength: 0.5)
                     }
+                    .menuStyle(.borderlessButton)
                 } else {
                     Menu {
                         Button("Enable Quantity") { editQuantity = max(1, quantity) }
@@ -573,7 +570,7 @@ struct ItemView: View {
                             .padding(7) // to match padding of Text
                             .frame(minWidth: 32, minHeight: 32)
                             .adaptiveGlassButton(tintStrength: 0.5)
-
+                        
                     }
                     .menuStyle(.borderlessButton)
                 }
@@ -642,7 +639,7 @@ struct ItemView: View {
                         ColorPicker("Location Color", selection: $editLocationColor)
                             .labelsHidden()
                             .padding(.trailing, 12)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 32, height: 32)
                     }
                     if !filteredLocationSuggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -687,8 +684,11 @@ struct ItemView: View {
                         Text("Quantity: \(editQuantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
-                            .foregroundStyle(.white.opacity(0.95))
+                            .minimumScaleFactor(0.5)
+                            .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
+                    .foregroundStyle(.white.opacity(0.95))
+                    .minimumScaleFactor(0.5)
                     .padding(.leading, 4)
                     .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
@@ -699,11 +699,14 @@ struct ItemView: View {
                         Text("Quantity: \(quantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
-                            .foregroundStyle(.white.opacity(0.95))
+                            .minimumScaleFactor(0.5)
+                            .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
                     .onChange(of: quantity) {
                         updateQuantity(quantity)
                     }
+                    .foregroundStyle(.white.opacity(0.95))
+                    .minimumScaleFactor(0.5)
                     .padding(.leading, 4)
                     .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
@@ -857,6 +860,20 @@ struct ItemView: View {
     }
 }
 
+extension View {
+    @ViewBuilder
+    func `if`<Content: View>(
+        _ condition: Bool,
+        transform: (Self) -> Content
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
 #Preview {
     @Previewable @State var item = Item(
         name: "Sample Item",
@@ -870,4 +887,3 @@ struct ItemView: View {
     
     return ItemView(item: $item)
 }
-
