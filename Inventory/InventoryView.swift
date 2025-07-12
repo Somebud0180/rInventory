@@ -136,8 +136,8 @@ struct InventoryView: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 150
-        @State private var measuredWidth: CGFloat = 150
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
         @State private var lastCategoryName: String = ""
         
         init(categoryName: String, menuPresented: Binding<Bool>) {
@@ -186,6 +186,7 @@ struct InventoryView: View {
             .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
                 measuredWidth = width
+                displayedWidth = measuredWidth
             }
             .onChange(of: categoryName) {
                 lastCategoryName = categoryName
@@ -228,8 +229,8 @@ struct InventoryView: View {
         let sortType: SortType
         let iconName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 100
-        @State private var measuredWidth: CGFloat = 100
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
         @State private var lastSortType: SortType
         
         init(sortType: SortType, iconName: String, menuPresented: Binding<Bool>) {
@@ -276,8 +277,9 @@ struct InventoryView: View {
                 .hidden()
             }
             .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
-                let width = max(newWidth, 100)
+                let width = max(newWidth, 50)
                 measuredWidth = width
+                displayedWidth = measuredWidth
             }
             .onChange(of: sortType) {
                 lastSortType = sortType

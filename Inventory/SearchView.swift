@@ -100,8 +100,8 @@ struct SearchView: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 150
-        @State private var measuredWidth: CGFloat = 150
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
         @State private var lastCategoryName: String = ""
         
         init(categoryName: String, menuPresented: Binding<Bool>) {
@@ -150,6 +150,7 @@ struct SearchView: View {
             .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
                 measuredWidth = width
+                displayedWidth = measuredWidth
             }
             .onChange(of: categoryName) {
                 lastCategoryName = categoryName
@@ -172,7 +173,7 @@ struct SearchView: View {
     }
     
     private struct WidthPreferenceKey: PreferenceKey {
-        static var defaultValue: CGFloat = 150
+        static var defaultValue: CGFloat = 50
         static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
             value = nextValue()
         }
