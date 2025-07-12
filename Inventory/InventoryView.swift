@@ -9,6 +9,11 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import Foundation
+
+let inventoryActivityType = "com.ethanj.InventoryView.activity"
+let sortTypeKey = "sortType"
+let categoryKey = "category"
 
 enum SortType: String, CaseIterable, Identifiable {
     case order = "Order"
@@ -44,10 +49,10 @@ struct InventoryView: View {
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
     
+    @SceneStorage("InventoryView.selectedSortType") private var selectedSortType: SortType = .order
+    @SceneStorage("InventoryView.selectedCategory") private var selectedCategory: String = "My Inventory"
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
-    @State private var sortType: SortType = .order
-    @State private var selectedCategory: String = "My Inventory"
     @State private var draggedItem: Item?
     @State var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
     
@@ -57,7 +62,7 @@ struct InventoryView: View {
     
     private var filteredItems: [Item] {
         let filtered = selectedCategory == "My Inventory" ? items : items.filter { $0.category?.name == selectedCategory }
-        switch sortType {
+        switch selectedSortType {
         case .order:
             return filtered.sorted(by: { $0.sortOrder < $1.sortOrder })
         case .alphabetical:
@@ -65,6 +70,13 @@ struct InventoryView: View {
         case .dateModified:
             return filtered.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
         }
+    }
+    
+    private func updateUserActivity(_ activity: NSUserActivity) {
+        activity.addUserInfoEntries(from: [categoryKey: selectedCategory])
+        activity.title = "\(selectedCategory) Inventory"
+        activity.isEligibleForHandoff = true
+        activity.isEligibleForPrediction = true
     }
     
     var body: some View {
@@ -100,6 +112,25 @@ struct InventoryView: View {
             }
             .onAppear {
                 initializeSortOrders()
+            }
+        }
+        .userActivity(inventoryActivityType, isActive: !showItemView) { activity in
+            updateUserActivity(activity)
+        }
+        .onContinueUserActivity(inventoryActivityType) { activity in
+            if let info = activity.userInfo {
+                // Handle case of deleted categories by verifying existence before assignment
+                if let cat = info[categoryKey] as? String {
+                    if categories.contains(where: { $0.name == cat }) {
+                        selectedCategory = cat
+                    } else {
+                        selectedCategory = "My Inventory"
+                    }
+                }
+                // Sort order is only used for restoring UI state, not for system activity
+                if let sortRaw = info[sortTypeKey] as? String, let type = SortType(rawValue: sortRaw) {
+                    selectedSortType = type
+                }
             }
         }
     }
@@ -213,31 +244,31 @@ struct InventoryView: View {
             ForEach(SortType.allCases) { type in
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        sortType = type
+                        selectedSortType = type
                     }
                 } label: {
                     Label(type.rawValue, systemImage: iconName(for: type))
                 }
             }
         } label: {
-            SortMenuLabel(sortType: sortType, iconName: iconName(for: sortType), menuPresented: $sortMenuPresented)
+            SortMenuLabel(selectedSortType: selectedSortType, iconName: iconName(for: selectedSortType), menuPresented: $sortMenuPresented)
         }
         .adaptiveGlassButton(tintStrength: 0.0)
     }
     
     struct SortMenuLabel: View {
-        let sortType: SortType
+        let selectedSortType: SortType
         let iconName: String
         @Binding var menuPresented: Bool
         @State private var displayedWidth: CGFloat = 50
         @State private var measuredWidth: CGFloat = 50
         @State private var lastSortType: SortType
         
-        init(sortType: SortType, iconName: String, menuPresented: Binding<Bool>) {
-            self.sortType = sortType
+        init(selectedSortType: SortType, iconName: String, menuPresented: Binding<Bool>) {
+            self.selectedSortType = selectedSortType
             self.iconName = iconName
             self._menuPresented = menuPresented
-            _lastSortType = State(initialValue: sortType)
+            _lastSortType = State(initialValue: selectedSortType)
         }
         
         var body: some View {
@@ -246,7 +277,7 @@ struct InventoryView: View {
                 HStack(spacing: 6) {
                     Image(systemName: iconName)
                         .font(.body)
-                    Text(sortType.rawValue)
+                    Text(selectedSortType.rawValue)
                         .font(.subheadline)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -261,7 +292,7 @@ struct InventoryView: View {
                 HStack(spacing: 6) {
                     Image(systemName: iconName)
                         .font(.body)
-                    Text(sortType.rawValue)
+                    Text(selectedSortType.rawValue)
                         .font(.subheadline)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -281,8 +312,8 @@ struct InventoryView: View {
                 measuredWidth = width
                 displayedWidth = measuredWidth
             }
-            .onChange(of: sortType) {
-                lastSortType = sortType
+            .onChange(of: selectedSortType) {
+                lastSortType = selectedSortType
                 // Wait until menu is closed before expanding
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     if !menuPresented {
@@ -459,3 +490,4 @@ struct ItemInventoryGridCard: View {
         .modelContainer(for: Location.self)
         .modelContainer(for: Category.self)
 }
+

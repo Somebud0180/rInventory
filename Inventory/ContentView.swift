@@ -13,7 +13,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
     
-    @State var selection: Int = 0
+    @State var tabSelection: Int = 0
     @State private var selectedItem: Item? = nil
     @State private var showItemCreationView: Bool = false
     @State private var showItemView: Bool = false
@@ -35,7 +35,7 @@ struct ContentView: View {
     
     private func tabView() -> some View {
         if #available(iOS 18.0, *) {
-            return TabView(selection: $selection) {
+            return TabView(selection: $tabSelection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
                     InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
@@ -52,7 +52,7 @@ struct ContentView: View {
                 }
             }
         } else {
-            return TabView(selection: $selection) {
+            return TabView(selection: $tabSelection) {
                 // Home Tab
                 InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
                     .tabItem {
