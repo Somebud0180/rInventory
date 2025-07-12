@@ -18,6 +18,8 @@ struct SearchView: View {
     
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
+    @State var isActive: Bool
+    
     @State private var searchText: String = ""
     @State private var selectedCategory: String = "My Inventory"
     @State private var categoryMenuPresented: Bool = false
@@ -73,6 +75,11 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items and locations")
+        }
+        // User activity for continuing search state in inventory tab
+        .userActivity("ethanj.Inventory.searchingInventory", isActive: isActive) { activity in
+            activity.title = "Searching Inventory"
+            activity.userInfo = ["tabSelection": 2] // 2 = Search tab
         }
     }
     
@@ -215,7 +222,9 @@ struct SearchView: View {
 #Preview {
     @Previewable @State var showItemView: Bool = false
     @Previewable @State var selectedItem: Item? = nil
-    SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
+    @Previewable @State var isActive: Bool = true
+    // Provide a constant true for isActive to represent the view being active in preview
+    SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
         .modelContainer(for: Item.self)
         .modelContainer(for: Location.self)
         .modelContainer(for: Category.self)

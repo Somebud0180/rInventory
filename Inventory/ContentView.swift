@@ -7,19 +7,49 @@
 
 import SwiftUI
 import SwiftData
+import Foundation
 
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
     
-    @State var tabSelection: Int = 0
+    // User Activity & State Restoration support
+    private enum TabSelection: Int {
+        case home = 0, settings = 1, search = 2
+    }
+    
+    @SceneStorage("ContentView.tabSelection") var tabSelection: Int = TabSelection.home.rawValue
+    
+    private var currentTab: TabSelection {
+        get { TabSelection(rawValue: tabSelection) ?? .home }
+        set { tabSelection = newValue.rawValue }
+    }
+    
+    private let inventoryActivityType = "ethanj.Inventory.viewingInventory"
+    private let searchActivityType = "ethanj.Inventory.searchingInventory"
+    
     @State private var selectedItem: Item? = nil
     @State private var showItemCreationView: Bool = false
     @State private var showItemView: Bool = false
     
     var body: some View {
-        tabView()
+        let activityType: String?
+        let isActive: Bool
+        
+        switch currentTab {
+        case .home:
+            activityType = inventoryActivityType
+            isActive = true
+        case .search:
+            activityType = searchActivityType
+            isActive = true
+        default:
+            activityType = nil
+            isActive = false
+        }
+        
+        return tabView()
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
             }
@@ -30,6 +60,28 @@ struct ContentView: View {
                     ProgressView("Loading item...")
                 }
             }
+            .userActivity(activityType ?? "", isActive: isActive) { activity in
+                switch currentTab {
+                case .home:
+                    activity.title = "Viewing Inventory"
+                case .search:
+                    activity.title = "Searching Inventory"
+                default:
+                    break
+                }
+                activity.userInfo = ["tabSelection": currentTab.rawValue]
+            }
+            .onContinueUserActivity(inventoryActivityType) { _ in
+                tabSelection = TabSelection.home.rawValue
+            }
+            .onContinueUserActivity(searchActivityType) { _ in
+                tabSelection = TabSelection.search.rawValue
+            }
+            .onContinueUserActivity(inventoryActivityType) { activity in
+                if let value = activity.userInfo?["tabSelection"] as? Int {
+                    tabSelection = value
+                }
+            }
     }
     
     
@@ -38,7 +90,7 @@ struct ContentView: View {
             return TabView(selection: $tabSelection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
-                    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
+                    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                 }
                 
                 // Settings Tab
@@ -48,13 +100,13 @@ struct ContentView: View {
                 
                 // Search Action
                 Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
-                    SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
+                    SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
                 }
             }
         } else {
             return TabView(selection: $tabSelection) {
                 // Home Tab
-                InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
+                InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
@@ -68,7 +120,7 @@ struct ContentView: View {
                     .tag(1) // Tag for Settings Tab
                 
                 // Search Tab
-                SearchView(showItemView: $showItemView, selectedItem: $selectedItem)
+                SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
                     .tabItem {
                         Label("Search", systemImage: "magnifyingglass")
                     }

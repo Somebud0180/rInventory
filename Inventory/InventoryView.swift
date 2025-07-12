@@ -11,7 +11,7 @@ import SwiftData
 import UniformTypeIdentifiers
 import Foundation
 
-let inventoryActivityType = "com.ethanj.InventoryView.activity"
+let inventoryActivityType = "ethanj.Inventory.activity"
 let sortTypeKey = "sortType"
 let categoryKey = "category"
 
@@ -48,6 +48,7 @@ struct InventoryView: View {
     @Binding var showItemCreationView: Bool
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
+    @State var isActive: Bool
     
     @SceneStorage("InventoryView.selectedSortType") private var selectedSortType: SortType = .order
     @SceneStorage("InventoryView.selectedCategory") private var selectedCategory: String = "My Inventory"
@@ -77,6 +78,9 @@ struct InventoryView: View {
         activity.title = "\(selectedCategory) Inventory"
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
+        activity.isEligibleForSearch = true
+        activity.keywords = Set([selectedCategory])
+        activity.persistentIdentifier = "category-\(selectedCategory)"
     }
     
     var body: some View {
@@ -114,7 +118,7 @@ struct InventoryView: View {
                 initializeSortOrders()
             }
         }
-        .userActivity(inventoryActivityType, isActive: !showItemView) { activity in
+        .userActivity(inventoryActivityType, isActive: (!showItemView && isActive)) { activity in
             updateUserActivity(activity)
         }
         .onContinueUserActivity(inventoryActivityType) { activity in
@@ -485,9 +489,9 @@ struct ItemInventoryGridCard: View {
     @Previewable @State var showItemCreationView: Bool = false
     @Previewable @State var showItemView: Bool = false
     @Previewable @State var selectedItem: Item? = nil
-    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem)
+    @Previewable @State var isActive: Bool = true
+    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
         .modelContainer(for: Item.self)
         .modelContainer(for: Location.self)
         .modelContainer(for: Category.self)
 }
-
