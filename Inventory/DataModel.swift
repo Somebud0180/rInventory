@@ -91,11 +91,12 @@ extension Item {
         categoryName: String,
         background: GridCardBackground,
         symbolColor: Color,
-        items: [Item],
-        locations: [Location],
-        categories: [Category],
         context: ModelContext
     ) {
+        let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
+        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
+        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
+        
         // Helper to find or create location
         func findOrCreateLocation(locationName: String, locationColor: Color) -> Location {
             if let existing = locations.first(where: { $0.name == locationName }) {

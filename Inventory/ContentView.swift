@@ -28,14 +28,6 @@ struct ContentView: View {
                     ItemView(item: bindingForItem(selectedItem))
                 } else {
                     ProgressView("Loading item...")
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                if selectedItem == nil {
-                                    showItemView = false
-                                    selectedItem = nil
-                                }
-                            }
-                        }
                 }
             }
     }
@@ -52,7 +44,6 @@ struct ContentView: View {
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
                     SettingsView()
-                    .navigationViewStyle(.stack)
                 }
                 
                 // Search Action

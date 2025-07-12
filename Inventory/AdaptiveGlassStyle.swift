@@ -75,6 +75,7 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
                     in: shape)
         } else {
             content
+                .background(tintColor, in: shape)
                 .background(
                     .ultraThinMaterial,
                     in: shape)

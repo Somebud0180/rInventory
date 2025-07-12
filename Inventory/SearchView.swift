@@ -12,6 +12,7 @@ import SwiftData
 struct SearchView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    
     @Query private var items: [Item]
     @Query private var categories: [Category]
     
@@ -41,7 +42,7 @@ struct SearchView: View {
     ]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Category picker
                 categorySelector
@@ -58,7 +59,10 @@ struct SearchView: View {
                             ForEach(filteredItems, id: \.id) { item in
                                 ItemSearchGridCard(item: item, colorScheme: colorScheme) {
                                     selectedItem = item
-                                    showItemView = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                        // Add a slight delay to ensure the item is ready
+                                        showItemView = true
+                                    }
                                 }
                             }
                         })
@@ -69,7 +73,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items and locations")
-        }.navigationViewStyle(.stack)
+        }
     }
     
     private var categorySelector: some View {
@@ -96,8 +100,8 @@ struct SearchView: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 50
-        @State private var measuredWidth: CGFloat = 50
+        @State private var displayedWidth: CGFloat = 150
+        @State private var measuredWidth: CGFloat = 150
         @State private var lastCategoryName: String = ""
         
         init(categoryName: String, menuPresented: Binding<Bool>) {
@@ -168,7 +172,7 @@ struct SearchView: View {
     }
     
     private struct WidthPreferenceKey: PreferenceKey {
-        static var defaultValue: CGFloat = 100
+        static var defaultValue: CGFloat = 150
         static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
             value = nextValue()
         }

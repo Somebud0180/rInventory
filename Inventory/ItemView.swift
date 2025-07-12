@@ -47,23 +47,6 @@ struct ItemView: View {
     @State private var editBackground: GridCardBackground = .symbol("questionmark")
     @State private var editSymbolColor: Color? = nil
     
-    // Helper to get suggestions
-    private var locationSuggestions: [String] {
-        Array(Set(locations.map { $0.name })).sorted()
-    }
-    
-    private var filteredLocationSuggestions: [String] {
-        editLocationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(editLocationName) }
-    }
-    
-    private var categorySuggestions: [String] {
-        Array(Set(categories.map { $0.name })).sorted()
-    }
-    
-    private var filteredCategorySuggestions: [String] {
-        editCategoryName.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(editCategoryName) }
-    }
-    
     // Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
         return orientation.isLandscape || horizontalSizeClass == .regular
@@ -416,7 +399,7 @@ struct ItemView: View {
                 locationSection
                 quantityStepperSection
                 buttonSection
-                    .padding(.bottom, 6)
+                    .padding(.vertical, 6)
             }
             .padding(12)
             .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
@@ -506,20 +489,7 @@ struct ItemView: View {
                             .disableAutocorrection(true)
                             .frame(minHeight: 22)
                     }
-                    if !filteredCategorySuggestions.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(filteredCategorySuggestions, id: \.self) { cat in
-                                    Button(cat) {
-                                        editCategoryName = cat
-                                    }
-                                    .padding(6)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                    }
+                    filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $editCategoryName)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -641,25 +611,7 @@ struct ItemView: View {
                             .padding(.trailing, 12)
                             .frame(width: 32, height: 32)
                     }
-                    if !filteredLocationSuggestions.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(filteredLocationSuggestions, id: \.self) { loc in
-                                    Button(loc) {
-                                        editLocationName = loc
-                                        if let found = locations.first(where: { $0.name == loc }) {
-                                            editLocationColor = found.color
-                                        } else {
-                                            editLocationColor = .white
-                                        }
-                                    }
-                                    .padding(6)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                    }
+                    filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $editLocationName)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -684,6 +636,7 @@ struct ItemView: View {
                         Text("Quantity: \(editQuantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
+                            .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.5)
                             .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
@@ -699,6 +652,7 @@ struct ItemView: View {
                         Text("Quantity: \(quantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
+                            .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.5)
                             .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
@@ -707,8 +661,8 @@ struct ItemView: View {
                     }
                     .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.5)
-                    .padding(.leading, 4)
-                    .padding(8)
+                    .padding(.leading, 8)
+                    .padding(4)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
             }
@@ -741,62 +695,20 @@ struct ItemView: View {
                 }) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.iconOnly)
-                        .frame(minWidth: 25, minHeight: 25)
+                        .frame(minWidth: 25, minHeight: 24)
                         .bold()
+                        .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassButton()
                 .foregroundStyle(.blue)
             } else {
-                Button(action: {
-                    withAnimation() {
-                        // Construct Category and Location based on edited names and colors
-                        var finalCategory: Category? = nil
-                        let trimmedCategoryName = editCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmedCategoryName.isEmpty {
-                            if let existingCategory = categories.first(where: { $0.name == trimmedCategoryName }) {
-                                finalCategory = existingCategory
-                            } else {
-                                finalCategory = Category(name: trimmedCategoryName)
-                            }
-                        }
-                        
-                        var finalLocation: Location? = nil
-                        let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmedLocationName.isEmpty {
-                            if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
-                                finalLocation = existingLocation
-                            } else {
-                                finalLocation = Location(name: trimmedLocationName, color: editLocationColor)
-                            }
-                        }
-                        
-                        // Save item with updated details using Item instance method
-                        item.updateItem(
-                            name: editName,
-                            quantity: editQuantity,
-                            location: finalLocation,
-                            category: finalCategory,
-                            background: editBackground,
-                            symbolColor: editSymbolColor,
-                            context: modelContext
-                        )
-                        
-                        isEditing = false
-                        
-                        // Update display variables from saved data
-                        name = editName
-                        quantity = max(editQuantity, 0) // Ensure quantity is non-negative
-                        location = finalLocation ?? Location(name: "The Void", color: .gray)
-                        category = finalCategory ?? Category(name: "")
-                        background = editBackground
-                        symbolColor = editSymbolColor
-                    }
-                }) {
+                Button(action: saveItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.titleAndIcon)
-                        .frame(maxWidth: .infinity, minHeight: 25)
+                        .frame(maxWidth: .infinity, minHeight: 24)
                         .bold()
+                        .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassEditButton(isEditing)
@@ -810,8 +722,9 @@ struct ItemView: View {
             }) {
                 Label("Delete", systemImage: "trash")
                     .labelStyle(.iconOnly)
-                    .frame(width: 25, height: 25)
+                    .frame(maxWidth: 24, minHeight: 24)
                     .bold()
+                    .minimumScaleFactor(0.5)
                     .padding()
             }
             .adaptiveGlassButton()
@@ -823,8 +736,9 @@ struct ItemView: View {
                 }) {
                     Label("Dismiss", systemImage: "xmark")
                         .labelStyle(.titleOnly)
-                        .frame(maxWidth: .infinity, minHeight: 25)
+                        .frame(maxWidth: .infinity, minHeight: 24)
                         .bold()
+                        .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassButton()
@@ -835,8 +749,9 @@ struct ItemView: View {
                 }) {
                     Label("Dismiss", systemImage: "xmark")
                         .labelStyle(.iconOnly)
-                        .frame(maxWidth: 25, minHeight: 25)
+                        .frame(maxWidth: 24, minHeight: 24)
                         .bold()
+                        .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassButton()
@@ -845,6 +760,52 @@ struct ItemView: View {
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: 50)
+    }
+    
+    private func saveItem() {
+        withAnimation() {
+            // Construct Category and Location based on edited names and colors
+            var finalCategory: Category? = nil
+            let trimmedCategoryName = editCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedCategoryName.isEmpty {
+                if let existingCategory = categories.first(where: { $0.name == trimmedCategoryName }) {
+                    finalCategory = existingCategory
+                } else {
+                    finalCategory = Category(name: trimmedCategoryName)
+                }
+            }
+            
+            var finalLocation: Location? = nil
+            let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedLocationName.isEmpty {
+                if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
+                    finalLocation = existingLocation
+                } else {
+                    finalLocation = Location(name: trimmedLocationName, color: editLocationColor)
+                }
+            }
+            
+            // Save item with updated details using Item instance method
+            item.updateItem(
+                name: editName,
+                quantity: editQuantity,
+                location: finalLocation,
+                category: finalCategory,
+                background: editBackground,
+                symbolColor: editSymbolColor,
+                context: modelContext
+            )
+            
+            isEditing = false
+            
+            // Update display variables from saved data
+            name = editName
+            quantity = max(editQuantity, 0) // Ensure quantity is non-negative
+            location = finalLocation ?? Location(name: "The Void", color: .gray)
+            category = finalCategory ?? Category(name: "")
+            background = editBackground
+            symbolColor = editSymbolColor
+        }
     }
     
     private func updateQuantity(_ newValue: Int) {

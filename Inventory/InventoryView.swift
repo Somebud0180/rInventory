@@ -68,7 +68,7 @@ struct InventoryView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 headerSection
                     .padding(.horizontal, 20)
@@ -102,7 +102,6 @@ struct InventoryView: View {
                 initializeSortOrders()
             }
         }
-        .navigationViewStyle(.stack)
     }
     
     private var headerSection: some View {
@@ -137,8 +136,8 @@ struct InventoryView: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 50
-        @State private var measuredWidth: CGFloat = 50
+        @State private var displayedWidth: CGFloat = 150
+        @State private var measuredWidth: CGFloat = 150
         @State private var lastCategoryName: String = ""
         
         init(categoryName: String, menuPresented: Binding<Bool>) {
@@ -327,7 +326,10 @@ struct InventoryView: View {
                         draggedItem: $draggedItem,
                         onTap: {
                             selectedItem = item
-                            showItemView = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                // Add a slight delay to ensure the item is ready
+                                showItemView = true
+                            }
                         },
                         onDragChanged: { isDragging in
                             draggedItem = isDragging ? item : nil

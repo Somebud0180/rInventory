@@ -17,7 +17,7 @@ struct ItemCreationView: View {
     
     @Query private var categories: [Category]
     @Query private var locations: [Location]
-    @Query private var items: [Item]
+    
     
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
@@ -34,23 +34,6 @@ struct ItemCreationView: View {
     @State private var categoryName: String = ""
     @State private var background: GridCardBackground = .symbol("square.grid.2x2")
     @State private var symbolColor: Color = .accentColor
-    
-    // Helper to get suggestions
-    private var categorySuggestions: [String] {
-        Array(Set(categories.map { $0.name })).sorted()
-    }
-    
-    private var filteredCategorySuggestions: [String] {
-        categoryName.isEmpty ? categorySuggestions : categorySuggestions.filter { $0.localizedCaseInsensitiveContains(categoryName) }
-    }
-    
-    private var locationSuggestions: [String] {
-        Array(Set(locations.map { $0.name })).sorted()
-    }
-    
-    private var filteredLocationSuggestions: [String] {
-        locationName.isEmpty ? locationSuggestions : locationSuggestions.filter { $0.localizedCaseInsensitiveContains(locationName) }
-    }
     
     // Helper to determine if Liquid Glass design is available
     let usesLiquidGlass: Bool = {
@@ -91,7 +74,7 @@ struct ItemCreationView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 gridCard(
                     name: name,
@@ -132,49 +115,21 @@ struct ItemCreationView: View {
                                 .frame(width: 32, height: 32)
                         }
                     }
+                    .listRowSeparator(.hidden)
                     
-                    if !filteredLocationSuggestions.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(filteredLocationSuggestions, id: \.self) { loc in
-                                    Button(loc) {
-                                        locationName = loc
-                                        if let found = locations.first(where: { $0.name == loc }) {
-                                            locationColor = found.color
-                                        } else {
-                                            locationColor = .white
-                                        }
-                                    }
-                                    .padding(6)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                    }
+                    filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName)
                     
-                    Divider().padding(.top, 4)
-                    
+                }
+                
+                VStack {
                     HStack(alignment: .center, spacing: 12) {
                         TextField("Category", text: $categoryName)
                             .font(.body)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                     }
-                    if !filteredCategorySuggestions.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(filteredCategorySuggestions, id: \.self) { cat in
-                                    Button(cat) {
-                                        categoryName = cat
-                                    }
-                                    .padding(6)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                    }
+                    
+                    filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
                 }
                 
                 Section(header: Text("Quantity")) {
@@ -225,29 +180,20 @@ struct ItemCreationView: View {
                 }
                 
                 Section {
-                    Button("Save") {
-                        Item.saveItem(
-                            name: name,
-                            quantity: isQuantityEnabled ? quantity : 0,
-                            locationName: locationName,
-                            locationColor: locationColor,
-                            categoryName: categoryName,
-                            background: background,
-                            symbolColor: symbolColor,
-                            items: items,
-                            locations: locations,
-                            categories: categories,
-                            context: modelContext
-                        )
-                        dismiss()
-                    }
+                    Button("Save Item") { saveItem() }
                     .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
                 }
             }
-        }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+            .padding(.top, -24)
+            .navigationBarTitle("Create an Item", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save Item") { saveItem() }
+                        .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
+                }
             }
         }
         .sheet(isPresented: $showSymbolPicker) {
@@ -301,6 +247,20 @@ struct ItemCreationView: View {
                 .interactiveDismissDisabled()
             }
         }
+    }
+    
+    private func saveItem() {
+        Item.saveItem(
+            name: name,
+            quantity: isQuantityEnabled ? quantity : 0,
+            locationName: locationName,
+            locationColor: locationColor,
+            categoryName: categoryName,
+            background: background,
+            symbolColor: symbolColor,
+            context: modelContext
+        )
+        dismiss()
     }
     
     // MARK: - Computed Properties

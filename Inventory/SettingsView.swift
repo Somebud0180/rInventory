@@ -47,7 +47,7 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Group {
                     VStack(spacing: 12) {
