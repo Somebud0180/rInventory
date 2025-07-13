@@ -11,7 +11,7 @@ import SwiftData
 import UniformTypeIdentifiers
 import Foundation
 
-let inventoryActivityType = "ethanj.Inventory.activity"
+let inventoryActivityType = "ethanj.Inventory.viewingInventory"
 let sortTypeKey = "sortType"
 let categoryKey = "category"
 
@@ -75,7 +75,7 @@ struct InventoryView: View {
     
     private func updateUserActivity(_ activity: NSUserActivity) {
         activity.addUserInfoEntries(from: [categoryKey: selectedCategory])
-        activity.title = "\(selectedCategory) Inventory"
+        activity.title = "View \(selectedCategory) Inventory"
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
@@ -118,7 +118,7 @@ struct InventoryView: View {
                 initializeSortOrders()
             }
         }
-        .userActivity(inventoryActivityType, isActive: (!showItemView && isActive)) { activity in
+        .userActivity(inventoryActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)
         }
         .onContinueUserActivity(inventoryActivityType) { activity in

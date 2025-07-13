@@ -10,10 +10,13 @@ import SwiftUI
 import SwiftData
 import CloudKit
 
+let settingsActivityType = "ethanj.Inventory.managingSettings"
+
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    @State var isActive: Bool
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     
     private var iCloudStatusDescription: String {
@@ -102,10 +105,15 @@ struct SettingsView: View {
                 checkiCloudAccountStatus()
             }
         }
+        .userActivity(settingsActivityType, isActive: isActive) { activity in
+            activity.title = "Settings"
+            activity.userInfo = ["tabSelection": 1] // 1 = Settings tab
+        }
     }
 }
 
 
 #Preview {
-    SettingsView()
+    @Previewable @State var isActive = true
+    SettingsView(isActive: isActive)
 }

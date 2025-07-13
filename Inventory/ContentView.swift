@@ -26,9 +26,6 @@ struct ContentView: View {
         set { tabSelection = newValue.rawValue }
     }
     
-    private let inventoryActivityType = "ethanj.Inventory.viewingInventory"
-    private let searchActivityType = "ethanj.Inventory.searchingInventory"
-    
     @State private var selectedItem: Item? = nil
     @State private var showItemCreationView: Bool = false
     @State private var showItemView: Bool = false
@@ -41,12 +38,12 @@ struct ContentView: View {
         case .home:
             activityType = inventoryActivityType
             isActive = true
+        case .settings:
+            activityType = settingsActivityType
+            isActive = true
         case .search:
             activityType = searchActivityType
             isActive = true
-        default:
-            activityType = nil
-            isActive = false
         }
         
         return tabView()
@@ -64,23 +61,21 @@ struct ContentView: View {
                 switch currentTab {
                 case .home:
                     activity.title = "Viewing Inventory"
+                case .settings:
+                    activity.title = "Managing Settings"
                 case .search:
                     activity.title = "Searching Inventory"
-                default:
-                    break
                 }
                 activity.userInfo = ["tabSelection": currentTab.rawValue]
             }
             .onContinueUserActivity(inventoryActivityType) { _ in
                 tabSelection = TabSelection.home.rawValue
             }
+            .onContinueUserActivity(settingsActivityType) { _ in
+                tabSelection = TabSelection.settings.rawValue
+            }
             .onContinueUserActivity(searchActivityType) { _ in
                 tabSelection = TabSelection.search.rawValue
-            }
-            .onContinueUserActivity(inventoryActivityType) { activity in
-                if let value = activity.userInfo?["tabSelection"] as? Int {
-                    tabSelection = value
-                }
             }
     }
     
@@ -95,7 +90,7 @@ struct ContentView: View {
                 
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    SettingsView()
+                    SettingsView(isActive: currentTab == .settings)
                 }
                 
                 // Search Action
@@ -113,7 +108,7 @@ struct ContentView: View {
                     .tag(0) // Tag for Home Tab
                 
                 // Settings Tab
-                SettingsView()
+                SettingsView(isActive: currentTab == .settings)
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }

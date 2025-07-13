@@ -6,5 +6,11 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>ethanj.Inventory.viewingInventory</string>
+		<string>ethanj.Inventory.managingSettings</string>
+		<string>ethanj.Inventory.searchingInventory</string>
+	</array>
 </dict>
 </plist>

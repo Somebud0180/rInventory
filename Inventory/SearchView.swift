@@ -9,6 +9,9 @@
 import SwiftUI
 import SwiftData
 
+let searchActivityType = "ethanj.Inventory.searchingInventory"
+let searchCategoryKey = "category"
+
 struct SearchView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -20,8 +23,8 @@ struct SearchView: View {
     @Binding var selectedItem: Item?
     @State var isActive: Bool
     
+    @SceneStorage("SearchView.selectedCategory") private var selectedCategory: String = "My Inventory"
     @State private var searchText: String = ""
-    @State private var selectedCategory: String = "My Inventory"
     @State private var categoryMenuPresented: Bool = false
     
     private var filteredItems: [Item] {
@@ -77,9 +80,20 @@ struct SearchView: View {
             .searchable(text: $searchText, prompt: "Search items and locations")
         }
         // User activity for continuing search state in inventory tab
-        .userActivity("ethanj.Inventory.searchingInventory", isActive: isActive) { activity in
-            activity.title = "Searching Inventory"
-            activity.userInfo = ["tabSelection": 2] // 2 = Search tab
+        .userActivity(searchActivityType, isActive: isActive) { activity in
+            updateUserActivity(activity)
+        }
+        .onContinueUserActivity(searchActivityType) { activity in
+            if let info = activity.userInfo {
+                // Handle case of deleted categories by verifying existence before assignment
+                if let cat = info[categoryKey] as? String {
+                    if categories.contains(where: { $0.name == cat }) {
+                        selectedCategory = cat
+                    } else {
+                        selectedCategory = "My Inventory"
+                    }
+                }
+            }
         }
     }
     
@@ -216,6 +230,16 @@ struct SearchView: View {
                 }
             }
         }
+    }
+    
+    private func updateUserActivity(_ activity: NSUserActivity) {
+        activity.addUserInfoEntries(from: [searchCategoryKey: selectedCategory])
+        activity.title = "Search \(selectedCategory) Inventory"
+        activity.isEligibleForHandoff = true
+        activity.isEligibleForPrediction = true
+        activity.isEligibleForSearch = true
+        activity.keywords = Set([selectedCategory])
+        activity.persistentIdentifier = "category-\(selectedCategory)"
     }
 }
 
