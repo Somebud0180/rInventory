@@ -1,20 +1,32 @@
 //
-//  GridCardView.swift
+//  ItemCardView.swift
 //  Inventory
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
-//  This view displays the grid card for an item, showing its symbol or image, name, quantity, location, and category.
+//  This view displays the item card, showing its symbol or image, name, quantity, location, and category.
 
 import SwiftUI
 import SwiftData
 
-enum GridCardBackground {
+enum ItemCardBackground {
     case symbol(String)
     case image(Data)
 }
 
-func gridCard(name: String, quantity: Int, location: Location, category: Category, background: GridCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false) -> some View {
+/// Creates a item card view for displaying item information in a layout.
+/// - Parameters:
+///   - name: The name of the item.
+///   - quantity: The quantity of the item.
+///   - location: The location of the item.
+///   - category: The category of the item.
+///   - background: The background type for the card, either a symbol or an image.
+///   - symbolColor: The color of the symbol, if applicable.
+///   - colorScheme: The current color scheme of the app.
+///   - largeFont: Optional boolean to determine if a larger font should be used for the item name.
+///   - Returns: A view representing the item card with the specified properties.
+///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
+func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false) -> some View {
     let largeFont = largeFont ?? false
     return ZStack {
         RoundedRectangle(cornerRadius: 25.0)
@@ -94,11 +106,17 @@ func gridCard(name: String, quantity: Int, location: Location, category: Categor
     .aspectRatio(1.0, contentMode: .fit)
 }
 
-func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
+/// Creates a item card view for displaying the item information in a layout.
+/// - Parameters:
+///  - item: The item to display.
+///  - colorScheme: The current color scheme of the app.
+///  - Returns: A view representing the item card with the item's properties.
+///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
+func itemCard(item: Item, colorScheme: ColorScheme) -> some View {
     let location = item.location ?? Location(name: "Unknown", color: .white)
     let category = item.category ?? Category(name: "")
     
-    let background: GridCardBackground
+    let background: ItemCardBackground
     if let imageData = item.imageData, !imageData.isEmpty {
         background = .image(imageData)
     } else if let symbol = item.symbol {
@@ -107,7 +125,7 @@ func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
         background = .symbol("questionmark")
     }
     
-    return gridCard(
+    return itemCard(
         name: item.name,
         quantity: item.quantity,
         location: location,
@@ -116,96 +134,6 @@ func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
         symbolColor: item.symbolColor,
         colorScheme: colorScheme
     )
-}
-
-struct ItemGridCard: View {
-    let item: Item
-    let colorScheme: ColorScheme
-    var onTap: () -> Void = {}
-    
-    @State private var isPressed = false
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: {
-            withAnimation(.interactiveSpring()) {
-                isPressed = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                withAnimation(.interactiveSpring()) {
-                    isPressed = false
-                }
-                onTap()
-            }
-        }) {
-            gridCard(item: item, colorScheme: colorScheme)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
-        .animation(.interactiveSpring(), value: isPressed)
-        .animation(.interactiveSpring(), value: isHovered)
-        .draggable(ItemIdentifier(id: item.id)) {
-            gridCard(item: item, colorScheme: colorScheme)
-                .frame(width: 150, height: 150)
-                .opacity(0.8)
-        }
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
-            }
-        }
-    }
-}
-
-struct ItemDraggableGridCard: View {
-    let item: Item
-    let colorScheme: ColorScheme
-    @Binding var draggedItem: Item?
-    var onTap: () -> Void = {}
-    var onDragChanged: (Bool) -> Void
-    var onDrop: (UUID) -> Void
-    
-    
-    @State private var isPressed = false
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: {
-            withAnimation(.interactiveSpring()) {
-                isPressed = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                withAnimation(.interactiveSpring()) {
-                    isPressed = false
-                }
-                onTap()
-            }
-        }) {
-            gridCard(item: item, colorScheme: colorScheme)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
-        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
-        .animation(.interactiveSpring(), value: isPressed)
-        .animation(.interactiveSpring(), value: isHovered)
-        .draggable(ItemIdentifier(id: item.id)) {
-            gridCard(item: item, colorScheme: colorScheme)
-                .frame(width: 150, height: 150)
-                .opacity(0.8)
-        }
-        .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
-            guard let droppedItem = droppedItems.first else { return false }
-            onDrop(droppedItem.id)
-            return true
-        }
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
-            }
-        }
-    }
 }
 
 func handleDrop(_ items: [Item], filteredItems: [Item],draggedItem: Binding<Item?>, droppedItemId: UUID, target: Item) {
@@ -232,6 +160,97 @@ func handleDrop(_ items: [Item], filteredItems: [Item],draggedItem: Binding<Item
     }
     draggedItem.wrappedValue = nil
 }
+
+struct ItemCard: View {
+    let item: Item
+    let colorScheme: ColorScheme
+    var onTap: () -> Void = {}
+    
+    @State private var isPressed = false
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.interactiveSpring()) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.interactiveSpring()) {
+                    isPressed = false
+                }
+                onTap()
+            }
+        }) {
+            itemCard(item: item, colorScheme: colorScheme)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
+        .animation(.interactiveSpring(), value: isPressed)
+        .animation(.interactiveSpring(), value: isHovered)
+        .draggable(ItemIdentifier(id: item.id)) {
+            itemCard(item: item, colorScheme: colorScheme)
+                .frame(width: 150, height: 150)
+                .opacity(0.8)
+        }
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+struct DraggableItemCard: View {
+    let item: Item
+    let colorScheme: ColorScheme
+    @Binding var draggedItem: Item?
+    var onTap: () -> Void = {}
+    var onDragChanged: (Bool) -> Void
+    var onDrop: (UUID) -> Void
+    
+    
+    @State private var isPressed = false
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.interactiveSpring()) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.interactiveSpring()) {
+                    isPressed = false
+                }
+                onTap()
+            }
+        }) {
+            itemCard(item: item, colorScheme: colorScheme)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
+        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
+        .animation(.interactiveSpring(), value: isPressed)
+        .animation(.interactiveSpring(), value: isHovered)
+        .draggable(ItemIdentifier(id: item.id)) {
+            itemCard(item: item, colorScheme: colorScheme)
+                .frame(width: 150, height: 150)
+                .opacity(0.8)
+        }
+        .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
+            guard let droppedItem = droppedItems.first else { return false }
+            onDrop(droppedItem.id)
+            return true
+        }
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
 
 #Preview {
     ItemCreationView()

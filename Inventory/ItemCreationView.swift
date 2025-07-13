@@ -32,7 +32,7 @@ struct ItemCreationView: View {
     @State private var locationName: String = ""
     @State private var locationColor: Color = .white
     @State private var categoryName: String = ""
-    @State private var background: GridCardBackground = .symbol("square.grid.2x2")
+    @State private var background: ItemCardBackground = .symbol("square.grid.2x2")
     @State private var symbolColor: Color = .accentColor
     
     // Helper to determine if Liquid Glass design is available
@@ -76,7 +76,7 @@ struct ItemCreationView: View {
     var body: some View {
         NavigationStack {
             Form {
-                gridCard(
+                itemCard(
                     name: name,
                     quantity: isQuantityEnabled ? quantity : 0,
                     location: Location(name: locationName, color: locationColor),

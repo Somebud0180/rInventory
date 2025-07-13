@@ -95,7 +95,7 @@ extension Item {
         locationName: String,
         locationColor: Color,
         categoryName: String,
-        background: GridCardBackground,
+        background: ItemCardBackground,
         symbolColor: Color,
         context: ModelContext
     ) {
@@ -156,7 +156,7 @@ extension Item {
         quantity: Int? = nil,
         location: Location? = nil,
         category: Category? = nil,
-        background: GridCardBackground? = nil,
+        background: ItemCardBackground? = nil,
         symbolColor: Color? = nil,
         context: ModelContext
     ) {

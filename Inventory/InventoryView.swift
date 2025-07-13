@@ -52,9 +52,9 @@ struct InventoryView: View {
     @Binding var selectedItem: Item?
     @State var isActive: Bool
     
+    // State variables for UI
     @SceneStorage("InventoryView.selectedSortType") private var selectedSortType: SortType = .order
     @SceneStorage("InventoryView.selectedCategory") private var selectedCategory: String = "My Inventory"
-    
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
@@ -355,10 +355,10 @@ struct InventoryView: View {
     private var inventoryGrid: some View {
         LazyVGrid(columns: itemColumns) {
             if items.isEmpty {
-                gridCard(item: emptyItem, colorScheme: colorScheme)
+                itemCard(item: emptyItem, colorScheme: colorScheme)
             } else {
                 ForEach(filteredItems, id: \.id) { item in
-                    ItemDraggableGridCard(
+                    DraggableItemCard(
                         item: item,
                         colorScheme: colorScheme,
                         draggedItem: $draggedItem,
@@ -384,7 +384,7 @@ struct InventoryView: View {
     private func inventoryRow(items: [Item], title: String) -> some View {
         if items.isEmpty {
             return AnyView(LazyHStack(spacing: 16) {
-                gridCard(item: emptyItem, colorScheme: colorScheme)
+                itemCard(item: emptyItem, colorScheme: colorScheme)
             })
         } else {
             return AnyView(VStack(alignment: .leading) {
@@ -404,7 +404,7 @@ struct InventoryView: View {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
                         ForEach(items.prefix(5), id: \.id) { item in
-                            ItemDraggableGridCard(
+                            DraggableItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
                                 draggedItem: $draggedItem,
@@ -429,7 +429,7 @@ struct InventoryView: View {
                                 selectedItem = nil
                                 showItemView = true
                             }) {
-                                gridCard(item: emptyItem, colorScheme: colorScheme)
+                                itemCard(item: emptyItem, colorScheme: colorScheme)
                                     .overlay(
                                         Text("More...")
                                             .font(.headline)

@@ -35,7 +35,7 @@ struct ItemView: View {
     @State private var quantity: Int = 0
     @State private var location: Location = Location(name: "Unknown", color: .white)
     @State private var category: Category = Category(name: "")
-    @State private var background: GridCardBackground = .symbol("questionmark")
+    @State private var background: ItemCardBackground = .symbol("questionmark")
     @State private var symbolColor: Color? = nil
     
     // Item editing variables
@@ -44,7 +44,7 @@ struct ItemView: View {
     @State private var editCategoryName: String = ""
     @State private var editLocationName: String = ""
     @State private var editLocationColor: Color = .white
-    @State private var editBackground: GridCardBackground = .symbol("questionmark")
+    @State private var editBackground: ItemCardBackground = .symbol("questionmark")
     @State private var editSymbolColor: Color? = nil
     
     // Helper to determine if the device is in landscape mode
@@ -411,7 +411,7 @@ struct ItemView: View {
     
     /// View for displaying either an image or a symbol background with a mask.
     private struct ItemBackgroundView: View {
-        let background: GridCardBackground
+        let background: ItemCardBackground
         let symbolColor: Color?
         let mask: AnyView
         

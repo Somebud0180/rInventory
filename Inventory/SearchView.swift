@@ -58,7 +58,7 @@ struct SearchView: View {
                         LazyVGrid(columns: itemColumns, content: {
                             
                             ForEach(filteredItems, id: \.id) { item in
-                                ItemGridCard(
+                                ItemCard(
                                     item: item,
                                     colorScheme: colorScheme,
                                     onTap: {

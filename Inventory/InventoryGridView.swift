@@ -19,6 +19,7 @@ struct InventoryGridView: View {
     var itemsGroup: [Item]
     @Binding var selectedItem: Item?
     
+    // State variables for UI
     @State private var selectedSortType: SortType = .order
     @State private var draggedItem: Item? = nil
     
@@ -47,7 +48,7 @@ struct InventoryGridView: View {
             VStack {
                 LazyVGrid(columns: itemColumns) {
                     ForEach(filteredItems, id: \.id) { item in
-                        ItemDraggableGridCard(
+                        DraggableItemCard(
                             item: item,
                             colorScheme: colorScheme,
                             draggedItem: $draggedItem,
