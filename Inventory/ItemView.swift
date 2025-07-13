@@ -764,24 +764,27 @@ struct ItemView: View {
     
     private func saveItem() {
         withAnimation() {
-            // Construct Category and Location based on edited names and colors
+            // Construct a Location based on edited name and color
+            var finalLocation: Location? = nil
+            let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedLocationName.isEmpty {
+                if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
+                    existingLocation.color = editLocationColor
+                    finalLocation = existingLocation
+                } else {
+                    let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
+                    finalLocation = Location(name: trimmedLocationName, sortOrder: nextSortOrder, color: editLocationColor)
+                }
+            }
+            // Construct a Category based on the edited name
             var finalCategory: Category? = nil
             let trimmedCategoryName = editCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmedCategoryName.isEmpty {
                 if let existingCategory = categories.first(where: { $0.name == trimmedCategoryName }) {
                     finalCategory = existingCategory
                 } else {
-                    finalCategory = Category(name: trimmedCategoryName)
-                }
-            }
-            
-            var finalLocation: Location? = nil
-            let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedLocationName.isEmpty {
-                if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
-                    finalLocation = existingLocation
-                } else {
-                    finalLocation = Location(name: trimmedLocationName, color: editLocationColor)
+                    let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
+                    finalCategory = Category(name: trimmedCategoryName, sortOrder: nextSortOrder)
                 }
             }
             
