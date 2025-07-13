@@ -12,8 +12,8 @@ import UniformTypeIdentifiers
 import Foundation
 
 let inventoryActivityType = "ethanj.Inventory.viewingInventory"
-let sortTypeKey = "sortType"
-let categoryKey = "category"
+let inventorySortTypeKey = "sortType"
+let inventoryCategoryKey = "category"
 
 enum SortType: String, CaseIterable, Identifiable {
     case order = "Order"
@@ -74,7 +74,7 @@ struct InventoryView: View {
     }
     
     private func updateUserActivity(_ activity: NSUserActivity) {
-        activity.addUserInfoEntries(from: [categoryKey: selectedCategory])
+        activity.addUserInfoEntries(from: [inventoryCategoryKey: selectedCategory])
         activity.title = "View \(selectedCategory) Inventory"
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
@@ -124,7 +124,7 @@ struct InventoryView: View {
         .onContinueUserActivity(inventoryActivityType) { activity in
             if let info = activity.userInfo {
                 // Handle case of deleted categories by verifying existence before assignment
-                if let cat = info[categoryKey] as? String {
+                if let cat = info[inventoryCategoryKey] as? String {
                     if categories.contains(where: { $0.name == cat }) {
                         selectedCategory = cat
                     } else {
@@ -132,7 +132,7 @@ struct InventoryView: View {
                     }
                 }
                 // Sort order is only used for restoring UI state, not for system activity
-                if let sortRaw = info[sortTypeKey] as? String, let type = SortType(rawValue: sortRaw) {
+                if let sortRaw = info[inventorySortTypeKey] as? String, let type = SortType(rawValue: sortRaw) {
                     selectedSortType = type
                 }
             }

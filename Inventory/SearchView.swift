@@ -86,7 +86,7 @@ struct SearchView: View {
         .onContinueUserActivity(searchActivityType) { activity in
             if let info = activity.userInfo {
                 // Handle case of deleted categories by verifying existence before assignment
-                if let cat = info[categoryKey] as? String {
+                if let cat = info[searchCategoryKey] as? String {
                     if categories.contains(where: { $0.name == cat }) {
                         selectedCategory = cat
                     } else {
