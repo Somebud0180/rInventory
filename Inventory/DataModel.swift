@@ -22,8 +22,9 @@ final class Item {
     var symbolColorData: Data?
     var sortOrder: Int = 0
     var modifiedDate: Date = Date()
+    var creationDate: Date = Date()
     
-    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date()) {
+    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date(), creationDate: Date = Date()) {
         self.id = id
         self.name = name
         self.quantity = quantity
@@ -34,6 +35,7 @@ final class Item {
         self.symbolColorData = symbolColor?.rgbaData
         self.sortOrder = sortOrder
         self.modifiedDate = modifiedDate
+        self.creationDate = creationDate
     }
     
     var symbolColor: Color {
@@ -50,23 +52,27 @@ final class Item {
 @Model
 final class Category {
     var name: String = ""
+    var sortOrder: Int = 0 // Used for sorting the category rows
     @Relationship(deleteRule: .nullify, inverse: \Item.category)
     var items: [Item]?
     
-    init(name: String) {
+    init(name: String, sortOrder: Int = 0) {
         self.name = name
+        self.sortOrder = sortOrder
     }
 }
 
 @Model
 final class Location {
     var name: String = ""
+    var sortOrder: Int = 0 // Used for sorting the location rows
     var colorData: Data?
     @Relationship(deleteRule: .nullify, inverse: \Item.location)
     var items: [Item]?
     
-    init(name: String, color: Color? = .primary) {
+    init(name: String, sortOrder: Int = 0, color: Color? = .primary) {
         self.name = name
+        self.sortOrder = sortOrder
         self.colorData = color?.rgbaData
     }
     
@@ -136,7 +142,9 @@ extension Item {
             imageData: imageData,
             symbol: symbol,
             symbolColor: usedSymbolColor,
-            sortOrder: sortOrder
+            sortOrder: sortOrder,
+            modifiedDate: Date(),
+            creationDate: Date()
         )
         context.insert(item)
         try? context.save()
