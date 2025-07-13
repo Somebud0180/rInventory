@@ -50,9 +50,15 @@ struct ContentView: View {
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
             }
+            .onChange(of: selectedItem) {
+                if selectedItem != nil {
+                    showItemView = true
+                }
+            }
             .sheet(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if !(selectedItem == nil), let selectedItem = selectedItem {
                     ItemView(item: bindingForItem(selectedItem))
+                        .transition(.blurReplace)
                 } else {
                     ProgressView("Loading item...")
                 }

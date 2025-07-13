@@ -43,7 +43,7 @@ struct SearchView: View {
     }
     
     let columns = [
-        GridItem(.adaptive(minimum: 180, maximum: 300), spacing: 16)
+        GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
     ]
     
     var body: some View {
@@ -64,10 +64,6 @@ struct SearchView: View {
                             ForEach(filteredItems, id: \.id) { item in
                                 ItemSearchGridCard(item: item, colorScheme: colorScheme) {
                                     selectedItem = item
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        // Add a slight delay to ensure the item is ready
-                                        showItemView = true
-                                    }
                                 }
                             }
                         })

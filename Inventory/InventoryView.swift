@@ -82,8 +82,10 @@ struct InventoryView: View {
         activity.keywords = Set([selectedCategory])
         activity.persistentIdentifier = "category-\(selectedCategory)"
     }
-    
+     
     var body: some View {
+        let recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+        
         NavigationStack {
             ScrollView {
                 headerSection
@@ -101,6 +103,12 @@ struct InventoryView: View {
                 
                 inventoryGrid
                     .padding(.horizontal)
+                
+                if !recentlyAddedItems.isEmpty {
+                    inventoryRow(items: recentlyAddedItems, title: "Recently Added")
+                        .padding(.horizontal)
+                        .padding(.top, 20)
+                }
             }
             .navigationTitle("Inventory")
             .navigationBarTitleDisplayMode(.large)
@@ -351,6 +359,73 @@ struct InventoryView: View {
         }
     }
     
+    private func inventoryRow(items: [Item], title: String) -> some View {
+        if items.isEmpty {
+            return AnyView(LazyHStack(spacing: 16) {
+                gridCard(item: emptyItem, colorScheme: colorScheme)
+            })
+        } else {
+            return AnyView(VStack(alignment: .leading) {
+                Button(action: {
+                    // Placeholder
+                }) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(.vertical, 8)
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 16) {
+                        // Limit to only 5 items per row
+                        ForEach(items.prefix(5), id: \.id) { item in
+                            ItemInventoryGridCard(
+                                item: item,
+                                colorScheme: colorScheme,
+                                draggedItem: $draggedItem,
+                                onTap: {
+                                    selectedItem = item
+                                },
+                                onDragChanged: { isDragging in
+                                    draggedItem = isDragging ? item : nil
+                                },
+                                onDrop: { droppedItemId in
+                                    handleDrop(droppedItemId: droppedItemId, target: item)
+                                }
+                            )
+                            .aspectRatio(1.0, contentMode: .fill)
+                            .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
+                        }
+                        
+                        if items.count < 5 {
+                            Spacer()
+                        } else if items.count > 5 {
+                            Button(action: {
+                                selectedItem = nil
+                                showItemView = true
+                            }) {
+                                gridCard(item: emptyItem, colorScheme: colorScheme)
+                                    .overlay(
+                                        Text("More...")
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                            .padding(8)
+                                            .background(Color.white.opacity(0.7), in: Capsule())
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+            }
+                .scrollClipDisabled(true)
+                .frame(maxWidth: .infinity)
+            )
+        }
+    }
+    
     private var inventoryGrid: some View {
         LazyVGrid(columns: columns) {
             if items.isEmpty {
@@ -363,10 +438,6 @@ struct InventoryView: View {
                         draggedItem: $draggedItem,
                         onTap: {
                             selectedItem = item
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                // Add a slight delay to ensure the item is ready
-                                showItemView = true
-                            }
                         },
                         onDragChanged: { isDragging in
                             draggedItem = isDragging ? item : nil
