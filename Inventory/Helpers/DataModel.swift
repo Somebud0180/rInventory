@@ -99,6 +99,7 @@ extension Item {
         symbolColor: Color,
         context: ModelContext
     ) {
+        // Fetch existing items, locations, and categories
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
         let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
@@ -140,12 +141,31 @@ extension Item {
     func updateItem(
         name: String? = nil,
         quantity: Int? = nil,
-        location: Location? = nil,
-        category: Category? = nil,
+        locationName: String? = nil,
+        locationColor: Color? = nil,
+        categoryName: String? = nil,
         background: ItemCardBackground? = nil,
         symbolColor: Color? = nil,
         context: ModelContext
     ) {
+        // Fetch existing locations, and categories
+        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
+        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
+        
+        // Find or create Location
+        var newLocation: Location?
+        if let locationName = locationName, !locationName.isEmpty, let locationColor = locationColor {
+            let trimmedLocationName = locationName.trimmingCharacters(in: .whitespacesAndNewlines)
+            newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, locations: locations) : nil
+        }
+            
+        // Find or create Category
+        var newCategory: Category?
+        if let categoryName = categoryName, !categoryName.isEmpty {
+            let trimmedCategoryName = categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, categories: categories) : nil
+        }
+        
         let oldLocation = self.location
         let oldCategory = self.category
         
@@ -155,10 +175,10 @@ extension Item {
         if let quantity = quantity {
             self.quantity = quantity
         }
-        if let location = location {
+        if let location = newLocation {
             self.location = location
         }
-        if let category = category {
+        if let category = newCategory {
             self.category = category
         }
         

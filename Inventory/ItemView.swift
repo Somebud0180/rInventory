@@ -764,36 +764,13 @@ struct ItemView: View {
     
     private func saveItem() {
         withAnimation() {
-            // Construct a Location based on edited name and color
-            var finalLocation: Location? = nil
-            let trimmedLocationName = editLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedLocationName.isEmpty {
-                if let existingLocation = locations.first(where: { $0.name == trimmedLocationName }) {
-                    existingLocation.color = editLocationColor
-                    finalLocation = existingLocation
-                } else {
-                    let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
-                    finalLocation = Location(name: trimmedLocationName, sortOrder: nextSortOrder, color: editLocationColor)
-                }
-            }
-            // Construct a Category based on the edited name
-            var finalCategory: Category? = nil
-            let trimmedCategoryName = editCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedCategoryName.isEmpty {
-                if let existingCategory = categories.first(where: { $0.name == trimmedCategoryName }) {
-                    finalCategory = existingCategory
-                } else {
-                    let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
-                    finalCategory = Category(name: trimmedCategoryName, sortOrder: nextSortOrder)
-                }
-            }
-            
             // Save item with updated details using Item instance method
             item.updateItem(
                 name: editName,
                 quantity: editQuantity,
-                location: finalLocation,
-                category: finalCategory,
+                locationName: editLocationName,
+                locationColor: editLocationColor,
+                categoryName: editCategoryName,
                 background: editBackground,
                 symbolColor: editSymbolColor,
                 context: modelContext
@@ -804,8 +781,8 @@ struct ItemView: View {
             // Update display variables from saved data
             name = editName
             quantity = max(editQuantity, 0) // Ensure quantity is non-negative
-            location = finalLocation ?? Location(name: "The Void", color: .gray)
-            category = finalCategory ?? Category(name: "")
+            location = Location(name: editLocationName, color: editLocationColor)
+            category = Category(name: editCategoryName)
             background = editBackground
             symbolColor = editSymbolColor
         }
