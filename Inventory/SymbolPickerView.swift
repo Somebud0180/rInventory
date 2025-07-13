@@ -45,7 +45,7 @@ struct SymbolPickerView: View {
     
     
     
-    private let columns = [
+    private let symbolColumns = [
         GridItem(.adaptive(minimum: 50))
     ]
     
@@ -100,7 +100,7 @@ struct SymbolPickerView: View {
     /// A function that creates a grid containing a set symbols.
     /// Grabs symbols from the passed over argument and lists each symbols that can be tapped to select it.
     private func createSymbolGrid(symbols: [String]) -> some View {
-        LazyVGrid(columns: columns, spacing: 20) {
+        LazyVGrid(columns: symbolColumns, spacing: 20) {
             ForEach(symbols, id: \.self) { symbol in
                 Image(systemName: symbol)
                     .resizable()

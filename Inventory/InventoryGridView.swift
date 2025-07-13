@@ -1,5 +1,5 @@
 //
-//  InventoryGroupView.swift
+//  InventoryGridView.swift
 //  Inventory
 //
 //  Created by Ethan John Lagera on 7/13/25.
@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct InventoryGroupView: View {
+struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -21,10 +21,6 @@ struct InventoryGroupView: View {
     
     @State private var selectedSortType: SortType = .order
     @State private var draggedItem: Item? = nil
-    
-    let columns = [
-        GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
-    ]
     
     private var filteredItems: [Item] {
         let filtered = itemsGroup
@@ -49,7 +45,7 @@ struct InventoryGroupView: View {
     private var inventoryGrid: some View {
         ScrollView {
             VStack {
-                LazyVGrid(columns: columns) {
+                LazyVGrid(columns: itemColumns) {
                     ForEach(filteredItems, id: \.id) { item in
                         ItemDraggableGridCard(
                             item: item,
@@ -84,5 +80,5 @@ struct InventoryGroupView: View {
     ]
     @Previewable @State var selectedItem: Item? = nil
     
-    InventoryGroupView(title: title, itemsGroup: itemsGroup, selectedItem: $selectedItem)
+    InventoryGridView(title: title, itemsGroup: itemsGroup, selectedItem: $selectedItem)
 }

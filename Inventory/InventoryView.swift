@@ -15,6 +15,7 @@ let inventoryActivityType = "ethanj.Inventory.viewingInventory"
 let inventorySortTypeKey = "sortType"
 let inventoryCategoryKey = "category"
 
+/// Enum representing the different sorting options for inventory items.
 enum SortType: String, CaseIterable, Identifiable {
     case order = "Order"
     case alphabetical = "A-Z"
@@ -22,7 +23,7 @@ enum SortType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-// Custom transferable wrapper for Item
+/// Represents a unique identifier for an item that can be transferred between devices.
 struct ItemIdentifier: Transferable {
     let id: UUID
     
@@ -42,6 +43,7 @@ struct ItemIdentifier: Transferable {
 struct InventoryView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    
     @Query private var items: [Item]
     @Query private var categories: [Category]
     
@@ -52,14 +54,11 @@ struct InventoryView: View {
     
     @SceneStorage("InventoryView.selectedSortType") private var selectedSortType: SortType = .order
     @SceneStorage("InventoryView.selectedCategory") private var selectedCategory: String = "My Inventory"
+    
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
-    @State var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
-    
-    let columns = [
-        GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
-    ]
+    @State private var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
     
     private var filteredItems: [Item] {
         let filtered = selectedCategory == "My Inventory" ? items : items.filter { $0.category?.name == selectedCategory }
@@ -73,16 +72,6 @@ struct InventoryView: View {
         }
     }
     
-    private func updateUserActivity(_ activity: NSUserActivity) {
-        activity.addUserInfoEntries(from: [inventoryCategoryKey: selectedCategory])
-        activity.title = "View \(selectedCategory) Inventory"
-        activity.isEligibleForHandoff = true
-        activity.isEligibleForPrediction = true
-        activity.isEligibleForSearch = true
-        activity.keywords = Set([selectedCategory])
-        activity.persistentIdentifier = "category-\(selectedCategory)"
-    }
-     
     var body: some View {
         let recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         
@@ -91,9 +80,9 @@ struct InventoryView: View {
                 headerSection
                 
                 HStack(alignment: .bottom) {
-                    categorySelector
+                    categoryPicker
                     Spacer()
-                    sortMenu
+                    sortPicker
                 }
                 
                 Spacer(minLength: 30)
@@ -144,6 +133,7 @@ struct InventoryView: View {
         }
     }
     
+    /// Returns a header section with a greeting based on the time of day.
     private var headerSection: some View {
         Text(greetingTime())
             .font(.subheadline)
@@ -152,7 +142,8 @@ struct InventoryView: View {
             .padding(.top, -10)
     }
     
-    private var categorySelector: some View {
+    /// Returns a category picker menu for selecting inventory categories.
+    private var categoryPicker: some View {
         Menu {
             Button("My Inventory") {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -167,12 +158,13 @@ struct InventoryView: View {
                 }
             }
         } label: {
-            CategoryMenuLabel(categoryName: selectedCategory, menuPresented: $categoryMenuPresented)
+            CategoryPickerLabel(categoryName: selectedCategory, menuPresented: $categoryMenuPresented)
         }
         .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
     }
     
-    struct CategoryMenuLabel: View {
+    /// A label for the category picker that dynamically adjusts its width based on the category name.
+    private struct CategoryPickerLabel: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
@@ -218,12 +210,12 @@ struct InventoryView: View {
                 .background(
                     GeometryReader { geo in
                         Color.clear
-                            .preference(key: WidthPreferenceKey.self, value: geo.size.width)
+                            .preference(key: CategoryWidthPreferenceKey.self, value: geo.size.width)
                     }
                 )
                 .hidden()
             }
-            .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
+            .onPreferenceChange(CategoryWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
                 measuredWidth = width
                 displayedWidth = measuredWidth
@@ -248,7 +240,8 @@ struct InventoryView: View {
         }
     }
     
-    private var sortMenu: some View {
+    /// Returns a sort picker menu for selecting how to sort inventory items.
+    private var sortPicker: some View {
         Menu {
             ForEach(SortType.allCases) { type in
                 Button {
@@ -256,26 +249,27 @@ struct InventoryView: View {
                         selectedSortType = type
                     }
                 } label: {
-                    Label(type.rawValue, systemImage: iconName(for: type))
+                    Label(type.rawValue, systemImage: symbolName(for: type))
                 }
             }
         } label: {
-            SortMenuLabel(selectedSortType: selectedSortType, iconName: iconName(for: selectedSortType), menuPresented: $sortMenuPresented)
+            SortPickerLabel(selectedSortType: selectedSortType, symbolName: symbolName(for: selectedSortType), menuPresented: $sortMenuPresented)
         }
         .adaptiveGlassButton(tintStrength: 0.0)
     }
     
-    struct SortMenuLabel: View {
+    /// A label for the sort picker that dynamically adjusts its width based on the selected sort type.
+    private struct SortPickerLabel: View {
         let selectedSortType: SortType
-        let iconName: String
+        let symbolName: String
         @Binding var menuPresented: Bool
         @State private var displayedWidth: CGFloat = 50
         @State private var measuredWidth: CGFloat = 50
         @State private var lastSortType: SortType
         
-        init(selectedSortType: SortType, iconName: String, menuPresented: Binding<Bool>) {
+        init(selectedSortType: SortType, symbolName: String, menuPresented: Binding<Bool>) {
             self.selectedSortType = selectedSortType
-            self.iconName = iconName
+            self.symbolName = symbolName
             self._menuPresented = menuPresented
             _lastSortType = State(initialValue: selectedSortType)
         }
@@ -284,7 +278,7 @@ struct InventoryView: View {
             ZStack {
                 // Visible label
                 HStack(spacing: 6) {
-                    Image(systemName: iconName)
+                    Image(systemName: symbolName)
                         .font(.body)
                     Text(selectedSortType.rawValue)
                         .font(.subheadline)
@@ -299,7 +293,7 @@ struct InventoryView: View {
                 
                 // Hidden label for measurement
                 HStack(spacing: 6) {
-                    Image(systemName: iconName)
+                    Image(systemName: symbolName)
                         .font(.body)
                     Text(selectedSortType.rawValue)
                         .font(.subheadline)
@@ -311,12 +305,12 @@ struct InventoryView: View {
                 .background(
                     GeometryReader { geo in
                         Color.clear
-                            .preference(key: WidthPreferenceKey.self, value: geo.size.width)
+                            .preference(key: SortWidthPreferenceKey.self, value: geo.size.width)
                     }
                 )
                 .hidden()
             }
-            .onPreferenceChange(WidthPreferenceKey.self) { newWidth in
+            .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
                 measuredWidth = width
                 displayedWidth = measuredWidth
@@ -341,21 +335,52 @@ struct InventoryView: View {
         }
     }
     
-    private struct WidthPreferenceKey: PreferenceKey {
+    /// Preference key to measure width of the dynamic category label
+    struct CategoryWidthPreferenceKey: PreferenceKey {
         static var defaultValue: CGFloat = 100
         static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
             value = nextValue()
         }
     }
     
-    private func iconName(for type: SortType) -> String {
-        switch type {
-        case .order: return "line.3.horizontal"
-        case .alphabetical: return "textformat.abc"
-        case .dateModified: return "calendar"
+    /// Preference key to measure width of the dynamic sort label
+    struct SortWidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 100
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
         }
     }
     
+    /// Returns a grid of inventory items, showing an empty item if there are no items.
+    private var inventoryGrid: some View {
+        LazyVGrid(columns: itemColumns) {
+            if items.isEmpty {
+                gridCard(item: emptyItem, colorScheme: colorScheme)
+            } else {
+                ForEach(filteredItems, id: \.id) { item in
+                    ItemDraggableGridCard(
+                        item: item,
+                        colorScheme: colorScheme,
+                        draggedItem: $draggedItem,
+                        onTap: {
+                            selectedItem = item
+                        },
+                        onDragChanged: { isDragging in
+                            draggedItem = isDragging ? item : nil
+                        },
+                        onDrop: { droppedItemId in
+                            handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                        }
+                    )
+                }
+            }
+        }
+    }
+    
+    /// Returns a row of inventory items with a navigation title.
+    /// - Parameters:
+    /// - items: The array of items to display in the row.
+    /// - title: The title for the row.
     private func inventoryRow(items: [Item], title: String) -> some View {
         if items.isEmpty {
             return AnyView(LazyHStack(spacing: 16) {
@@ -364,8 +389,8 @@ struct InventoryView: View {
         } else {
             return AnyView(VStack(alignment: .leading) {
                 NavigationLink {
-                    InventoryGroupView(title: title, itemsGroup: items, selectedItem: $selectedItem)
-                        
+                    InventoryGridView(title: title, itemsGroup: items, selectedItem: $selectedItem)
+                    
                 } label: {
                     Text(title)
                         .font(.headline)
@@ -424,33 +449,27 @@ struct InventoryView: View {
         }
     }
     
-    private var inventoryGrid: some View {
-        LazyVGrid(columns: columns) {
-            if items.isEmpty {
-                gridCard(item: emptyItem, colorScheme: colorScheme)
-            } else {
-                ForEach(filteredItems, id: \.id) { item in
-                    ItemDraggableGridCard(
-                        item: item,
-                        colorScheme: colorScheme,
-                        draggedItem: $draggedItem,
-                        onTap: {
-                            selectedItem = item
-                        },
-                        onDragChanged: { isDragging in
-                            draggedItem = isDragging ? item : nil
-                        },
-                        onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                        }
-                    )
-                }
-            }
+    /// Returns the appropriate symbol name based on the sort type.
+    /// - Parameter type: The sort type for which to get the symbol name.
+    private func symbolName(for type: SortType) -> String {
+        switch type {
+        case .order: return "line.3.horizontal"
+        case .alphabetical: return "textformat.abc"
+        case .dateModified: return "calendar"
         }
     }
     
+    /// Initializes sort orders for categories and items if they are not set.
     private func initializeSortOrders() {
-        // Initialize sort orders if they're all 0
+        // Initialize category sort orders if there's multiple categories without a sort order
+        let categoriesNeedingOrder = categories.filter { $0.sortOrder == 0 }
+        if categoriesNeedingOrder.count > 1 {
+            for (index, category) in categoriesNeedingOrder.enumerated() {
+                category.sortOrder = index
+            }
+        }
+        
+        // Initialize item sort orders if there's multiple items without a sort order
         let itemsNeedingOrder = items.filter { $0.sortOrder == 0 }
         if itemsNeedingOrder.count > 1 {
             for (index, item) in itemsNeedingOrder.enumerated() {
@@ -459,7 +478,7 @@ struct InventoryView: View {
         }
     }
     
-    
+    /// Returns a greeting based on the current time of day.
     private func greetingTime() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -472,12 +491,26 @@ struct InventoryView: View {
         }
     }
     
+    /// Handles the deletion of items from the inventory.
+    /// - Parameter offsets: The offsets of the items to delete.
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
                 modelContext.delete(items[index])
             }
         }
+    }
+    
+    /// Updates the user activity with the current category and sort type.
+    /// - Parameter activity: The user activity to update.
+    private func updateUserActivity(_ activity: NSUserActivity) {
+        activity.addUserInfoEntries(from: [inventoryCategoryKey: selectedCategory])
+        activity.title = "View \(selectedCategory) Inventory"
+        activity.isEligibleForHandoff = true
+        activity.isEligibleForPrediction = true
+        activity.isEligibleForSearch = true
+        activity.keywords = Set([selectedCategory])
+        activity.persistentIdentifier = "category-\(selectedCategory)"
     }
 }
 

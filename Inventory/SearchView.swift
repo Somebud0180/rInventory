@@ -42,10 +42,6 @@ struct SearchView: View {
         }
     }
     
-    let columns = [
-        GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
-    ]
-    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -59,7 +55,7 @@ struct SearchView: View {
                             .foregroundColor(.gray)
                             .padding(10)
                     } else {
-                        LazyVGrid(columns: columns, spacing: 16, content: {
+                        LazyVGrid(columns: itemColumns, content: {
                             
                             ForEach(filteredItems, id: \.id) { item in
                                 ItemGridCard(

@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 import Foundation
 
+let itemColumns = [
+    GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
+]
+
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
