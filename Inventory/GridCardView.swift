@@ -118,6 +118,121 @@ func gridCard(item: Item, colorScheme: ColorScheme) -> some View {
     )
 }
 
+struct ItemGridCard: View {
+    let item: Item
+    let colorScheme: ColorScheme
+    var onTap: () -> Void = {}
+    
+    @State private var isPressed = false
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.interactiveSpring()) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.interactiveSpring()) {
+                    isPressed = false
+                }
+                onTap()
+            }
+        }) {
+            gridCard(item: item, colorScheme: colorScheme)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
+        .animation(.interactiveSpring(), value: isPressed)
+        .animation(.interactiveSpring(), value: isHovered)
+        .draggable(ItemIdentifier(id: item.id)) {
+            gridCard(item: item, colorScheme: colorScheme)
+                .frame(width: 150, height: 150)
+                .opacity(0.8)
+        }
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+struct ItemDraggableGridCard: View {
+    let item: Item
+    let colorScheme: ColorScheme
+    @Binding var draggedItem: Item?
+    var onTap: () -> Void = {}
+    var onDragChanged: (Bool) -> Void
+    var onDrop: (UUID) -> Void
+    
+    
+    @State private var isPressed = false
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.interactiveSpring()) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.interactiveSpring()) {
+                    isPressed = false
+                }
+                onTap()
+            }
+        }) {
+            gridCard(item: item, colorScheme: colorScheme)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
+        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
+        .animation(.interactiveSpring(), value: isPressed)
+        .animation(.interactiveSpring(), value: isHovered)
+        .draggable(ItemIdentifier(id: item.id)) {
+            gridCard(item: item, colorScheme: colorScheme)
+                .frame(width: 150, height: 150)
+                .opacity(0.8)
+        }
+        .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
+            guard let droppedItem = droppedItems.first else { return false }
+            onDrop(droppedItem.id)
+            return true
+        }
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+func handleDrop(_ items: [Item], filteredItems: [Item],draggedItem: Binding<Item?>, droppedItemId: UUID, target: Item) {
+    guard let droppedItem = items.first(where: { $0.id == droppedItemId }),
+          droppedItem.id != target.id else {
+        draggedItem.wrappedValue = nil
+        return
+    }
+    var currentItems = filteredItems
+    guard let fromIndex = currentItems.firstIndex(where: { $0.id == droppedItem.id }),
+          let toIndex = currentItems.firstIndex(where: { $0.id == target.id }) else {
+        draggedItem.wrappedValue = nil
+        return
+    }
+    withAnimation(.easeInOut(duration: 0.3)) {
+        // Remove & insert dropped item at new index
+        let removed = currentItems.remove(at: fromIndex)
+        currentItems.insert(removed, at: toIndex)
+        
+        // Assign new sort orders in array order
+        for (newOrder, item) in currentItems.enumerated() {
+            item.sortOrder = newOrder
+        }
+    }
+    draggedItem.wrappedValue = nil
+}
+
 #Preview {
     ItemCreationView()
         .modelContainer(for: Item.self)

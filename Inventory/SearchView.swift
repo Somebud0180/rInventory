@@ -62,10 +62,13 @@ struct SearchView: View {
                         LazyVGrid(columns: columns, spacing: 16, content: {
                             
                             ForEach(filteredItems, id: \.id) { item in
-                                ItemSearchGridCard(item: item, colorScheme: colorScheme) {
-                                    selectedItem = item
-                                }
-                            }
+                                ItemGridCard(
+                                    item: item,
+                                    colorScheme: colorScheme,
+                                    onTap: {
+                                        selectedItem = item
+                                    }
+                                )}
                         })
                         .padding(.horizontal)
                     }
@@ -193,38 +196,6 @@ struct SearchView: View {
         static var defaultValue: CGFloat = 50
         static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
             value = nextValue()
-        }
-    }
-    
-    struct ItemSearchGridCard: View {
-        let item: Item
-        let colorScheme: ColorScheme
-        let onTap: () -> Void
-        
-        @State private var isPressed = false
-        @State private var isHovered = false
-        
-        var body: some View {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isPressed = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    isPressed = false
-                    onTap()
-                }
-            } label: {
-                gridCard(item: item, colorScheme: colorScheme)
-                    .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
-                    .animation(.easeInOut(duration: 0.2), value: isPressed)
-                    .animation(.easeInOut(duration: 0.2), value: isHovered)
-            }
-            .buttonStyle(.plain)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isHovered = hovering
-                }
-            }
         }
     }
     

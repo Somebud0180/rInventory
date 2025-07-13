@@ -89,27 +89,24 @@ struct InventoryView: View {
         NavigationStack {
             ScrollView {
                 headerSection
-                    .padding(.horizontal, 20)
                 
                 HStack(alignment: .bottom) {
                     categorySelector
-                        .padding(.horizontal)
                     Spacer()
                     sortMenu
-                        .padding(.horizontal)
                 }
                 
                 Spacer(minLength: 30)
                 
                 inventoryGrid
-                    .padding(.horizontal)
                 
                 if !recentlyAddedItems.isEmpty {
                     inventoryRow(items: recentlyAddedItems, title: "Recently Added")
-                        .padding(.horizontal)
-                        .padding(.top, 20)
+                        .padding(.top, 16)
                 }
             }
+            .scrollClipDisabled(true)
+            .padding(.horizontal, 16)
             .navigationTitle("Inventory")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -366,9 +363,10 @@ struct InventoryView: View {
             })
         } else {
             return AnyView(VStack(alignment: .leading) {
-                Button(action: {
-                    // Placeholder
-                }) {
+                NavigationLink {
+                    InventoryGroupView(title: title, itemsGroup: items, selectedItem: $selectedItem)
+                        
+                } label: {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.primary)
@@ -381,7 +379,7 @@ struct InventoryView: View {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
                         ForEach(items.prefix(5), id: \.id) { item in
-                            ItemInventoryGridCard(
+                            ItemDraggableGridCard(
                                 item: item,
                                 colorScheme: colorScheme,
                                 draggedItem: $draggedItem,
@@ -392,7 +390,7 @@ struct InventoryView: View {
                                     draggedItem = isDragging ? item : nil
                                 },
                                 onDrop: { droppedItemId in
-                                    handleDrop(droppedItemId: droppedItemId, target: item)
+                                    handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                                 }
                             )
                             .aspectRatio(1.0, contentMode: .fill)
@@ -432,7 +430,7 @@ struct InventoryView: View {
                 gridCard(item: emptyItem, colorScheme: colorScheme)
             } else {
                 ForEach(filteredItems, id: \.id) { item in
-                    ItemInventoryGridCard(
+                    ItemDraggableGridCard(
                         item: item,
                         colorScheme: colorScheme,
                         draggedItem: $draggedItem,
@@ -443,7 +441,7 @@ struct InventoryView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(droppedItemId: droppedItemId, target: item)
+                            handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         }
                     )
                 }
@@ -461,30 +459,6 @@ struct InventoryView: View {
         }
     }
     
-    private func handleDrop(droppedItemId: UUID, target: Item) {
-        guard let droppedItem = items.first(where: { $0.id == droppedItemId }),
-              droppedItem.id != target.id else {
-            draggedItem = nil
-            return
-        }
-        var currentItems = filteredItems
-        guard let fromIndex = currentItems.firstIndex(where: { $0.id == droppedItem.id }),
-              let toIndex = currentItems.firstIndex(where: { $0.id == target.id }) else {
-            draggedItem = nil
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.3)) {
-            // Remove & insert dropped item at new index
-            let removed = currentItems.remove(at: fromIndex)
-            currentItems.insert(removed, at: toIndex)
-            
-            // Assign new sort orders in array order
-            for (newOrder, item) in currentItems.enumerated() {
-                item.sortOrder = newOrder
-            }
-        }
-        draggedItem = nil
-    }
     
     private func greetingTime() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -502,55 +476,6 @@ struct InventoryView: View {
         withAnimation {
             for index in offsets {
                 modelContext.delete(items[index])
-            }
-        }
-    }
-}
-
-struct ItemInventoryGridCard: View {
-    let item: Item
-    let colorScheme: ColorScheme
-    @Binding var draggedItem: Item?
-    let onTap: () -> Void
-    let onDragChanged: (Bool) -> Void
-    let onDrop: (UUID) -> Void
-
-    @State private var isPressed = false
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: {
-            withAnimation(.interactiveSpring()) {
-                isPressed = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                withAnimation(.interactiveSpring()) {
-                    isPressed = false
-                }
-                onTap()
-            }
-        }) {
-            gridCard(item: item, colorScheme: colorScheme)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
-        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
-        .animation(.interactiveSpring(), value: isPressed)
-        .animation(.interactiveSpring(), value: isHovered)
-        .draggable(ItemIdentifier(id: item.id)) {
-            gridCard(item: item, colorScheme: colorScheme)
-                .frame(width: 150, height: 150)
-                .opacity(0.8)
-        }
-        .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
-            guard let droppedItem = droppedItems.first else { return false }
-            onDrop(droppedItem.id)
-            return true
-        }
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
             }
         }
     }
