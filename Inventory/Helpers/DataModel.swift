@@ -103,27 +103,10 @@ extension Item {
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
         let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
         
-        // Helper to find or create location
-        func findOrCreateLocation(locationName: String, locationColor: Color) -> Location {
-            if let existing = locations.first(where: { $0.name == locationName }) {
-                return existing
-            } else {
-                let newLoc = Location(name: locationName, color: locationColor)
-                context.insert(newLoc)
-                return newLoc
-            }
-        }
-        // Helper to find or create category
-        func findOrCreateCategory(categoryName: String) -> Category? {
-            guard !categoryName.isEmpty else { return nil }
-            if let existing = categories.first(where: { $0.name == categoryName }) {
-                return existing
-            } else {
-                let newCat = Category(name: categoryName)
-                context.insert(newCat)
-                return newCat
-            }
-        }
+        // Find or create location and category
+        let location = !locationName.isEmpty ? Location.findOrCreate(name: locationName, color: locationColor, locations: locations) : nil
+        let category = !categoryName.isEmpty ? Category.findOrCreate(name: categoryName, categories: categories) : nil
+        
         // Extract background
         let (imageData, symbol, usedSymbolColor): (Data?, String?, Color?) = {
             switch background {
@@ -133,12 +116,15 @@ extension Item {
                 return (data, nil, nil)
             }
         }()
+        
+        // Determine the next sort order
         let sortOrder = (items.map { $0.sortOrder }.max() ?? -1) + 1
+        
         let item = Item(
             name: name,
             quantity: max(quantity, 0),
-            location: findOrCreateLocation(locationName: locationName, locationColor: locationColor),
-            category: findOrCreateCategory(categoryName: categoryName),
+            location: location,
+            category: category,
             imageData: imageData,
             symbol: symbol,
             symbolColor: usedSymbolColor,
@@ -225,8 +211,27 @@ extension Item {
     }
 }
 
-extension Category {
-    /// Deletes this category if it has no items
+extension Location {
+    /// Finds an existing category by name or creates a new one with the specified color and next available sort order.
+    /// - If a category with the given name exists, it updates its color and returns it.
+    /// - If no such category exists, it creates a new one with the next available sort order.
+    /// - Parameters:
+    /// - name: The name of the category to find or create.
+    /// - color: The color to assign to the category.
+    /// - locations: The list of existing locations to check against.
+    /// - Returns: The existing or newly created Category.
+    /// This method is useful for ensuring that categories are unique by name while allowing color updates.
+    static func findOrCreate(name: String, color: Color, locations: [Location]) -> Location {
+        if let existing = locations.first(where: { $0.name == name }) {
+            existing.color = color
+            return existing
+        } else {
+            let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
+            return Location(name: name, sortOrder: nextSortOrder, color: color)
+        }
+    }
+    
+    /// Deletes this location if it has no items
     func deleteIfEmpty(from context: ModelContext) {
         // Save any changes (such as deletions) before checking emptiness
         try? context.save()
@@ -237,8 +242,25 @@ extension Category {
     }
 }
 
-extension Location {
-    /// Deletes this location if it has no items
+extension Category {
+    /// Finds an existing category by name or creates a new one with the next available sort order.
+    /// - If a category with the given name exists, it returns that category.
+    /// - If no such category exists, it creates a new one with the next available sort order.
+    /// - Parameters:
+    /// - name: The name of the category to find or create.
+    /// - categories: The list of existing categories to check against.
+    /// - Returns: The existing or newly created Category.
+    /// This method is useful for ensuring that categories are unique by name.
+    static func findOrCreate(name: String, categories: [Category]) -> Category {
+        if let existing = categories.first(where: { $0.name == name }) {
+            return existing
+        } else {
+            let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
+            return Category(name: name, sortOrder: nextSortOrder)
+        }
+    }
+    
+    /// Deletes this category if it has no items
     func deleteIfEmpty(from context: ModelContext) {
         // Save any changes (such as deletions) before checking emptiness
         try? context.save()
