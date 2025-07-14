@@ -390,7 +390,6 @@ struct InventoryView: View {
             return AnyView(VStack(alignment: .leading) {
                 NavigationLink {
                     InventoryGridView(title: title, itemsGroup: items, selectedItem: $selectedItem)
-                    
                 } label: {
                     Text(title)
                         .font(.headline)
@@ -418,27 +417,33 @@ struct InventoryView: View {
                                     handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                                 }
                             )
-                            .aspectRatio(1.0, contentMode: .fill)
+                            .aspectRatio(1.0, contentMode: .fit)
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
                         if items.count < 5 {
                             Spacer()
                         } else if items.count > 5 {
-                            Button(action: {
-                                selectedItem = nil
-                                showItemView = true
-                            }) {
-                                itemCard(item: emptyItem, colorScheme: colorScheme)
-                                    .overlay(
-                                        Text("More...")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                            .padding(8)
-                                            .background(Color.white.opacity(0.7), in: Capsule())
-                                    )
+                            NavigationLink {
+                                InventoryGridView(title: title, itemsGroup: items, selectedItem: $selectedItem)
+                            } label: {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 25.0)
+                                        .aspectRatio(contentMode: .fill)
+                                        .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    
+                                    HStack(spacing: 4) {
+                                        Text("View All")
+                                            .font(.title3)
+                                            .foregroundColor(.white)
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(8)
+                                }
+                                .aspectRatio(1.0, contentMode: .fit)
+                                .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 }
