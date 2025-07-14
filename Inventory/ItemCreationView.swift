@@ -76,60 +76,58 @@ struct ItemCreationView: View {
     var body: some View {
         NavigationStack {
             Form {
-                itemCard(
-                    name: name,
-                    quantity: isQuantityEnabled ? quantity : 0,
-                    location: Location(name: locationName, color: locationColor),
-                    category: Category(name: categoryName),
-                    background: background,
-                    symbolColor: symbolColor,
-                    colorScheme: colorScheme,
-                    largeFont: true
-                )
-                .frame(maxWidth: .infinity, maxHeight: 250, alignment: .center)
-                .listRowSeparator(.hidden)
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    TextField("New Item", text: $name)
-                        .font(.largeTitle.bold())
-                        .padding(.bottom, 4)
-                        .autocapitalization(.words)
-                        .disableAutocorrection(true)
+                VStack(alignment: .center, spacing: 12) {
+                    itemCard(
+                        name: name,
+                        quantity: isQuantityEnabled ? quantity : 0,
+                        location: Location(name: locationName, color: locationColor),
+                        category: Category(name: categoryName),
+                        background: background,
+                        symbolColor: symbolColor,
+                        colorScheme: colorScheme,
+                        largeFont: true
+                    )
+                    .frame(maxWidth: 250, maxHeight: 250, alignment: .center)
                     
-                    HStack(alignment: .center, spacing: 12) {
-                        TextField("Location", text: $locationName)
-                            .font(.body)
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("New Item", text: $name)
+                            .font(.largeTitle.bold())
+                            .padding(.bottom, 4)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .onChange(of: locationName) { oldValue, newValue in
-                                if let found = locations.first(where: { $0.name == newValue }) {
-                                    locationColor = found.color
-                                } else {
-                                    locationColor = .white
-                                }
-                            }
                         
-                        if !locationName.isEmpty {
-                            ColorPicker("Location Color", selection: $locationColor, supportsOpacity: false)
-                                .labelsHidden()
-                                .frame(width: 32, height: 32)
+                        HStack(alignment: .center, spacing: 12) {
+                            TextField("Location", text: $locationName)
+                                .font(.body)
+                                .autocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .onChange(of: locationName) { oldValue, newValue in
+                                    if let found = locations.first(where: { $0.name == newValue }) {
+                                        locationColor = found.color
+                                    } else {
+                                        locationColor = .white
+                                    }
+                                }
+                            
+                            if !locationName.isEmpty {
+                                ColorPicker("Location Color", selection: $locationColor, supportsOpacity: false)
+                                    .labelsHidden()
+                                    .frame(width: 32, height: 32)
+                            }
                         }
-                    }
-                    .listRowSeparator(.hidden)
-                    
-                    filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName)
-                    
-                }
-                
-                VStack {
-                    HStack(alignment: .center, spacing: 12) {
+                        
+                        filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName)
+                        
+                        Divider()
+                            .ignoresSafeArea(edges: .trailing)
+                        
                         TextField("Category", text: $categoryName)
                             .font(.body)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                        
+                        filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
                     }
-                    
-                    filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
                 }
                 
                 Section(header: Text("Quantity")) {

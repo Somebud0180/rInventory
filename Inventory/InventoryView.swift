@@ -73,7 +73,7 @@ struct InventoryView: View {
     }
     
     var body: some View {
-        let recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+        var recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         
         NavigationStack {
             ScrollView {
@@ -111,6 +111,9 @@ struct InventoryView: View {
             .onAppear {
                 initializeSortOrders()
             }
+        }
+        .onChange(of: items) {
+            recentlyAddedItems = items.filter { $0.creationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         }
         .userActivity(inventoryActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)

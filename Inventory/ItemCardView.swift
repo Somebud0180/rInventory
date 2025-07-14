@@ -64,8 +64,9 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             HStack {
                 if !category.name.isEmpty {
                     Text(category.name)
-                        .font(.system(.footnote, design: .rounded))
-                        .bold()
+                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                        .fontWeight(.bold)
+                        .lineLimit(1)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .adaptiveGlassBackground(tintStrength: 0.5)
@@ -73,8 +74,9 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                 Spacer()
                 if quantity > 0 {
                     Text("\(quantity)")
-                        .font(.system(.footnote, design: .rounded))
-                        .bold()
+                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                        .fontWeight(.bold)
+                        .lineLimit(1)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .padding(.horizontal, 4)

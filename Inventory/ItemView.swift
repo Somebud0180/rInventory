@@ -483,8 +483,8 @@ struct ItemView: View {
                         TextField("Category", text: $editCategoryName)
                             .font(.system(.callout, design: .rounded))
                             .bold()
-                            .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.5)
+                            .foregroundStyle(.white.opacity(0.95))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                             .frame(minHeight: 22)
@@ -495,9 +495,10 @@ struct ItemView: View {
             } else {
                 if !category.name.isEmpty {
                     Text(category.name)
-                        .minimumScaleFactor(0.5)
                         .font(.system(.callout, design: .rounded))
                         .bold()
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .frame(minHeight: 32)
@@ -519,9 +520,10 @@ struct ItemView: View {
                         }
                     } label: {
                         Text(String(editQuantity))
-                            .minimumScaleFactor(0.5)
                             .font(.system(.body, design: .rounded))
                             .bold()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                             .foregroundStyle(.white.opacity(0.95))
                             .padding(8)
                             .padding(.horizontal, 6)
@@ -534,8 +536,9 @@ struct ItemView: View {
                         Button("Enable Quantity") { editQuantity = max(1, quantity) }
                     } label: {
                         Image(systemName: "ellipsis.circle")
-                            .minimumScaleFactor(0.5)
                             .font(.title3)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                             .foregroundStyle(.white.opacity(0.95))
                             .padding(7) // to match padding of Text
                             .frame(minWidth: 32, minHeight: 32)
@@ -547,9 +550,10 @@ struct ItemView: View {
             } else {
                 if quantity > 0 {
                     Text(String(quantity))
-                        .minimumScaleFactor(0.5)
                         .font(.system(.body, design: .rounded))
                         .bold()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                         .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .padding(.horizontal, 6)
@@ -571,8 +575,8 @@ struct ItemView: View {
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .lineLimit(1)
-                        .foregroundStyle(.white.opacity(0.95))
                         .minimumScaleFactor(0.5)
+                        .foregroundStyle(.white.opacity(0.95))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -581,10 +585,10 @@ struct ItemView: View {
                 }
             } else {
                 Text(name)
-                    .minimumScaleFactor(0.5)
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(.white.opacity(0.95))
             }
         }
@@ -616,11 +620,11 @@ struct ItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
-                    .minimumScaleFactor(0.5)
                     .font(.system(.headline, design: .rounded))
                     .fontWeight(.bold)
                     .foregroundStyle(location.color)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.5)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 12)
                     .adaptiveGlassBackground(tintStrength: 0.5)
