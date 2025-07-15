@@ -41,6 +41,7 @@ struct ItemIdentifier: Transferable {
 }
 
 struct InventoryView: View {
+    @Environment(\.editMode) private var editMode
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -58,6 +59,7 @@ struct InventoryView: View {
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
+    @State private var selectedItemIDs: Set<UUID> = []
     @State private var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
     
     private var filteredItems: [Item] {
@@ -373,7 +375,9 @@ struct InventoryView: View {
                         },
                         onDrop: { droppedItemId in
                             handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                        }
+                        },
+                        isEditing: editMode?.wrappedValue.isEditing ?? false,
+                        isSelected: selectedItemIDs.contains(item.id)
                     )
                 }
             }
@@ -418,7 +422,9 @@ struct InventoryView: View {
                                 },
                                 onDrop: { droppedItemId in
                                     handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                                }
+                                },
+                                isEditing: editMode?.wrappedValue.isEditing ?? false,
+                                isSelected: selectedItemIDs.contains(item.id)
                             )
                             .aspectRatio(1.0, contentMode: .fit)
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)

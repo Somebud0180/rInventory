@@ -12,6 +12,7 @@ struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.editMode) private var editMode
     
     @Query private var items: [Item]
     
@@ -22,6 +23,7 @@ struct InventoryGridView: View {
     // State variables for UI
     @State private var selectedSortType: SortType = .order
     @State private var draggedItem: Item? = nil
+    @State private var selectedItemIDs: Set<UUID> = []
     
     private var filteredItems: [Item] {
         let filtered = itemsGroup
@@ -41,6 +43,20 @@ struct InventoryGridView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
+            }
+            if editMode?.wrappedValue.isEditing == true && !selectedItemIDs.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        deleteSelectedItems()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+        }
     }
     
     private var inventoryGrid: some View {
@@ -53,14 +69,24 @@ struct InventoryGridView: View {
                             colorScheme: colorScheme,
                             draggedItem: $draggedItem,
                             onTap: {
-                                selectedItem = item
+                                if editMode?.wrappedValue.isEditing == true {
+                                    if selectedItemIDs.contains(item.id) {
+                                        selectedItemIDs.remove(item.id)
+                                    } else {
+                                        selectedItemIDs.insert(item.id)
+                                    }
+                                } else {
+                                    selectedItem = item
+                                }
                             },
                             onDragChanged: { isDragging in
                                 draggedItem = isDragging ? item : nil
                             },
                             onDrop: { droppedItemId in
                                 handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                            }
+                            },
+                            isEditing: editMode?.wrappedValue.isEditing ?? false,
+                            isSelected: editMode?.wrappedValue.isEditing == true && selectedItemIDs.contains(item.id)
                         )
                     }
                 }
@@ -69,6 +95,19 @@ struct InventoryGridView: View {
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func deleteSelectedItems() {
+        let itemsToDelete = items.filter { selectedItemIDs.contains($0.id) }
+        for item in itemsToDelete {
+            modelContext.delete(item)
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            // handle error as needed
+        }
+        selectedItemIDs.removeAll()
     }
 }
 

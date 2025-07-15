@@ -24,9 +24,10 @@ enum ItemCardBackground {
 ///   - symbolColor: The color of the symbol, if applicable.
 ///   - colorScheme: The current color scheme of the app.
 ///   - largeFont: Optional boolean to determine if a larger font should be used for the item name.
+///   - hideQuantity: Optional boolean to hide the quantity label.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false) -> some View {
+func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false) -> some View {
     let largeFont = largeFont ?? false
     return ZStack {
         RoundedRectangle(cornerRadius: 25.0)
@@ -71,16 +72,20 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                         .padding(8)
                         .adaptiveGlassBackground(tintStrength: 0.5)
                 }
-                Spacer()
-                if quantity > 0 {
-                    Text("\(quantity)")
-                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .foregroundStyle(.white.opacity(0.95))
-                        .padding(8)
-                        .padding(.horizontal, 4)
-                        .adaptiveGlassBackground(tintStrength: 0.5)
+                if hideQuantity {
+                    Spacer(minLength: 32)
+                } else {
+                    if quantity > 0 {
+                        Spacer()
+                        Text("\(quantity)")
+                            .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                            .fontWeight(.bold)
+                            .lineLimit(1)
+                            .foregroundStyle(.white.opacity(0.95))
+                            .padding(8)
+                            .padding(.horizontal, 4)
+                            .adaptiveGlassBackground(tintStrength: 0.5)
+                    }
                 }
             }
             Spacer()
@@ -112,9 +117,10 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
 /// - Parameters:
 ///  - item: The item to display.
 ///  - colorScheme: The current color scheme of the app.
+///  - hideQuantity: Optional boolean to hide the quantity label.
 ///  - Returns: A view representing the item card with the item's properties.
 ///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(item: Item, colorScheme: ColorScheme) -> some View {
+func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false) -> some View {
     let location = item.location ?? Location(name: "Unknown", color: .white)
     let category = item.category ?? Category(name: "")
     
@@ -134,7 +140,8 @@ func itemCard(item: Item, colorScheme: ColorScheme) -> some View {
         category: category,
         background: background,
         symbolColor: item.symbolColor,
-        colorScheme: colorScheme
+        colorScheme: colorScheme,
+        hideQuantity: hideQuantity
     )
 }
 
@@ -211,6 +218,8 @@ struct DraggableItemCard: View {
     var onDragChanged: (Bool) -> Void
     var onDrop: (UUID) -> Void
     
+    var isEditing: Bool
+    var isSelected: Bool = false
     
     @State private var isPressed = false
     @State private var isHovered = false
@@ -228,7 +237,16 @@ struct DraggableItemCard: View {
                 onTap()
             }
         }) {
-            itemCard(item: item, colorScheme: colorScheme)
+            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
+                .overlay(alignment: .topTrailing) {
+                    if isEditing {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.title2)
+                            .foregroundColor(isSelected ? Color.blue : Color.secondary)
+                            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
+                            .padding(8)
+                    }
+                }
         }
         .buttonStyle(PlainButtonStyle())
         .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
@@ -236,9 +254,20 @@ struct DraggableItemCard: View {
         .animation(.interactiveSpring(), value: isPressed)
         .animation(.interactiveSpring(), value: isHovered)
         .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme)
+            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
                 .frame(width: 150, height: 150)
                 .opacity(0.8)
+                .overlay(alignment: .topTrailing) {
+                    if isEditing {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 32, height: 32)
+                            .foregroundColor(isSelected ? Color.blue : Color.secondary)
+                            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
+                            .padding(24)
+                    }
+                }
         }
         .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
             guard let droppedItem = droppedItems.first else { return false }
@@ -260,3 +289,4 @@ struct DraggableItemCard: View {
         .modelContainer(for: Category.self)
         .modelContainer(for: Location.self)
 }
+
