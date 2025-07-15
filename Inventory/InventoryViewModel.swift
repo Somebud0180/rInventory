@@ -1,11 +1,24 @@
-// InventoryViewModel.swift
-// Centralizes shared inventory logic such as sorting, selection, and deletion.
+//
+//  InventoryViewModel.swift
+//  Inventory
+//
+//  Created by Ethan John Lagera on 7/3/25.
+//
+//  Centralizes shared inventory logic such as sorting, selection, and deletion.
 
 import SwiftUI
 import SwiftData
+internal import Combine
+
+enum SortType: String, CaseIterable {
+    case order = "Order"
+    case alphabetical = "Alphabetical"
+    case dateModified = "Date Modified"
+}
 
 class InventoryViewModel: ObservableObject {
     @Published var selectedSortType: SortType = .order
+    @Published var selectedCategory: String = "My Inventory"
     @Published var selectedItemIDs: Set<UUID> = []
     
     // Provide sorting for any provided item array
@@ -37,3 +50,4 @@ class InventoryViewModel: ObservableObject {
         selectedItemIDs.removeAll()
     }
 }
+

@@ -20,21 +20,13 @@ struct InventoryGridView: View {
     var itemsGroup: [Item]
     @Binding var selectedItem: Item?
     
-    // State variables for UI
-    @State private var selectedSortType: SortType = .order
+    @StateObject private var viewModel = InventoryViewModel()
+    
+    // State variable for UI
     @State private var draggedItem: Item? = nil
-    @State private var selectedItemIDs: Set<UUID> = []
     
     private var filteredItems: [Item] {
-        let filtered = itemsGroup
-        switch selectedSortType {
-        case .order:
-            return filtered.sorted(by: { $0.sortOrder < $1.sortOrder })
-        case .alphabetical:
-            return filtered.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
-        case .dateModified:
-            return filtered.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
-        }
+        viewModel.filteredItems(from: itemsGroup)
     }
     
     var body: some View {
@@ -47,7 +39,7 @@ struct InventoryGridView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 EditButton()
             }
-            if editMode?.wrappedValue.isEditing == true && !selectedItemIDs.isEmpty {
+            if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .destructive) {
                         deleteSelectedItems()
@@ -55,6 +47,11 @@ struct InventoryGridView: View {
                         Image(systemName: "trash")
                     }
                 }
+            }
+        }
+        .onChange(of: editMode?.wrappedValue.isEditing == true) {
+            if !(editMode?.wrappedValue.isEditing == true) {
+                viewModel.selectedItemIDs.removeAll()
             }
         }
     }
@@ -70,10 +67,10 @@ struct InventoryGridView: View {
                             draggedItem: $draggedItem,
                             onTap: {
                                 if editMode?.wrappedValue.isEditing == true {
-                                    if selectedItemIDs.contains(item.id) {
-                                        selectedItemIDs.remove(item.id)
+                                    if viewModel.selectedItemIDs.contains(item.id) {
+                                        viewModel.selectedItemIDs.remove(item.id)
                                     } else {
-                                        selectedItemIDs.insert(item.id)
+                                        viewModel.selectedItemIDs.insert(item.id)
                                     }
                                 } else {
                                     selectedItem = item
@@ -86,7 +83,7 @@ struct InventoryGridView: View {
                                 handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                             },
                             isEditing: editMode?.wrappedValue.isEditing ?? false,
-                            isSelected: editMode?.wrappedValue.isEditing == true && selectedItemIDs.contains(item.id)
+                            isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
                         )
                     }
                 }
@@ -98,16 +95,7 @@ struct InventoryGridView: View {
     }
     
     private func deleteSelectedItems() {
-        let itemsToDelete = items.filter { selectedItemIDs.contains($0.id) }
-        for item in itemsToDelete {
-            modelContext.delete(item)
-        }
-        do {
-            try modelContext.save()
-        } catch {
-            // handle error as needed
-        }
-        selectedItemIDs.removeAll()
+        viewModel.deleteSelectedItems(allItems: items, modelContext: modelContext)
     }
 }
 
@@ -122,3 +110,4 @@ struct InventoryGridView: View {
     
     InventoryGridView(title: title, itemsGroup: itemsGroup, selectedItem: $selectedItem)
 }
+

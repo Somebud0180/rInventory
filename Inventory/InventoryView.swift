@@ -10,18 +10,11 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import Foundation
+internal import Combine
 
 let inventoryActivityType = "ethanj.Inventory.viewingInventory"
 let inventorySortTypeKey = "sortType"
 let inventoryCategoryKey = "category"
-
-/// Enum representing the different sorting options for inventory items.
-enum SortType: String, CaseIterable, Identifiable {
-    case order = "Order"
-    case alphabetical = "A-Z"
-    case dateModified = "Date Modified"
-    var id: String { rawValue }
-}
 
 /// Represents a unique identifier for an item that can be transferred between devices.
 struct ItemIdentifier: Transferable {
@@ -53,25 +46,14 @@ struct InventoryView: View {
     @Binding var selectedItem: Item?
     @State var isActive: Bool
     
-    // State variables for UI
-    @SceneStorage("InventoryView.selectedSortType") private var selectedSortType: SortType = .order
-    @SceneStorage("InventoryView.selectedCategory") private var selectedCategory: String = "My Inventory"
+    @StateObject private var viewModel = InventoryViewModel()
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
-    @State private var selectedItemIDs: Set<UUID> = []
     @State private var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
     
     private var filteredItems: [Item] {
-        let filtered = selectedCategory == "My Inventory" ? items : items.filter { $0.category?.name == selectedCategory }
-        switch selectedSortType {
-        case .order:
-            return filtered.sorted(by: { $0.sortOrder < $1.sortOrder })
-        case .alphabetical:
-            return filtered.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
-        case .dateModified:
-            return filtered.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
-        }
+        viewModel.filteredItems(from: items)
     }
     
     var body: some View {
@@ -113,6 +95,11 @@ struct InventoryView: View {
             .onAppear {
                 initializeSortOrders()
             }
+            .onChange(of: editMode?.wrappedValue) {
+                if editMode?.wrappedValue == .inactive {
+                    viewModel.selectedItemIDs.removeAll()
+                }
+            }
         }
         .onChange(of: items) {
             recentlyAddedItems = items.filter { $0.creationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
@@ -125,14 +112,14 @@ struct InventoryView: View {
                 // Handle case of deleted categories by verifying existence before assignment
                 if let cat = info[inventoryCategoryKey] as? String {
                     if categories.contains(where: { $0.name == cat }) {
-                        selectedCategory = cat
+                        viewModel.selectedCategory = cat
                     } else {
-                        selectedCategory = "My Inventory"
+                        viewModel.selectedCategory = "My Inventory"
                     }
                 }
                 // Sort order is only used for restoring UI state, not for system activity
                 if let sortRaw = info[inventorySortTypeKey] as? String, let type = SortType(rawValue: sortRaw) {
-                    selectedSortType = type
+                    viewModel.selectedSortType = type
                 }
             }
         }
@@ -152,18 +139,18 @@ struct InventoryView: View {
         Menu {
             Button("My Inventory") {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    selectedCategory = "My Inventory"
+                    viewModel.selectedCategory = "My Inventory"
                 }
             }
             ForEach(categories, id: \.name) { category in
                 Button(category.name) {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        selectedCategory = category.name
+                        viewModel.selectedCategory = category.name
                     }
                 }
             }
         } label: {
-            CategoryPickerLabel(categoryName: selectedCategory, menuPresented: $categoryMenuPresented)
+            CategoryPickerLabel(categoryName: viewModel.selectedCategory, menuPresented: $categoryMenuPresented)
         }
         .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
     }
@@ -248,17 +235,17 @@ struct InventoryView: View {
     /// Returns a sort picker menu for selecting how to sort inventory items.
     private var sortPicker: some View {
         Menu {
-            ForEach(SortType.allCases) { type in
+            ForEach(SortType.allCases, id: \.self) { type in
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        selectedSortType = type
+                        viewModel.selectedSortType = type
                     }
                 } label: {
                     Label(type.rawValue, systemImage: symbolName(for: type))
                 }
             }
         } label: {
-            SortPickerLabel(selectedSortType: selectedSortType, symbolName: symbolName(for: selectedSortType), menuPresented: $sortMenuPresented)
+            SortPickerLabel(selectedSortType: viewModel.selectedSortType, symbolName: symbolName(for: viewModel.selectedSortType), menuPresented: $sortMenuPresented)
         }
         .adaptiveGlassButton(tintStrength: 0.0)
     }
@@ -377,7 +364,7 @@ struct InventoryView: View {
                             handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
-                        isSelected: selectedItemIDs.contains(item.id)
+                        isSelected: viewModel.selectedItemIDs.contains(item.id)
                     )
                 }
             }
@@ -424,7 +411,7 @@ struct InventoryView: View {
                                     handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                                 },
                                 isEditing: editMode?.wrappedValue.isEditing ?? false,
-                                isSelected: selectedItemIDs.contains(item.id)
+                                isSelected: viewModel.selectedItemIDs.contains(item.id)
                             )
                             .aspectRatio(1.0, contentMode: .fit)
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
@@ -518,13 +505,13 @@ struct InventoryView: View {
     /// Updates the user activity with the current category and sort type.
     /// - Parameter activity: The user activity to update.
     private func updateUserActivity(_ activity: NSUserActivity) {
-        activity.addUserInfoEntries(from: [inventoryCategoryKey: selectedCategory])
-        activity.title = "View \(selectedCategory) Inventory"
+        activity.addUserInfoEntries(from: [inventoryCategoryKey: viewModel.selectedCategory])
+        activity.title = "View \(viewModel.selectedCategory) Inventory"
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
-        activity.keywords = Set([selectedCategory])
-        activity.persistentIdentifier = "category-\(selectedCategory)"
+        activity.keywords = Set([viewModel.selectedCategory])
+        activity.persistentIdentifier = "category-\(viewModel.selectedCategory)"
     }
 }
 
