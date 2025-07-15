@@ -240,11 +240,7 @@ struct DraggableItemCard: View {
             itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
                 .overlay(alignment: .topTrailing) {
                     if isEditing {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.title2)
-                            .foregroundColor(isSelected ? Color.blue : Color.secondary)
-                            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
-                            .padding(8)
+                        checkmarkIcon
                     }
                 }
         }
@@ -259,13 +255,7 @@ struct DraggableItemCard: View {
                 .opacity(0.8)
                 .overlay(alignment: .topTrailing) {
                     if isEditing {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 32, height: 32)
-                            .foregroundColor(isSelected ? Color.blue : Color.secondary)
-                            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
-                            .padding(24)
+                        checkmarkIcon
                     }
                 }
         }
@@ -279,6 +269,16 @@ struct DraggableItemCard: View {
                 isHovered = hovering
             }
         }
+    }
+    
+    private var checkmarkIcon: some View {
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 26, height: 26)
+            .foregroundColor(isSelected ? Color.blue : Color.secondary)
+            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
+            .padding(12)
     }
 }
 
