@@ -36,17 +36,18 @@ struct InventoryGridView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                EditButton()
-            }
             if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .destructive) {
                         deleteSelectedItems()
                     } label: {
                         Image(systemName: "trash")
+                            .foregroundStyle(.red)
                     }
                 }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
             }
         }
         .onChange(of: editMode?.wrappedValue.isEditing == true) {
