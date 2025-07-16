@@ -50,7 +50,6 @@ struct InventoryView: View {
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
-    @State private var emptyItem = Item(name: "Create an item", quantity: 1, location: Location(name: "Press the plus button on the top right", color: .white ), category: nil, imageData: nil, symbol: "plus.circle", symbolColor: .white)
     
     private var filteredItems: [Item] {
         viewModel.filteredItems(from: items)
@@ -71,11 +70,21 @@ struct InventoryView: View {
                 
                 Spacer(minLength: 30)
                 
-                inventoryGrid
-                
-                if !recentlyAddedItems.isEmpty {
-                    inventoryRow(items: recentlyAddedItems, title: "Recently Added")
-                        .padding(.top, 16)
+                if items.isEmpty {
+                    Group {
+                        Text("Add a new item by pressing ") + Text(Image(systemName: "plus.circle")) + Text(" in the top-right corner.")
+                    }
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.gray)
+                    .font(.subheadline)
+                    .padding(.horizontal, 6)
+                } else {
+                    inventoryGrid
+                    
+                    if !recentlyAddedItems.isEmpty {
+                        inventoryRow(items: recentlyAddedItems, title: "Recently Added")
+                            .padding(.top, 16)
+                    }
                 }
             }
             .scrollClipDisabled(true)
@@ -346,27 +355,23 @@ struct InventoryView: View {
     /// Returns a grid of inventory items, showing an empty item if there are no items.
     private var inventoryGrid: some View {
         LazyVGrid(columns: itemColumns) {
-            if items.isEmpty {
-                itemCard(item: emptyItem, colorScheme: colorScheme)
-            } else {
-                ForEach(filteredItems, id: \.id) { item in
-                    DraggableItemCard(
-                        item: item,
-                        colorScheme: colorScheme,
-                        draggedItem: $draggedItem,
-                        onTap: {
-                            selectedItem = item
-                        },
-                        onDragChanged: { isDragging in
-                            draggedItem = isDragging ? item : nil
-                        },
-                        onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                        },
-                        isEditing: editMode?.wrappedValue.isEditing ?? false,
-                        isSelected: viewModel.selectedItemIDs.contains(item.id)
-                    )
-                }
+            ForEach(filteredItems, id: \.id) { item in
+                DraggableItemCard(
+                    item: item,
+                    colorScheme: colorScheme,
+                    draggedItem: $draggedItem,
+                    onTap: {
+                        selectedItem = item
+                    },
+                    onDragChanged: { isDragging in
+                        draggedItem = isDragging ? item : nil
+                    },
+                    onDrop: { droppedItemId in
+                        handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                    },
+                    isEditing: editMode?.wrappedValue.isEditing ?? false,
+                    isSelected: viewModel.selectedItemIDs.contains(item.id)
+                )
             }
         }
     }
@@ -376,12 +381,8 @@ struct InventoryView: View {
     /// - items: The array of items to display in the row.
     /// - title: The title for the row.
     private func inventoryRow(items: [Item], title: String) -> some View {
-        if items.isEmpty {
-            return AnyView(LazyHStack(spacing: 16) {
-                itemCard(item: emptyItem, colorScheme: colorScheme)
-            })
-        } else {
-            return AnyView(VStack(alignment: .leading) {
+        return AnyView(
+            VStack(alignment: .leading) {
                 NavigationLink {
                     InventoryGridView(title: title, itemsGroup: items, selectedItem: $selectedItem)
                 } label: {
@@ -446,8 +447,7 @@ struct InventoryView: View {
             }
                 .scrollClipDisabled(true)
                 .frame(maxWidth: .infinity)
-            )
-        }
+        )
     }
     
     /// Returns the appropriate symbol name based on the sort type.
