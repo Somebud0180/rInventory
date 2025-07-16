@@ -8,13 +8,17 @@
 
 import SwiftUI
 import SwiftData
-internal import Combine
+import Combine
 
 enum SortType: String, CaseIterable {
     case order = "Order"
     case alphabetical = "Alphabetical"
     case dateModified = "Date Modified"
 }
+
+let itemColumns = [
+    GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
+]
 
 class InventoryViewModel: ObservableObject {
     @Published var selectedSortType: SortType = .order

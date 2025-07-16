@@ -7,10 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import CloudKit
 
 @main
 struct InventoryApp: App {
-    var sharedModelContainer: ModelContainer = {
+    static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
         ])
@@ -22,11 +23,17 @@ struct InventoryApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    
+    @StateObject private var syncEngine: CloudKitSyncEngine
+    
+    init() {
+        self._syncEngine = StateObject(wrappedValue: CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext))
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(syncEngine: syncEngine)
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(InventoryApp.sharedModelContainer)
     }
 }

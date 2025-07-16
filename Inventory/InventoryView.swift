@@ -10,7 +10,7 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import Foundation
-internal import Combine
+import Combine
 
 let inventoryActivityType = "ethanj.Inventory.viewingInventory"
 let inventorySortTypeKey = "sortType"
@@ -41,6 +41,7 @@ struct InventoryView: View {
     @Query private var items: [Item]
     @Query private var categories: [Category]
     
+    @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
@@ -50,6 +51,7 @@ struct InventoryView: View {
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
+    @State private var showingSyncError = false
     
     private var filteredItems: [Item] {
         viewModel.filteredItems(from: items)
@@ -57,6 +59,14 @@ struct InventoryView: View {
     
     var body: some View {
         var recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+        
+        // Extract error message for sync error alert
+        let errorMessage: String = {
+            if case .error(let error) = syncEngine.syncState {
+                return error
+            }
+            return ""
+        }()
         
         NavigationStack {
             ScrollView {
@@ -68,17 +78,11 @@ struct InventoryView: View {
                     sortPicker
                 }
                 
-                Spacer(minLength: 30)
-                
                 if items.isEmpty {
-                    Group {
-                        Text("Add a new item by pressing ") + Text(Image(systemName: "plus.circle")) + Text(" in the top-right corner.")
-                    }
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.gray)
-                    .font(.subheadline)
-                    .padding(.horizontal, 6)
+                    emptyItemsView
                 } else {
+                    Spacer(minLength: 30)
+                    
                     inventoryGrid
                     
                     if !recentlyAddedItems.isEmpty {
@@ -87,6 +91,7 @@ struct InventoryView: View {
                     }
                 }
             }
+            .scrollDisabled(items.isEmpty)
             .scrollClipDisabled(true)
             .padding(.horizontal, 16)
             .navigationTitle("Inventory")
@@ -100,18 +105,45 @@ struct InventoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        Task {
+                            await syncEngine.manualSync()
+                        }
+                    }) {
+                        Label("Sync", systemImage: syncEngine.syncState == .syncing ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                    }
+                    .disabled(syncEngine.syncState == .syncing || !syncEngine.isAccountAvailable)
+                }
+            }
+            .refreshable {
+                await syncEngine.refreshFromCloud()
             }
             .onAppear {
                 initializeSortOrders()
+                // Re-initialize sync engine with current modelContext if needed
+                if syncEngine.modelContext != modelContext {
+                    syncEngine.updateModelContext(modelContext)
+                }
             }
             .onChange(of: editMode?.wrappedValue) {
                 if editMode?.wrappedValue == .inactive {
                     viewModel.selectedItemIDs.removeAll()
                 }
             }
+            .onChange(of: syncEngine.syncState) {
+                if case .error = syncEngine.syncState {
+                    showingSyncError = true
+                }
+            }
+            .alert("Sync Error", isPresented: $showingSyncError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
         }
         .onChange(of: items) {
-            recentlyAddedItems = items.filter { $0.creationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            recentlyAddedItems = items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         }
         .userActivity(inventoryActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)
@@ -143,6 +175,32 @@ struct InventoryView: View {
             .padding(.top, -10)
     }
     
+    private var emptyItemsView: some View {
+        Group {
+            Group {
+                Text("Add a new item by pressing ") + Text(Image(systemName: "plus.circle")) + Text(" in the top-right corner.")
+            }
+            .multilineTextAlignment(.center)
+            .foregroundColor(.gray)
+            .font(.subheadline)
+            .padding(12)
+            
+            // Pseudo-grid to display app feel
+            // A gray square grid to simulate items
+            LazyVGrid(columns: itemColumns) {
+                ForEach(0..<6, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 25.0)
+                        .fill(Color.gray.opacity(0.8))
+                        .aspectRatio(1.0, contentMode: .fit)
+                }
+            }
+            .mask(
+                Rectangle()
+                    .foregroundStyle(LinearGradient(colors: [.white.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom))
+            )
+        }
+    }
+    
     /// Returns a category picker menu for selecting inventory categories.
     private var categoryPicker: some View {
         Menu {
@@ -169,8 +227,8 @@ struct InventoryView: View {
         @Environment(\.colorScheme) private var colorScheme
         let categoryName: String
         @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 50
-        @State private var measuredWidth: CGFloat = 50
+        @State private var displayedWidth: CGFloat = 100
+        @State private var measuredWidth: CGFloat = 100
         @State private var lastCategoryName: String = ""
         
         init(categoryName: String, menuPresented: Binding<Bool>) {
@@ -520,8 +578,9 @@ struct InventoryView: View {
     @Previewable @State var showItemView: Bool = false
     @Previewable @State var selectedItem: Item? = nil
     @Previewable @State var isActive: Bool = true
-    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
-        .modelContainer(for: Item.self)
-        .modelContainer(for: Location.self)
-        .modelContainer(for: Category.self)
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
+        .modelContainer(for: [Item.self, Location.self, Category.self])
 }
+

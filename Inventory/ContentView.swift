@@ -8,15 +8,14 @@
 import SwiftUI
 import SwiftData
 import Foundation
-
-let itemColumns = [
-    GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 16)
-]
+import CloudKit
 
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
+    
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     
     // User Activity & State Restoration support
     private enum TabSelection: Int {
@@ -30,9 +29,14 @@ struct ContentView: View {
         set { tabSelection = newValue.rawValue }
     }
     
+    
     @State private var selectedItem: Item? = nil
     @State private var showItemCreationView: Bool = false
     @State private var showItemView: Bool = false
+    
+    init(syncEngine: CloudKitSyncEngine) {
+        self.syncEngine = syncEngine
+    }
     
     var body: some View {
         let activityType: String?
@@ -95,7 +99,7 @@ struct ContentView: View {
             return TabView(selection: $tabSelection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
-                    InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
+                    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                 }
                 
                 // Settings Tab
@@ -111,7 +115,7 @@ struct ContentView: View {
         } else {
             return TabView(selection: $tabSelection) {
                 // Home Tab
-                InventoryView(showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
+                InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
@@ -156,8 +160,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: Item.self)
-        .modelContainer(for: Location.self)
-        .modelContainer(for: Category.self)
+    let tempContainer = try! ModelContainer(for: Item.self, Location.self, Category.self)
+    let engine = CloudKitSyncEngine(modelContext: tempContainer.mainContext)
+    ContentView(syncEngine: engine)
+        .modelContainer(for: [Item.self, Location.self, Category.self])
 }

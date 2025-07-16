@@ -22,9 +22,9 @@ final class Item {
     var symbolColorData: Data?
     var sortOrder: Int = 0
     var modifiedDate: Date = Date()
-    var creationDate: Date = Date()
+    var itemCreationDate: Date = Date()
     
-    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date(), creationDate: Date = Date()) {
+    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date(), itemCreationDate: Date = Date()) {
         self.id = id
         self.name = name
         self.quantity = quantity
@@ -35,7 +35,7 @@ final class Item {
         self.symbolColorData = symbolColor?.rgbaData
         self.sortOrder = sortOrder
         self.modifiedDate = modifiedDate
-        self.creationDate = creationDate
+        self.itemCreationDate = itemCreationDate
     }
     
     var symbolColor: Color {
@@ -131,7 +131,7 @@ extension Item {
             symbolColor: usedSymbolColor,
             sortOrder: sortOrder,
             modifiedDate: Date(),
-            creationDate: Date()
+            itemCreationDate: Date()
         )
         context.insert(item)
         try? context.save()
@@ -324,4 +324,3 @@ extension Color {
         return (Double(r), Double(g), Double(b), Double(a))
     }
 }
-
