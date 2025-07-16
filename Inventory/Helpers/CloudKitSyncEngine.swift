@@ -56,7 +56,7 @@ public class CloudKitSyncEngine: ObservableObject {
     private let locationsZone = CKRecordZone(zoneName: "InventoryLocations")
     
     // MARK: - Initialization
-    public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.ethanj.Inventory") {
+    public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.ethanj.inventory") {
         self._modelContext = modelContext
         self.container = CKContainer(identifier: containerIdentifier)
         self.database = container.privateCloudDatabase
@@ -210,7 +210,7 @@ public class CloudKitSyncEngine: ObservableObject {
     // MARK: - Items Sync
     
     private func fetchItems() async throws {
-        let query = CKQuery(recordType: "Item", predicate: NSPredicate(value: true))
+        let query = CKQuery(recordType: "CD_Item", predicate: NSPredicate(value: true))
         let operation = CKQueryOperation(query: query)
         operation.zoneID = itemsZone.zoneID
         
@@ -312,7 +312,7 @@ public class CloudKitSyncEngine: ObservableObject {
         
         for item in items {
             let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: itemsZone.zoneID)
-            let record = CKRecord(recordType: "Item", recordID: recordID)
+            let record = CKRecord(recordType: "CD_Item", recordID: recordID)
             
             record["id"] = item.id.uuidString
             record["name"] = item.name
@@ -345,7 +345,9 @@ public class CloudKitSyncEngine: ObservableObject {
     // MARK: - Categories Sync
     
     private func fetchCategories() async throws {
-        let query = CKQuery(recordType: "Category", predicate: NSPredicate(value: true))
+        // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString). 
+        // Do NOT use predicates on recordName for querying.
+        let query = CKQuery(recordType: "CD_Category", predicate: NSPredicate(value: true))
         let operation = CKQueryOperation(query: query)
         operation.zoneID = categoriesZone.zoneID
         
@@ -381,17 +383,22 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processCategoryRecord(_ record: CKRecord) async {
-        guard let name = record["name"] as? String else { return }
+        guard let idString = record["id"] as? String,
+              let id = UUID(uuidString: idString),
+              let name = record["name"] as? String else { return }
         
-        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.name == name })
+        // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString).
+        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
         let existingCategories = (try? _modelContext.fetch(descriptor)) ?? []
         
         if let existingCategory = existingCategories.first {
             if let sortOrder = record["sortOrder"] as? Int {
                 existingCategory.sortOrder = sortOrder
             }
+            existingCategory.name = name
         } else {
             let newCategory = Category(
+                id: id,
                 name: name,
                 sortOrder: record["sortOrder"] as? Int ?? 0
             )
@@ -408,9 +415,10 @@ public class CloudKitSyncEngine: ObservableObject {
         var recordsToSave: [CKRecord] = []
         
         for category in categories {
-            let recordID = CKRecord.ID(recordName: category.name, zoneID: categoriesZone.zoneID)
-            let record = CKRecord(recordType: "Category", recordID: recordID)
+            let recordID = CKRecord.ID(recordName: category.id.uuidString, zoneID: categoriesZone.zoneID)
+            let record = CKRecord(recordType: "CD_Category", recordID: recordID)
             
+            record["id"] = category.id.uuidString
             record["name"] = category.name
             record["sortOrder"] = category.sortOrder
             
@@ -428,7 +436,9 @@ public class CloudKitSyncEngine: ObservableObject {
     // MARK: - Locations Sync
     
     private func fetchLocations() async throws {
-        let query = CKQuery(recordType: "Location", predicate: NSPredicate(value: true))
+        // When querying for a specific Location by id, use NSPredicate(format: "id == %@", uuid.uuidString).
+        // Do NOT use predicates on recordName for querying.
+        let query = CKQuery(recordType: "CD_Location", predicate: NSPredicate(value: true))
         let operation = CKQueryOperation(query: query)
         operation.zoneID = locationsZone.zoneID
         
@@ -464,9 +474,12 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processLocationRecord(_ record: CKRecord) async {
-        guard let name = record["name"] as? String else { return }
+        guard let idString = record["id"] as? String,
+              let id = UUID(uuidString: idString),
+              let name = record["name"] as? String else { return }
         
-        let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.name == name })
+        // When querying for a specific Location by id, use NSPredicate(format: "id == %@", uuid.uuidString).
+        let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
         let existingLocations = (try? _modelContext.fetch(descriptor)) ?? []
         
         if let existingLocation = existingLocations.first {
@@ -476,8 +489,10 @@ public class CloudKitSyncEngine: ObservableObject {
             if let colorData = record["colorData"] as? Data {
                 existingLocation.colorData = colorData
             }
+            existingLocation.name = name
         } else {
             let newLocation = Location(
+                id: id,
                 name: name,
                 sortOrder: record["sortOrder"] as? Int ?? 0
             )
@@ -497,9 +512,10 @@ public class CloudKitSyncEngine: ObservableObject {
         var recordsToSave: [CKRecord] = []
         
         for location in locations {
-            let recordID = CKRecord.ID(recordName: location.name, zoneID: locationsZone.zoneID)
-            let record = CKRecord(recordType: "Location", recordID: recordID)
+            let recordID = CKRecord.ID(recordName: location.id.uuidString, zoneID: locationsZone.zoneID)
+            let record = CKRecord(recordType: "CD_Location", recordID: recordID)
             
+            record["id"] = location.id.uuidString
             record["name"] = location.name
             record["sortOrder"] = location.sortOrder
             

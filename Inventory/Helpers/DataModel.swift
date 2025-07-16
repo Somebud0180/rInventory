@@ -51,12 +51,14 @@ final class Item {
 
 @Model
 final class Category {
+    var id: UUID = UUID()
     var name: String = ""
     var sortOrder: Int = 0 // Used for sorting the category rows
     @Relationship(deleteRule: .nullify, inverse: \Item.category)
     var items: [Item]?
     
-    init(name: String, sortOrder: Int = 0) {
+    init(id: UUID = UUID(), name: String, sortOrder: Int = 0) {
+        self.id = id
         self.name = name
         self.sortOrder = sortOrder
     }
@@ -64,13 +66,15 @@ final class Category {
 
 @Model
 final class Location {
+    var id: UUID = UUID()
     var name: String = ""
     var sortOrder: Int = 0 // Used for sorting the location rows
     var colorData: Data?
     @Relationship(deleteRule: .nullify, inverse: \Item.location)
     var items: [Item]?
     
-    init(name: String, sortOrder: Int = 0, color: Color? = .primary) {
+    init(id: UUID = UUID(), name: String, sortOrder: Int = 0, color: Color? = .primary) {
+        self.id = id
         self.name = name
         self.sortOrder = sortOrder
         self.colorData = color?.rgbaData
@@ -247,7 +251,7 @@ extension Location {
             return existing
         } else {
             let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
-            return Location(name: name, sortOrder: nextSortOrder, color: color)
+            return Location(id: UUID(), name: name, sortOrder: nextSortOrder, color: color)
         }
     }
     
@@ -276,7 +280,7 @@ extension Category {
             return existing
         } else {
             let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
-            return Category(name: name, sortOrder: nextSortOrder)
+            return Category(id: UUID(), name: name, sortOrder: nextSortOrder)
         }
     }
     
