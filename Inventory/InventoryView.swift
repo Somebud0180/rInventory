@@ -85,12 +85,13 @@ struct InventoryView: View {
                 if items.isEmpty {
                     emptyItemsView
                 } else {
-                    Spacer(minLength: 30)
-                    if !recentlyAddedItems.isEmpty {
-                        inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
+                    VStack(spacing: 16) {
+                        if !recentlyAddedItems.isEmpty {
+                            inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
+                        }
+                        
+                        inventoryRow(rowItems: items, title: "My Inventory")
                     }
-                    
-                    inventoryRow(rowItems: items, title: "My Inventory")
                 }
             }
             .scrollDisabled(items.isEmpty)
@@ -235,14 +236,13 @@ struct InventoryView: View {
     /// - title: The title for the row.
     private func inventoryRow(rowItems: [Item], title: String) -> some View {
         return AnyView(
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
                     InventoryGridView(title: title, itemsGroup: rowItems, selectedItem: $selectedItem)
                 } label: {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.primary)
-                        .padding(.vertical, 8)
                     Image(systemName: "chevron.right")
                         .foregroundColor(.gray)
                 }
