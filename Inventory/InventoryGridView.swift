@@ -25,10 +25,6 @@ struct InventoryGridView: View {
     // State variable for UI
     @State private var draggedItem: Item? = nil
     
-    private var filteredItems: [Item] {
-        viewModel.filteredItems(from: itemsGroup)
-    }
-    
     var body: some View {
         NavigationStack {
             inventoryGrid
@@ -61,7 +57,7 @@ struct InventoryGridView: View {
         ScrollView {
             VStack {
                 LazyVGrid(columns: itemColumns) {
-                    ForEach(filteredItems, id: \.id) { item in
+                    ForEach(itemsGroup, id: \.id) { item in
                         DraggableItemCard(
                             item: item,
                             colorScheme: colorScheme,
@@ -81,7 +77,7 @@ struct InventoryGridView: View {
                                 draggedItem = isDragging ? item : nil
                             },
                             onDrop: { droppedItemId in
-                                handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                                handleDrop(items, filteredItems: itemsGroup, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                             },
                             isEditing: editMode?.wrappedValue.isEditing ?? false,
                             isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)

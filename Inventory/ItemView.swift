@@ -622,25 +622,7 @@ struct ItemView: View {
         // Edit, Delete, and Dismiss buttons
         HStack {
             if !isEditing {
-                Button(action: {
-                    withAnimation() {
-                        isEditing = true
-                        // Load current item values into edit variables
-                        editName = item.name
-                        editQuantity = item.quantity
-                        editLocationName = item.location?.name ?? "The Void"
-                        editLocationColor = item.location?.color ?? .gray
-                        editCategoryName = item.category?.name ?? ""
-                        switch background {
-                        case .symbol(let symbol):
-                            editBackground = .symbol(symbol)
-                            editSymbolColor = symbolColor ?? .accentColor
-                        case .image(let data):
-                            editBackground = .image(data)
-                            editSymbolColor = nil
-                        }
-                    }
-                }) {
+                Button(action: editItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.iconOnly)
                         .frame(minWidth: 25, minHeight: 24)
@@ -665,7 +647,7 @@ struct ItemView: View {
             
             Button(action: {
                 // Delete action using Item instance method
-                item.deleteItem(context: modelContext, items: items)
+                item.deleteItem(context: modelContext)
                 dismiss()
             }) {
                 Label("Delete", systemImage: "trash")
@@ -708,6 +690,26 @@ struct ItemView: View {
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: 50)
+    }
+    
+    private func editItem() {
+        withAnimation() {
+            isEditing = true
+            // Load current item values into edit variables
+            editName = item.name
+            editQuantity = item.quantity
+            editLocationName = item.location?.name ?? "The Void"
+            editLocationColor = item.location?.color ?? .gray
+            editCategoryName = item.category?.name ?? ""
+            switch background {
+            case .symbol(let symbol):
+                editBackground = .symbol(symbol)
+                editSymbolColor = symbolColor ?? .accentColor
+            case .image(let data):
+                editBackground = .image(data)
+                editSymbolColor = nil
+            }
+        }
     }
     
     private func saveItem() {

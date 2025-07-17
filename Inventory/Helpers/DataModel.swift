@@ -213,9 +213,9 @@ extension Item {
 
     /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
     func deleteItem(
-        context: ModelContext,
-        items: [Item]
+        context: ModelContext
     ) {
+        let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
         let oldLocation = self.location
         let oldCategory = self.category
         let deletedOrder = self.sortOrder

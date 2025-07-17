@@ -11,6 +11,7 @@ import SwiftData
 
 private func filteredSuggestions<T>(_ items: [T], keyPath: KeyPath<T, String>, filter: String) -> [String] {
     let names = Set(items.map { $0[keyPath: keyPath] })
+        .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } // Filter out empty/whitespace-only strings
     let sorted = names.sorted()
     if filter.isEmpty {
         return sorted
@@ -27,7 +28,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
     if suggestions.isEmpty {
         return AnyView(EmptyView())
     }
-
+    
     // Helper: If items are Location, map the name to color
     let getColor: (String) -> Color = {
         if let locations = items as? [Location] {
@@ -38,7 +39,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
             return { _ in .white }
         }
     }()
-
+    
     return AnyView(
         ScrollView(.horizontal, showsIndicators: false) {
             HStack {
