@@ -17,6 +17,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State var isActive: Bool
+    @StateObject var syncEngine: CloudKitSyncEngine
+    
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     
     private var iCloudStatusDescription: String {
@@ -96,8 +98,10 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         Button("Manually Sync") {
-                            // Placeholder for manual sync action
-                        }
+                            Task {
+                                await syncEngine.manualSync()
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
@@ -115,5 +119,7 @@ struct SettingsView: View {
 
 #Preview {
     @Previewable @State var isActive = true
-    SettingsView(isActive: isActive)
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    SettingsView(isActive: isActive, syncEngine: syncEngine)
 }

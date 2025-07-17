@@ -104,7 +104,7 @@ struct ContentView: View {
                 
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    SettingsView(isActive: currentTab == .settings)
+                    SettingsView(isActive: currentTab == .settings, syncEngine: syncEngine)
                 }
                 
                 // Search Action
@@ -122,7 +122,7 @@ struct ContentView: View {
                     .tag(0) // Tag for Home Tab
                 
                 // Settings Tab
-                SettingsView(isActive: currentTab == .settings)
+                SettingsView(isActive: currentTab == .settings, syncEngine: syncEngine)
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }

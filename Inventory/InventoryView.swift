@@ -58,7 +58,7 @@ struct InventoryView: View {
     }
     
     var body: some View {
-        var recentlyAddedItems = items.filter { $0.modifiedDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+        var recentlyAddedItems = items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         
         // Extract error message for sync error alert
         let errorMessage: String = {
@@ -77,18 +77,17 @@ struct InventoryView: View {
                     Spacer()
                     sortPicker
                 }
+                .padding(.bottom, 16)
                 
                 if items.isEmpty {
                     emptyItemsView
                 } else {
                     Spacer(minLength: 30)
-                    
-                    inventoryGrid
-                    
                     if !recentlyAddedItems.isEmpty {
                         inventoryRow(items: recentlyAddedItems, title: "Recently Added")
-                            .padding(.top, 16)
                     }
+                    
+                    inventoryRow(items: items, title: "My Inventory")
                 }
             }
             .scrollDisabled(items.isEmpty)
@@ -104,16 +103,6 @@ struct InventoryView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: {
-                        Task {
-                            await syncEngine.manualSync()
-                        }
-                    }) {
-                        Label("Sync", systemImage: syncEngine.syncState == .syncing ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
-                    }
-                    .disabled(syncEngine.syncState == .syncing || !syncEngine.isAccountAvailable)
                 }
             }
             .refreshable {
@@ -410,30 +399,6 @@ struct InventoryView: View {
         }
     }
     
-    /// Returns a grid of inventory items, showing an empty item if there are no items.
-    private var inventoryGrid: some View {
-        LazyVGrid(columns: itemColumns) {
-            ForEach(filteredItems, id: \.id) { item in
-                DraggableItemCard(
-                    item: item,
-                    colorScheme: colorScheme,
-                    draggedItem: $draggedItem,
-                    onTap: {
-                        selectedItem = item
-                    },
-                    onDragChanged: { isDragging in
-                        draggedItem = isDragging ? item : nil
-                    },
-                    onDrop: { droppedItemId in
-                        handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                    },
-                    isEditing: editMode?.wrappedValue.isEditing ?? false,
-                    isSelected: viewModel.selectedItemIDs.contains(item.id)
-                )
-            }
-        }
-    }
-    
     /// Returns a row of inventory items with a navigation title.
     /// - Parameters:
     /// - items: The array of items to display in the row.
@@ -504,7 +469,6 @@ struct InventoryView: View {
                 }
             }
                 .scrollClipDisabled(true)
-                .frame(maxWidth: .infinity)
         )
     }
     
