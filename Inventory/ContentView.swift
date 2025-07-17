@@ -10,6 +10,15 @@ import SwiftData
 import Foundation
 import CloudKit
 
+// Helper to determine if Liquid Glass design is available
+let usesLiquidGlass: Bool = {
+    if #available(iOS 26.0, *) {
+        return true
+    } else {
+        return false
+    }
+}()
+
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext

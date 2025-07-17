@@ -28,7 +28,6 @@ struct ItemView: View {
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
     @State private var imageToCrop: UIImage? = nil
-    @State private var orientation = UIDeviceOrientation.unknown
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -49,54 +48,15 @@ struct ItemView: View {
     
     // Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
-        return orientation.isLandscape || horizontalSizeClass == .regular
-    }
-    
-    // Helper to determine if Liquid Glass design is available
-    let usesLiquidGlass: Bool = {
-        if #available(iOS 26.0, *) {
-            return true
-        } else {
-            return false
-        }
-    }()
-    
-    var swiftyCropConfiguration: SwiftyCropConfiguration {
-        SwiftyCropConfiguration(
-            maxMagnificationScale: 4.0,
-            maskRadius: 130,
-            cropImageCircular: false,
-            rotateImage: false,
-            rotateImageWithButtons: true,
-            usesLiquidGlassDesign: usesLiquidGlass,
-            zoomSensitivity: 4.0,
-            rectAspectRatio: 4/3,
-            texts: SwiftyCropConfiguration.Texts(
-                cancelButton: "Cancel",
-                interactionInstructions: "",
-                saveButton: "Save"
-            ),
-            fonts: SwiftyCropConfiguration.Fonts(
-                cancelButton: Font.system(size: 12),
-                interactionInstructions: Font.system(size: 14),
-                saveButton: Font.system(size: 12)
-            ),
-            colors: SwiftyCropConfiguration.Colors(
-                cancelButton: Color.red,
-                interactionInstructions: Color.white,
-                saveButton: Color.blue,
-                background: Color.gray
-            )
-        )
+        return horizontalSizeClass == .regular
     }
     
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ZStack {
-                    if case let .image(data) = background, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
+                    if case let .image(data) = background {
+                        AsyncItemImage(imageData: data)
                             .scaledToFill()
                             .ignoresSafeArea(.all)
                             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
@@ -121,17 +81,7 @@ struct ItemView: View {
             .background(backgroundGradient)
         }
         .onAppear {
-            if !isValidItem(item) {
-                dismiss()
-            }
-            
-            orientation = UIDevice.current.orientation
             initializeDisplayVariables()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            withAnimation (.smooth) {
-                orientation = UIDevice.current.orientation
-            }
         }
         .sheet(isPresented: $showSymbolPicker) {
             // Extract the current symbol from editBackground
@@ -300,61 +250,61 @@ struct ItemView: View {
     }
     
     private func landscapeLayout(_ geometry: GeometryProxy) -> some View {
-            return HStack(spacing: 0) {
-                // Left half - Symbol/Image with toolbar overlay when editing
-                ZStack(alignment: .bottomLeading) {
-                    ItemBackgroundView(
-                        background: isEditing ? editBackground : background,
-                        symbolColor: isEditing ? editSymbolColor : symbolColor,
-                        mask: AnyView(
-                            LinearGradient(
-                                gradient: Gradient(stops: [
-                                    .init(color: .clear, location: 0.0),
-                                    .init(color: .white, location: 0.2),
-                                    .init(color: .white, location: 0.8),
-                                    .init(color: .clear, location: 1.0)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                            .blur(radius: 12)
-                            .frame(width: geometry.size.width * 0.46, height: .infinity)
+        return HStack(spacing: 0) {
+            // Left half - Symbol/Image with toolbar overlay when editing
+            ZStack(alignment: .bottomLeading) {
+                ItemBackgroundView(
+                    background: isEditing ? editBackground : background,
+                    symbolColor: isEditing ? editSymbolColor : symbolColor,
+                    mask: AnyView(
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .white, location: 0.2),
+                                .init(color: .white, location: 0.8),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
+                        .blur(radius: 12)
+                        .frame(width: geometry.size.width * 0.46, height: .infinity)
                     )
-                    
-                    if isEditing {
-                        toolbarView
-                            .padding(.bottom, 8)
-                    }
-                }
-                .frame(width: geometry.size.width * 0.48, height: geometry.size.height)
+                )
                 
-                // Right half - Content
-                VStack(alignment: .leading) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }.padding(.bottom, 12)
-                        
-                        nameSection
-                        locationSection
-                            .padding(.bottom, 12)
-                        quantityStepperSection
-                    }
-                    
-                    Spacer()
-                    buttonSection
+                if isEditing {
+                    toolbarView
+                        .padding(.bottom, 8)
                 }
-                .padding(.top, 12)
-                .padding(.vertical, 12)
-                .scrollClipDisabled()
-                .frame(maxWidth: geometry.size.width * 0.52, maxHeight: geometry.size.height)
             }
-            .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
-            .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
-            .frame(height: geometry.size.height)
+            .frame(width: geometry.size.width * 0.48, height: geometry.size.height)
+            
+            // Right half - Content
+            VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .center) {
+                        categorySection
+                        Spacer()
+                        quantitySection
+                    }.padding(.bottom, 12)
+                    
+                    nameSection
+                    locationSection
+                        .padding(.bottom, 12)
+                    quantityStepperSection
+                }
+                
+                Spacer()
+                buttonSection
+            }
+            .padding(.top, 12)
+            .padding(.vertical, 12)
+            .scrollClipDisabled()
+            .frame(maxWidth: geometry.size.width * 0.52, maxHeight: geometry.size.height)
+        }
+        .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
+        .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
+        .frame(height: geometry.size.height)
     }
     
     private func iPadLayout(_ geometry: GeometryProxy) -> some View {
@@ -418,14 +368,11 @@ struct ItemView: View {
         var body: some View {
             switch background {
             case .image(let data):
-                if let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea(.all)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .mask(mask)
-                }
+                AsyncItemImage(imageData: data)
+                    .scaledToFill()
+                    .ignoresSafeArea(.all)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .mask(mask)
             case .symbol(let symbol):
                 Image(systemName: symbol)
                     .resizable()
@@ -515,7 +462,6 @@ struct ItemView: View {
                     Menu {
                         Button("Disable Quantity") {
                             // MARK: - Identify best save behavior for editQuantity (save immediately or on save button press)
-                            updateQuantity(editQuantity)
                             editQuantity = 0
                         }
                     } label: {
@@ -642,23 +588,21 @@ struct ItemView: View {
                             .bold()
                             .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.5)
-                            .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
                     .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.5)
-                    .padding(.leading, 4)
+                    .padding(.leading, 8)
                     .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
             } else {
                 if quantity > 0 {
-                    Stepper(value: $quantity, in: 1...1000, step: 1) {
+                    Stepper(value: $quantity, in: 0...1000, step: 1) {
                         Text("Quantity: \(quantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
                             .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.5)
-                            .foregroundStyle(colorScheme == .light ? .black.opacity(0.95) : .white.opacity(0.95))
                     }
                     .onChange(of: quantity) {
                         updateQuantity(quantity)
@@ -666,7 +610,7 @@ struct ItemView: View {
                     .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.5)
                     .padding(.leading, 8)
-                    .padding(4)
+                    .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
             }
@@ -797,11 +741,6 @@ struct ItemView: View {
             quantity = newValue
             item.updateItem(quantity: newValue, context: modelContext)
         }
-    }
-    
-    private func isValidItem(_ item: Item) -> Bool {
-        // Example: Check if the item has a valid background
-        return !item.name.isEmpty && (item.imageData != nil || item.symbol != nil)
     }
 }
 

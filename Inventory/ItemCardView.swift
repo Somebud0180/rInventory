@@ -14,6 +14,91 @@ enum ItemCardBackground {
     case image(Data)
 }
 
+// MARK: - Constants
+struct ItemCardConstants {
+    static let backgroundGradient = LinearGradient(
+        colors: [.black.opacity(0.9), .gray.opacity(0.9)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    static let overlayGradient = LinearGradient(
+        colors: [.clear, .black],
+        startPoint: .center,
+        endPoint: .bottom
+    )
+    static let cornerRadius: CGFloat = 25.0
+    static let aspectRatio: CGFloat = 1.0
+}
+
+// MARK: - Font Configuration
+private struct FontConfig {
+    let titleFont: Font
+    let bodyFont: Font
+    let captionFont: Font
+    
+    init(isLarge: Bool) {
+        titleFont = .system(isLarge ? .title : .title3, design: .rounded)
+        bodyFont = .system(isLarge ? .callout : .footnote, design: .rounded)
+        captionFont = .system(isLarge ? .callout : .footnote, design: .rounded)
+    }
+}
+
+// MARK: - Animation Modifier
+private struct ItemCardAnimationModifier: ViewModifier {
+    let isPressed: Bool
+    let isHovered: Bool
+    let isDragged: Bool
+    
+    func body(content: Content) -> some View {
+        content
+            .opacity(isDragged ? 0.5 : 1.0)
+            .scaleEffect(scale)
+            .animation(.interactiveSpring(), value: isPressed)
+            .animation(.interactiveSpring(), value: isHovered)
+    }
+    
+    private var scale: Double {
+        if isDragged { return 0.93 }
+        if isPressed { return 1.0 }
+        if isHovered { return 0.98 }
+        return 0.96
+    }
+}
+
+// MARK: - Shared Button Behavior
+struct ItemCardButton<Content: View>: View {
+    let content: Content
+    let onTap: () -> Void
+    @State private var isPressed = false
+    
+    init(@ViewBuilder content: () -> Content, onTap: @escaping () -> Void) {
+        self.content = content()
+        self.onTap = onTap
+    }
+    
+    var body: some View {
+        Button(action: handleTap) {
+            content
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 1.0 : 0.96)
+        .animation(.interactiveSpring(), value: isPressed)
+    }
+    
+    private func handleTap() {
+        withAnimation(.interactiveSpring()) {
+            isPressed = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.interactiveSpring()) {
+                isPressed = false
+            }
+            onTap()
+        }
+    }
+}
+
+// MARK: - Core Item Card Function
 /// Creates a item card view for displaying item information in a layout.
 /// - Parameters:
 ///   - name: The name of the item.
@@ -28,11 +113,13 @@ enum ItemCardBackground {
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
 func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false) -> some View {
-    let largeFont = largeFont ?? false
+    let isLargeFont = largeFont ?? false
+    let fontConfig = FontConfig(isLarge: isLargeFont)
+    
     return ZStack {
-        RoundedRectangle(cornerRadius: 25.0)
+        RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
             .aspectRatio(contentMode: .fill)
-            .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .foregroundStyle(ItemCardConstants.backgroundGradient)
         
         GeometryReader { geometry in
             switch background {
@@ -45,27 +132,21 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                     .padding(25)
                 
             case .image(let data):
-                if let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                } else {
-                    EmptyView()
-                }
+                AsyncItemImage(imageData: data)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 25.0))
+        .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
         
-        LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-            .mask(RoundedRectangle(cornerRadius: 25.0)
+        ItemCardConstants.overlayGradient
+            .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                 .aspectRatio(contentMode: .fill))
         
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 if !category.name.isEmpty {
                     Text(category.name)
-                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                        .font(fontConfig.bodyFont)
                         .fontWeight(.bold)
                         .lineLimit(1)
                         .foregroundStyle(.white.opacity(0.95))
@@ -78,7 +159,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                     if quantity > 0 {
                         Spacer()
                         Text("\(quantity)")
-                            .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                            .font(fontConfig.bodyFont)
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .foregroundStyle(.white.opacity(0.95))
@@ -91,13 +172,13 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             Spacer()
             VStack(alignment: .leading, spacing: 0) {
                 Text(name)
-                    .font(largeFont ? .system(.title, design: .rounded) : .system(.title3, design: .rounded))
+                    .font(fontConfig.titleFont)
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .foregroundStyle(.white.opacity(0.95))
                 if !location.name.isEmpty {
                     Text(location.name)
-                        .font(largeFont ? .system(.callout, design: .rounded) : .system(.footnote, design: .rounded))
+                        .font(fontConfig.captionFont)
                         .fontWeight(.medium)
                         .lineLimit(2)
                         .foregroundStyle(location.color)
@@ -110,7 +191,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
     }
-    .aspectRatio(1.0, contentMode: .fit)
+    .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
 }
 
 /// Creates a item card view for displaying the item information in a layout.
@@ -145,58 +226,41 @@ func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false) 
     )
 }
 
-func handleDrop(_ items: [Item], filteredItems: [Item],draggedItem: Binding<Item?>, droppedItemId: UUID, target: Item) {
+// MARK: - Drop Handling
+func handleDrop(_ items: [Item], filteredItems: [Item], draggedItem: Binding<Item?>, droppedItemId: UUID, target: Item) {
+    defer { draggedItem.wrappedValue = nil }
+    
     guard let droppedItem = items.first(where: { $0.id == droppedItemId }),
-          droppedItem.id != target.id else {
-        draggedItem.wrappedValue = nil
+          droppedItem.id != target.id,
+          let fromIndex = filteredItems.firstIndex(where: { $0.id == droppedItem.id }),
+          let toIndex = filteredItems.firstIndex(where: { $0.id == target.id }) else {
         return
     }
+    
     var currentItems = filteredItems
-    guard let fromIndex = currentItems.firstIndex(where: { $0.id == droppedItem.id }),
-          let toIndex = currentItems.firstIndex(where: { $0.id == target.id }) else {
-        draggedItem.wrappedValue = nil
-        return
-    }
     withAnimation(.easeInOut(duration: 0.3)) {
-        // Remove & insert dropped item at new index
-        let removed = currentItems.remove(at: fromIndex)
-        currentItems.insert(removed, at: toIndex)
+        currentItems.move(fromOffsets: IndexSet([fromIndex]), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
         
-        // Assign new sort orders in array order
         for (newOrder, item) in currentItems.enumerated() {
             item.sortOrder = newOrder
         }
     }
-    draggedItem.wrappedValue = nil
 }
 
+// MARK: - Item Card Views
 struct ItemCard: View {
     let item: Item
     let colorScheme: ColorScheme
     var onTap: () -> Void = {}
     
-    @State private var isPressed = false
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: {
-            withAnimation(.interactiveSpring()) {
-                isPressed = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                withAnimation(.interactiveSpring()) {
-                    isPressed = false
-                }
-                onTap()
-            }
-        }) {
+        ItemCardButton {
             itemCard(item: item, colorScheme: colorScheme)
+        } onTap: {
+            onTap()
         }
-        .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 1.0 : (isHovered ? 0.98 : 0.96))
-        .animation(.interactiveSpring(), value: isPressed)
-        .animation(.interactiveSpring(), value: isHovered)
         .draggable(ItemIdentifier(id: item.id)) {
             itemCard(item: item, colorScheme: colorScheme)
                 .frame(width: 150, height: 150)
@@ -225,18 +289,7 @@ struct DraggableItemCard: View {
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: {
-            withAnimation(.interactiveSpring()) {
-                isPressed = true
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                withAnimation(.interactiveSpring()) {
-                    isPressed = false
-                }
-                onTap()
-            }
-        }) {
+        Button(action: handleTap) {
             itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
                 .overlay(alignment: .topTrailing) {
                     if isEditing {
@@ -245,10 +298,11 @@ struct DraggableItemCard: View {
                 }
         }
         .buttonStyle(PlainButtonStyle())
-        .opacity(draggedItem?.id == item.id ? 0.5 : 1.0)
-        .scaleEffect(draggedItem?.id == item.id ? 0.93 : (isPressed ? 1.0 : (isHovered ? 0.98 : 0.96)))
-        .animation(.interactiveSpring(), value: isPressed)
-        .animation(.interactiveSpring(), value: isHovered)
+        .modifier(ItemCardAnimationModifier(
+            isPressed: isPressed,
+            isHovered: isHovered,
+            isDragged: draggedItem?.id == item.id
+        ))
         .draggable(ItemIdentifier(id: item.id)) {
             itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
                 .frame(width: 150, height: 150)
@@ -271,6 +325,18 @@ struct DraggableItemCard: View {
         }
     }
     
+    private func handleTap() {
+        withAnimation(.interactiveSpring()) {
+            isPressed = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.interactiveSpring()) {
+                isPressed = false
+            }
+            onTap()
+        }
+    }
+    
     private var checkmarkIcon: some View {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
             .resizable()
@@ -282,11 +348,9 @@ struct DraggableItemCard: View {
     }
 }
 
-
 #Preview {
     ItemCreationView()
         .modelContainer(for: Item.self)
         .modelContainer(for: Category.self)
         .modelContainer(for: Location.self)
 }
-
