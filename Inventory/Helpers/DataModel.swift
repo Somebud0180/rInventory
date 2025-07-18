@@ -206,8 +206,8 @@ extension Item {
         
         self.modifiedDate = Date()
         
-        oldLocation?.deleteIfEmpty(from: context)
-        oldCategory?.deleteIfEmpty(from: context)
+        Location.cleanupEmpty(in: context)
+        Category.cleanupEmpty(in: context)
         try? context.save()
     }
 
@@ -223,8 +223,8 @@ extension Item {
         context.delete(self)
         
         // Clean up old location/category if they are empty
-        oldLocation?.deleteIfEmpty(from: context)
-        oldCategory?.deleteIfEmpty(from: context)
+        Location.cleanupEmpty(in: context)
+        Category.cleanupEmpty(in: context)
         
         // Cascade sortOrder
         let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
@@ -255,14 +255,13 @@ extension Location {
         }
     }
     
-    /// Deletes this location if it has no items
-    func deleteIfEmpty(from context: ModelContext) {
-        // Save any changes (such as deletions) before checking emptiness
-        try? context.save()
-        
-        if items?.isEmpty ?? true {
-            context.delete(self)
+    /// Scans all locations and deletes those with no items.
+    static func cleanupEmpty(in context: ModelContext) {
+        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
+        for location in locations where (location.items?.isEmpty ?? true) {
+            context.delete(location)
         }
+        try? context.save()
     }
 }
 
@@ -284,14 +283,13 @@ extension Category {
         }
     }
     
-    /// Deletes this category if it has no items
-    func deleteIfEmpty(from context: ModelContext) {
-        // Save any changes (such as deletions) before checking emptiness
-        try? context.save()
-        
-        if items?.isEmpty ?? true {
-            context.delete(self)
+    /// Scans all categories and deletes those with no items.
+    static func cleanupEmpty(in context: ModelContext) {
+        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
+        for category in categories where (category.items?.isEmpty ?? true) {
+            context.delete(category)
         }
+        try? context.save()
     }
 }
 
