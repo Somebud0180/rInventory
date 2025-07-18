@@ -342,7 +342,7 @@ struct DraggableItemCard: View {
             .resizable()
             .scaledToFit()
             .frame(width: 26, height: 26)
-            .foregroundColor(isSelected ? Color.blue : Color.secondary)
+            .foregroundColor(isSelected ? Color.blue : Color.white.opacity(0.8))
             .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
             .padding(12)
     }
