@@ -170,9 +170,6 @@ extension Item {
             newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, categories: categories) : nil
         }
         
-        let oldLocation = self.location
-        let oldCategory = self.category
-        
         if let name = name {
             self.name = name
         }
@@ -216,8 +213,6 @@ extension Item {
         context: ModelContext
     ) {
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
-        let oldLocation = self.location
-        let oldCategory = self.category
         let deletedOrder = self.sortOrder
         
         context.delete(self)

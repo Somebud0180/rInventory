@@ -19,7 +19,7 @@ struct InventoryGridView: View {
     // Grab Categories from Items
     private var categories: [Category] {
         [Category(name: "All Items")] +
-        Array(Set(items.compactMap { $0.category }))
+        Array(Set(itemsGroup.compactMap { $0.category }))
     }
     
     var title: String
