@@ -268,7 +268,7 @@ struct ItemView: View {
                             endPoint: .trailing
                         )
                         .blur(radius: 12)
-                        .frame(width: geometry.size.width * 0.46, height: .infinity)
+                        .frame(width: geometry.size.width * 0.46, height: geometry.size.height)
                     )
                 )
                 

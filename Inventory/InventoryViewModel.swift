@@ -170,6 +170,7 @@ class InventoryViewModel: ObservableObject {
                 .frame(width: displayedWidth)
                 .frame(minHeight: 44)
                 .foregroundColor(.primary)
+                .background(.white.opacity(0.01), in: Capsule())
                 
                 // Hidden label for measurement
                 HStack(spacing: 6) {
@@ -245,13 +246,11 @@ class InventoryViewModel: ObservableObject {
                     onCategorySelected(category.name)
                 }) {
                     Text(category.name)
+                        .background(.white.opacity(0.01), in: Capsule())
                 }
             }
         } label: {
             CategoryPickerLabel(categoryName: selectedCategory, menuPresented: menuPresented)
-        }
-        .onChange(of: menuPresented.wrappedValue) {
-            // no-op here in the factory, but menuPresented binding is controlled by caller
         }
     }
     
@@ -276,10 +275,17 @@ class InventoryViewModel: ObservableObject {
                 }
             }
         } label: {
-            SortPickerLabel(selectedSortType: selectedSortType, symbolName: "arrow.up.arrow.down", menuPresented: menuPresented)
+            SortPickerLabel(selectedSortType: selectedSortType, symbolName: symbolName(for: selectedSortType), menuPresented: menuPresented)
         }
-        .onChange(of: menuPresented.wrappedValue) {
-            // no-op here in the factory, but menuPresented binding is controlled by caller
+    }
+    
+    /// Returns the appropriate symbol name based on the sort type.
+    /// - Parameter type: The sort type for which to get the symbol name.
+    static func symbolName(for type: SortType) -> String {
+        switch type {
+        case .order: return "line.3.horizontal"
+        case .alphabetical: return "textformat.abc"
+        case .dateModified: return "calendar"
         }
     }
 }

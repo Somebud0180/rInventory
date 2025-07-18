@@ -288,16 +288,6 @@ struct InventoryView: View {
         )
     }
     
-    /// Returns the appropriate symbol name based on the sort type.
-    /// - Parameter type: The sort type for which to get the symbol name.
-    private func symbolName(for type: SortType) -> String {
-        switch type {
-        case .order: return "line.3.horizontal"
-        case .alphabetical: return "textformat.abc"
-        case .dateModified: return "calendar"
-        }
-    }
-    
     /// Initializes sort orders for categories and items if they are not set.
     private func initializeSortOrders() {
         // Initialize category sort orders if there's multiple categories without a sort order
