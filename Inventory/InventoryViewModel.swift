@@ -22,7 +22,7 @@ let itemColumns = [
 
 class InventoryViewModel: ObservableObject {
     @Published var selectedSortType: SortType = .order
-    @Published var selectedCategory: String = "My Inventory"
+    @Published var selectedCategory: String = "All Items"
     @Published var selectedItemIDs: Set<UUID> = []
     
     // Provide sorting for any provided item array
@@ -191,6 +191,7 @@ class InventoryViewModel: ObservableObject {
                 )
                 .hidden()
             }
+            .adaptiveGlassButton(tintStrength: 0.0)
             .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
                 measuredWidth = width
@@ -223,5 +224,62 @@ class InventoryViewModel: ObservableObject {
             value = nextValue()
         }
     }
+    
+    /// Creates a reusable category picker menu with a dynamic label.
+    /// - Parameters:
+    ///   - selectedCategory: The currently selected category name.
+    ///   - categories: The list of all category names to choose from.
+    ///   - menuPresented: A binding to track whether the menu is presented.
+    ///   - onCategorySelected: A closure called when a category is selected.
+    /// - Returns: A view representing the category picker menu.
+    @ViewBuilder
+    static func categoryPicker(
+        selectedCategory: String,
+        categories: [Category],
+        menuPresented: Binding<Bool>,
+        onCategorySelected: @escaping (String) -> Void
+    ) -> some View {
+        Menu {
+            ForEach(categories, id: \.id) { category in
+                Button(action: {
+                    onCategorySelected(category.name)
+                }) {
+                    Text(category.name)
+                }
+            }
+        } label: {
+            CategoryPickerLabel(categoryName: selectedCategory, menuPresented: menuPresented)
+        }
+        .onChange(of: menuPresented.wrappedValue) {
+            // no-op here in the factory, but menuPresented binding is controlled by caller
+        }
+    }
+    
+    /// Creates a reusable sort picker menu with a dynamic label.
+    /// - Parameters:
+    ///   - selectedSortType: The currently selected sort type.
+    ///   - menuPresented: A binding to track whether the menu is presented.
+    ///   - onSortTypeSelected: A closure called when a sort type is selected.
+    /// - Returns: A view representing the sort picker menu.
+    @ViewBuilder
+    static func sortPicker(
+        selectedSortType: SortType,
+        menuPresented: Binding<Bool>,
+        onSortTypeSelected: @escaping (SortType) -> Void
+    ) -> some View {
+        Menu {
+            ForEach(SortType.allCases, id: \.self) { sortType in
+                Button(action: {
+                    onSortTypeSelected(sortType)
+                }) {
+                    Text(sortType.rawValue)
+                }
+            }
+        } label: {
+            SortPickerLabel(selectedSortType: selectedSortType, symbolName: "arrow.up.arrow.down", menuPresented: menuPresented)
+        }
+        .onChange(of: menuPresented.wrappedValue) {
+            // no-op here in the factory, but menuPresented binding is controlled by caller
+        }
+    }
 }
-

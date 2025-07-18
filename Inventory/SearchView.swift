@@ -23,12 +23,12 @@ struct SearchView: View {
     @Binding var selectedItem: Item?
     @State var isActive: Bool
     
-    @SceneStorage("SearchView.selectedCategory") private var selectedCategory: String = "My Inventory"
+    @SceneStorage("SearchView.selectedCategory") private var selectedCategory: String = "All Items"
     @State private var searchText: String = ""
     @State private var categoryMenuPresented: Bool = false
     
     private var filteredItems: [Item] {
-        let categoryFiltered = selectedCategory == "My Inventory" ?
+        let categoryFiltered = selectedCategory == "All Items" ?
         items :
         items.filter { $0.category?.name == selectedCategory }
         
@@ -85,7 +85,7 @@ struct SearchView: View {
                     if categories.contains(where: { $0.name == cat }) {
                         selectedCategory = cat
                     } else {
-                        selectedCategory = "My Inventory"
+                        selectedCategory = "All Items"
                     }
                 }
             }
@@ -94,9 +94,9 @@ struct SearchView: View {
     
     private var categorySelector: some View {
         Menu {
-            Button("My Inventory") {
+            Button("All Items") {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    selectedCategory = "My Inventory"
+                    selectedCategory = "All Items"
                 }
             }
             ForEach(categories, id: \.name) { category in

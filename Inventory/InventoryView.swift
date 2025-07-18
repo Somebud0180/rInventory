@@ -90,7 +90,7 @@ struct InventoryView: View {
                             inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
                         }
                         
-                        inventoryRow(rowItems: items, title: "My Inventory")
+                        inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                     }
                 }
             }
@@ -145,7 +145,7 @@ struct InventoryView: View {
                     if categories.contains(where: { $0.name == cat }) {
                         viewModel.selectedCategory = cat
                     } else {
-                        viewModel.selectedCategory = "My Inventory"
+                        viewModel.selectedCategory = "All Items"
                     }
                 }
                 // Sort order is only used for restoring UI state, not for system activity
@@ -193,52 +193,38 @@ struct InventoryView: View {
     
     /// Returns a category picker menu for selecting inventory categories.
     private var categoryPicker: some View {
-        Menu {
-            Button("My Inventory") {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    viewModel.selectedCategory = "My Inventory"
-                }
+        InventoryViewModel.categoryPicker(
+            selectedCategory: viewModel.selectedCategory,
+            categories: categories,
+            menuPresented: $categoryMenuPresented
+        ) { selected in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                viewModel.selectedCategory = selected
             }
-            ForEach(categories, id: \.name) { category in
-                Button(category.name) {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        viewModel.selectedCategory = category.name
-                    }
-                }
-            }
-        } label: {
-            InventoryViewModel.CategoryPickerLabel(categoryName: viewModel.selectedCategory, menuPresented: $categoryMenuPresented)
         }
-        .background(colorScheme == .light ? .white.opacity(0.01) : .black.opacity(0.01), in: Capsule())
     }
     
     /// Returns a sort picker menu for selecting how to sort inventory items.
     private var sortPicker: some View {
-        Menu {
-            ForEach(SortType.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        viewModel.selectedSortType = type
-                    }
-                } label: {
-                    Label(type.rawValue, systemImage: symbolName(for: type))
-                }
+        InventoryViewModel.sortPicker(
+            selectedSortType: viewModel.selectedSortType,
+            menuPresented: $sortMenuPresented
+        ) { selected in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                viewModel.selectedSortType = selected
             }
-        } label: {
-            InventoryViewModel.SortPickerLabel(selectedSortType: viewModel.selectedSortType, symbolName: symbolName(for: viewModel.selectedSortType), menuPresented: $sortMenuPresented)
         }
-        .adaptiveGlassButton(tintStrength: 0.0)
     }
     
     /// Returns a row of inventory items with a navigation title.
     /// - Parameters:
     /// - items: The array of items to display in the row.
     /// - title: The title for the row.
-    private func inventoryRow(rowItems: [Item], title: String) -> some View {
+    private func inventoryRow(rowItems: [Item], title: String, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridView(title: title, itemsGroup: rowItems, selectedItem: $selectedItem)
+                    InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                 } label: {
                     Text(title)
                         .font(.headline)
@@ -275,7 +261,7 @@ struct InventoryView: View {
                             Spacer()
                         } else if items.count > 5 {
                             NavigationLink {
-                                InventoryGridView(title: title, itemsGroup: rowItems, selectedItem: $selectedItem)
+                                InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 25.0)
@@ -358,7 +344,7 @@ struct InventoryView: View {
     /// - Parameter activity: The user activity to update.
     private func updateUserActivity(_ activity: NSUserActivity) {
         activity.addUserInfoEntries(from: [inventoryCategoryKey: viewModel.selectedCategory])
-        activity.title = "View \(viewModel.selectedCategory) Inventory"
+        activity.title = "View \(viewModel.selectedCategory)"
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
