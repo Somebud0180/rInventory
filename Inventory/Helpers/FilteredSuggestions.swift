@@ -11,7 +11,6 @@ import SwiftData
 
 private func filteredSuggestions<T>(_ items: [T], keyPath: KeyPath<T, String>, filter: String) -> [String] {
     let names = Set(items.map { $0[keyPath: keyPath] })
-        .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } // Filter out empty/whitespace-only strings
     let sorted = names.sorted()
     if filter.isEmpty {
         return sorted

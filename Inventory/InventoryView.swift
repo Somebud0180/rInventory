@@ -225,7 +225,7 @@ struct InventoryView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
-                        ForEach(rowItems.prefix(5), id: \.id) { item in
+                        ForEach(rowItems.prefix(6), id: \.id) { item in
                             DraggableItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
@@ -247,9 +247,9 @@ struct InventoryView: View {
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
-                        if rowItems.count < 5 {
+                        if rowItems.count < 6 {
                             Spacer()
-                        } else if rowItems.count > 5 {
+                        } else if rowItems.count > 6 {
                             NavigationLink {
                                 InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
