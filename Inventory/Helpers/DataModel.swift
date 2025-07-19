@@ -59,11 +59,13 @@ final class Location {
     @Relationship(deleteRule: .nullify, inverse: \Item.location)
     var items: [Item]?
     
-    init(id: UUID = UUID(), name: String, sortOrder: Int = 0, color: Color? = .primary) {
+    init(_ id: UUID = UUID(), name: String, sortOrder: Int = 0, displayInRow: Bool = true, color: Color = Color.white, items: [Item]? = nil) {
         self.id = id
         self.name = name
         self.sortOrder = sortOrder
-        self.colorData = color?.rgbaData
+        self.colorData = color.rgbaData
+        self.displayInRow = displayInRow
+        self.items = items
     }
     
     var color: Color {
@@ -86,10 +88,12 @@ final class Category {
     @Relationship(deleteRule: .nullify, inverse: \Item.category)
     var items: [Item]?
     
-    init(id: UUID = UUID(), name: String, sortOrder: Int = 0) {
+    init(_ id: UUID = UUID(), name: String, sortOrder: Int = 0, displayInRow: Bool = true, items: [Item]? = nil) {
         self.id = id
         self.name = name
         self.sortOrder = sortOrder
+        self.displayInRow = displayInRow
+        self.items = items
     }
 }
 
@@ -245,7 +249,7 @@ extension Location {
             return existing
         } else {
             let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
-            let newLocation = Location(id: UUID(), name: name, sortOrder: nextSortOrder, color: color)
+            let newLocation = Location(name: name, sortOrder: nextSortOrder, color: color)
             context.insert(newLocation)
             return newLocation
         }
@@ -277,7 +281,7 @@ extension Category {
             return existing
         } else {
             let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
-            let newCategory = Category(id: UUID(), name: name, sortOrder: nextSortOrder)
+            let newCategory = Category(name: name, sortOrder: nextSortOrder)
             context.insert(newCategory)
             return newCategory
         }

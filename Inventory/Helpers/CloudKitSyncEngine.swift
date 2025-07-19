@@ -253,10 +253,10 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processItemRecord(_ record: CKRecord) async {
-        guard let idString = record["id"] as? String,
+        guard let idString = record["CD_id"] as? String,
               let id = UUID(uuidString: idString),
-              let name = record["name"] as? String,
-              let quantity = record["quantity"] as? Int else {
+              let name = record["CD_name"] as? String,
+              let quantity = record["CD_quantity"] as? Int else {
             return
         }
         
@@ -271,16 +271,16 @@ public class CloudKitSyncEngine: ObservableObject {
             existingItem.modifiedDate = record.modificationDate ?? Date()
             
             // Update other fields
-            if let symbolColorData = record["symbolColorData"] as? Data {
+            if let symbolColorData = record["CD_symbolColorData"] as? Data {
                 existingItem.symbolColorData = symbolColorData
             }
-            if let symbol = record["symbol"] as? String {
+            if let symbol = record["CD_symbol"] as? String {
                 existingItem.symbol = symbol
             }
-            if let imageData = record["imageData"] as? Data {
+            if let imageData = record["CD_imageData"] as? Data {
                 existingItem.imageData = imageData
             }
-            if let sortOrder = record["sortOrder"] as? Int {
+            if let sortOrder = record["CD_sortOrder"] as? Int {
                 existingItem.sortOrder = sortOrder
             }
         } else {
@@ -289,19 +289,19 @@ public class CloudKitSyncEngine: ObservableObject {
                 id,
                 name: name,
                 quantity: quantity,
-                sortOrder: record["sortOrder"] as? Int ?? 0,
+                sortOrder: record["CD_sortOrder"] as? Int ?? 0,
                 modifiedDate: record.modificationDate ?? Date(),
-                itemCreationDate: record["itemCreationDate"] as? Date ?? Date()
+                itemCreationDate: record["CD_itemCreationDate"] as? Date ?? Date()
             )
             
             // Set optional fields
-            if let symbolColorData = record["symbolColorData"] as? Data {
+            if let symbolColorData = record["CD_symbolColorData"] as? Data {
                 newItem.symbolColorData = symbolColorData
             }
-            if let symbol = record["symbol"] as? String {
+            if let symbol = record["CD_symbol"] as? String {
                 newItem.symbol = symbol
             }
-            if let imageData = record["imageData"] as? Data {
+            if let imageData = record["CD_imageData"] as? Data {
                 newItem.imageData = imageData
             }
             
@@ -321,21 +321,21 @@ public class CloudKitSyncEngine: ObservableObject {
             let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: itemsZone.zoneID)
             let record = CKRecord(recordType: "CD_Item", recordID: recordID)
             
-            record["id"] = item.id.uuidString
-            record["name"] = item.name
-            record["quantity"] = item.quantity
-            record["sortOrder"] = item.sortOrder
-            record["modifiedDate"] = item.modifiedDate
-            record["itemCreationDate"] = item.itemCreationDate
+            record["CD_id"] = item.id.uuidString
+            record["CD_name"] = item.name
+            record["CD_quantity"] = item.quantity
+            record["CD_sortOrder"] = item.sortOrder
+            record["CD_modifiedDate"] = item.modifiedDate
+            record["CD_itemCreationDate"] = item.itemCreationDate
             
             if let symbolColorData = item.symbolColorData {
-                record["symbolColorData"] = symbolColorData
+                record["CD_symbolColorData"] = symbolColorData
             }
             if let symbol = item.symbol {
-                record["symbol"] = symbol
+                record["CD_symbol"] = symbol
             }
             if let imageData = item.imageData {
-                record["imageData"] = imageData
+                record["CD_imageData"] = imageData
             }
             
             recordsToSave.append(record)
@@ -390,28 +390,26 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processCategoryRecord(_ record: CKRecord) async {
-        guard let idString = record["id"] as? String,
+        guard let idString = record["CD_id"] as? String,
               let id = UUID(uuidString: idString),
-              let name = record["name"] as? String else { return }
-        
+              let name = record["CD_name"] as? String else { return }
         // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString).
         let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
         let existingCategories = (try? _modelContext.fetch(descriptor)) ?? []
-        
         if let existingCategory = existingCategories.first {
-            if let sortOrder = record["sortOrder"] as? Int {
+            if let sortOrder = record["CD_sortOrder"] as? Int {
                 existingCategory.sortOrder = sortOrder
             }
             existingCategory.name = name
         } else {
             let newCategory = Category(
-                id: id,
+                id,
                 name: name,
-                sortOrder: record["sortOrder"] as? Int ?? 0
+                sortOrder: record["CD_sortOrder"] as? Int ?? 0,
+                displayInRow: record["CD_displayInRow"] as? Bool ?? true
             )
             _modelContext.insert(newCategory)
         }
-        
         try? _modelContext.save()
     }
     
@@ -425,9 +423,10 @@ public class CloudKitSyncEngine: ObservableObject {
             let recordID = CKRecord.ID(recordName: category.id.uuidString, zoneID: categoriesZone.zoneID)
             let record = CKRecord(recordType: "CD_Category", recordID: recordID)
             
-            record["id"] = category.id.uuidString
-            record["name"] = category.name
-            record["sortOrder"] = category.sortOrder
+            record["CD_id"] = category.id.uuidString
+            record["CD_name"] = category.name
+            record["CD_sortOrder"] = category.sortOrder
+            record["CD_displayInRow"] = category.displayInRow
             
             recordsToSave.append(record)
         }
@@ -481,34 +480,38 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processLocationRecord(_ record: CKRecord) async {
-        guard let idString = record["id"] as? String,
+        guard let idString = record["CD_id"] as? String,
               let id = UUID(uuidString: idString),
-              let name = record["name"] as? String else { return }
-        
+              let name = record["CD_name"] as? String else { return }
         // When querying for a specific Location by id, use NSPredicate(format: "id == %@", uuid.uuidString).
         let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
         let existingLocations = (try? _modelContext.fetch(descriptor)) ?? []
-        
         if let existingLocation = existingLocations.first {
-            if let sortOrder = record["sortOrder"] as? Int {
+            if let sortOrder = record["CD_sortOrder"] as? Int {
                 existingLocation.sortOrder = sortOrder
             }
-            if let colorData = record["colorData"] as? Data {
+            if let colorData = record["CD_colorData"] as? Data {
                 existingLocation.colorData = colorData
             }
             existingLocation.name = name
         } else {
+            let color: Color =
+            {
+                if let colorData = record["CD_colorData"] as? Data, let decoded = Color(rgbaData: colorData) {
+                    return decoded
+                } else {
+                    return .white
+                }
+            }()
             let newLocation = Location(
-                id: id,
+                id,
                 name: name,
-                sortOrder: record["sortOrder"] as? Int ?? 0
+                sortOrder: record["CD_sortOrder"] as? Int ?? 0,
+                displayInRow: record["CD_displayInRow"] as? Bool ?? true,
+                color: color
             )
-            if let colorData = record["colorData"] as? Data {
-                newLocation.colorData = colorData
-            }
             _modelContext.insert(newLocation)
         }
-        
         try? _modelContext.save()
     }
     
@@ -522,12 +525,13 @@ public class CloudKitSyncEngine: ObservableObject {
             let recordID = CKRecord.ID(recordName: location.id.uuidString, zoneID: locationsZone.zoneID)
             let record = CKRecord(recordType: "CD_Location", recordID: recordID)
             
-            record["id"] = location.id.uuidString
-            record["name"] = location.name
-            record["sortOrder"] = location.sortOrder
+            record["CD_id"] = location.id.uuidString
+            record["CD_name"] = location.name
+            record["CD_sortOrder"] = location.sortOrder
+            record["CD_displayInRow"] = location.displayInRow
             
             if let colorData = location.colorData {
-                record["colorData"] = colorData
+                record["CD_colorData"] = colorData
             }
             
             recordsToSave.append(record)
