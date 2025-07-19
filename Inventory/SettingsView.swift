@@ -14,6 +14,7 @@ let settingsActivityType = "ethanj.Inventory.managingSettings"
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appDefaults: AppDefaults
     
     @State var isActive: Bool
     @StateObject var syncEngine: CloudKitSyncEngine
@@ -42,11 +43,6 @@ struct SettingsView: View {
         }
     }
     
-    // Use AppDefaults for config variables
-    @State private var showCounterForSingleItemsBinding: Bool = AppDefaults.shared.showCounterForSingleItems
-    @State private var themeModeBinding: Int = AppDefaults.shared.themeMode
-    @State private var defaultInventorySortBinding: Int = AppDefaults.shared.defaultInventorySort
-    
     var body: some View {
         NavigationStack {
             Form {
@@ -71,31 +67,31 @@ struct SettingsView: View {
                 }
                 Group {
                     Section("Visuals") {
-                        Toggle("Show Counter For Single Items", isOn: $showCounterForSingleItemsBinding)
-                            .onChange(of: showCounterForSingleItemsBinding) {
-                                AppDefaults.shared.showCounterForSingleItems = showCounterForSingleItemsBinding
-                            }
-                        Picker("Theme", selection: $themeModeBinding) {
+                        Toggle("Show Counter For Single Items", isOn: Binding(
+                            get: { appDefaults.showCounterForSingleItems },
+                            set: { appDefaults.showCounterForSingleItems = $0 }
+                        ))
+                        Picker("Theme", selection: Binding(
+                            get: { appDefaults.themeMode },
+                            set: { appDefaults.themeMode = $0 }
+                        )) {
                             Text("System").tag(0)
                             Text("Light").tag(1)
                             Text("Dark").tag(2)
-                        }
-                        .onChange(of: themeModeBinding) {
-                            AppDefaults.shared.themeMode = themeModeBinding
                         }
                     }
                 }
                 Group {
                     Section(header: Text("Defaults")) {
-                        Picker("Default Inventory Sort", selection: $defaultInventorySortBinding) {
+                        Picker("Default Inventory Sort", selection: Binding(
+                            get: { appDefaults.defaultInventorySort },
+                            set: { appDefaults.defaultInventorySort = $0 }
+                        )) {
                             Text("Sort Order").tag(0)
                             Text("Alphabetical").tag(1)
                             Text("Date Added").tag(2)
                         }
                         .pickerStyle(.segmented)
-                        .onChange(of: defaultInventorySortBinding) {
-                            AppDefaults.shared.defaultInventorySort = defaultInventorySortBinding
-                        }
                     }
                 }
                 Group {
@@ -118,7 +114,6 @@ struct SettingsView: View {
             }
             .onAppear {
                 checkiCloudAccountStatus()
-                loadConfig()
             }
         }
         .userActivity(settingsActivityType, isActive: isActive) { activity in
@@ -133,13 +128,6 @@ struct SettingsView: View {
                 self.iCloudStatus = status
             }
         }
-    }
-    
-    // Remove ensureConfigExists and update loadConfig to use AppDefaults
-    private func loadConfig() {
-        showCounterForSingleItemsBinding = AppDefaults.shared.showCounterForSingleItems
-        themeModeBinding = AppDefaults.shared.themeMode
-        defaultInventorySortBinding = AppDefaults.shared.defaultInventorySort
     }
 }
 

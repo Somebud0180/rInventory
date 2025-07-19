@@ -6,11 +6,12 @@
 //
 
 import SwiftUI
+import Combine
 import SwiftData
 import CloudKit
 
 // MARK: - AppDefaults for App Configuration
-class AppDefaults {
+class AppDefaults: ObservableObject {
     static let shared = AppDefaults()
     private let defaults = UserDefaults.standard
     
@@ -64,13 +65,15 @@ struct InventoryApp: App {
     }
     
     @StateObject private var syncEngine: CloudKitSyncEngine
+    @StateObject private var appDefaults = AppDefaults.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
     var body: some Scene {
         WindowGroup {
             ContentView(syncEngine: syncEngine)
-                .preferredColorScheme(AppDefaults.shared.resolvedColorScheme(systemColorScheme: colorScheme))
+                .environmentObject(appDefaults)
+                .preferredColorScheme(appDefaults.themeMode == 0 ? nil : appDefaults.resolvedColorScheme(systemColorScheme: colorScheme))
         }
         .modelContainer(InventoryApp.sharedModelContainer)
     }
