@@ -50,25 +50,11 @@ final class Item {
 }
 
 @Model
-final class Category {
-    var id: UUID = UUID()
-    var name: String = ""
-    var sortOrder: Int = 0 // Used for sorting the category rows
-    @Relationship(deleteRule: .nullify, inverse: \Item.category)
-    var items: [Item]?
-    
-    init(id: UUID = UUID(), name: String, sortOrder: Int = 0) {
-        self.id = id
-        self.name = name
-        self.sortOrder = sortOrder
-    }
-}
-
-@Model
 final class Location {
     var id: UUID = UUID()
     var name: String = ""
     var sortOrder: Int = 0 // Used for sorting the location rows
+    var displayInRow: Bool = true // Whether to show this location in the main list
     var colorData: Data?
     @Relationship(deleteRule: .nullify, inverse: \Item.location)
     var items: [Item]?
@@ -91,6 +77,22 @@ final class Location {
     }
 }
 
+@Model
+final class Category {
+    var id: UUID = UUID()
+    var name: String = ""
+    var sortOrder: Int = 0 // Used for sorting the category rows
+    var displayInRow: Bool = true // Whether to show this category in the main list
+    @Relationship(deleteRule: .nullify, inverse: \Item.category)
+    var items: [Item]?
+    
+    init(id: UUID = UUID(), name: String, sortOrder: Int = 0) {
+        self.id = id
+        self.name = name
+        self.sortOrder = sortOrder
+    }
+}
+
 extension Item {
     /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
     static func saveItem(
@@ -103,14 +105,12 @@ extension Item {
         symbolColor: Color,
         context: ModelContext
     ) {
-        // Fetch existing items, locations, and categories
+        // Fetch existing items
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
-        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
-        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
         
         // Find or create location and category
-        let location = !locationName.isEmpty ? Location.findOrCreate(name: locationName, color: locationColor, locations: locations) : nil
-        let category = !categoryName.isEmpty ? Category.findOrCreate(name: categoryName, categories: categories) : nil
+        let location = !locationName.isEmpty ? Location.findOrCreate(name: locationName, color: locationColor, context: context) : nil
+        let category = !categoryName.isEmpty ? Category.findOrCreate(name: categoryName, context: context) : nil
         
         // Extract background
         let (imageData, symbol, usedSymbolColor): (Data?, String?, Color?) = {
@@ -152,22 +152,18 @@ extension Item {
         symbolColor: Color? = nil,
         context: ModelContext
     ) {
-        // Fetch existing locations, and categories
-        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
-        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
-        
         // Find or create Location
         var newLocation: Location?
         if let locationName = locationName, !locationName.isEmpty, let locationColor = locationColor {
             let trimmedLocationName = locationName.trimmingCharacters(in: .whitespacesAndNewlines)
-            newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, locations: locations) : nil
+            newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, context: context) : nil
         }
         
         // Find or create Category
         var newCategory: Category?
         if let categoryName = categoryName, !categoryName.isEmpty {
             let trimmedCategoryName = categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, categories: categories) : nil
+            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : nil
         }
         
         if let name = name {
@@ -231,22 +227,27 @@ extension Item {
 }
 
 extension Location {
-    /// Finds an existing category by name or creates a new one with the specified color and next available sort order.
-    /// - If a category with the given name exists, it updates its color and returns it.
-    /// - If no such category exists, it creates a new one with the next available sort order.
+    /// Finds an existing location by name or creates a new one with the specified color and next available sort order.
+    /// - If a location with the given name exists, it updates its color and returns it.
+    /// - If no such location exists, it creates a new one with the next available sort order.
     /// - Parameters:
-    /// - name: The name of the category to find or create.
-    /// - color: The color to assign to the category.
+    /// - name: The name of the location to find or create.
+    /// - color: The color to assign to the location.
     /// - locations: The list of existing locations to check against.
-    /// - Returns: The existing or newly created Category.
-    /// This method is useful for ensuring that categories are unique by name while allowing color updates.
-    static func findOrCreate(name: String, color: Color, locations: [Location]) -> Location {
+    /// - context: The ModelContext to insert new locations into.
+    /// - Returns: The existing or newly created Location.
+    /// This method is useful for ensuring that locations are unique by name while allowing color updates.
+    static func findOrCreate(name: String, color: Color, context: ModelContext) -> Location {
+        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
+        
         if let existing = locations.first(where: { $0.name == name }) {
             existing.color = color
             return existing
         } else {
             let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
-            return Location(id: UUID(), name: name, sortOrder: nextSortOrder, color: color)
+            let newLocation = Location(id: UUID(), name: name, sortOrder: nextSortOrder, color: color)
+            context.insert(newLocation)
+            return newLocation
         }
     }
     
@@ -269,12 +270,16 @@ extension Category {
     /// - categories: The list of existing categories to check against.
     /// - Returns: The existing or newly created Category.
     /// This method is useful for ensuring that categories are unique by name.
-    static func findOrCreate(name: String, categories: [Category]) -> Category {
+    static func findOrCreate(name: String, context: ModelContext) -> Category {
+        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
+        
         if let existing = categories.first(where: { $0.name == name }) {
             return existing
         } else {
             let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
-            return Category(id: UUID(), name: name, sortOrder: nextSortOrder)
+            let newCategory = Category(id: UUID(), name: name, sortOrder: nextSortOrder)
+            context.insert(newCategory)
+            return newCategory
         }
     }
     
