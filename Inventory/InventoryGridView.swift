@@ -8,6 +8,9 @@
 import SwiftUI
 import SwiftData
 
+let inventoryGridActivityType = "ethanj.Inventory.viewingInventoryGrid"
+let inventoryGridCategoryKey = "category"
+
 struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -78,6 +81,9 @@ struct InventoryGridView: View {
                 viewModel.selectedItemIDs.removeAll()
             }
         }
+        .userActivity(inventoryGridActivityType, isActive: true) { activity in
+            updateUserActivity(activity)
+        }
     }
     
     private var inventoryGrid: some View {
@@ -141,6 +147,17 @@ struct InventoryGridView: View {
     
     private func deleteSelectedItems() {
         viewModel.deleteSelectedItems(allItems: items, modelContext: modelContext)
+    }
+    
+    /// Updates the user activity with the current category and sort type.
+    /// - Parameter activity: The user activity to update.
+    private func updateUserActivity(_ activity: NSUserActivity) {
+        activity.addUserInfoEntries(from: [inventoryGridCategoryKey: viewModel.selectedCategory])
+        activity.title = "View \(viewModel.selectedCategory)"
+        activity.userInfo = ["tabSelection": 0]
+        activity.isEligibleForHandoff = true
+        activity.isEligibleForPrediction = true
+        activity.isEligibleForSearch = true
     }
 }
 

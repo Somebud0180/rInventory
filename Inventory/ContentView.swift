@@ -48,21 +48,6 @@ struct ContentView: View {
     }
     
     var body: some View {
-        let activityType: String?
-        let isActive: Bool
-        
-        switch currentTab {
-        case .home:
-            activityType = inventoryActivityType
-            isActive = true
-        case .settings:
-            activityType = settingsActivityType
-            isActive = true
-        case .search:
-            activityType = searchActivityType
-            isActive = true
-        }
-        
         return tabView()
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()
@@ -80,18 +65,10 @@ struct ContentView: View {
                     ProgressView("Loading item...")
                 }
             }
-            .userActivity(activityType ?? "", isActive: isActive) { activity in
-                switch currentTab {
-                case .home:
-                    activity.title = "Viewing Inventory"
-                case .settings:
-                    activity.title = "Managing Settings"
-                case .search:
-                    activity.title = "Searching Inventory"
-                }
-                activity.userInfo = ["tabSelection": currentTab.rawValue]
-            }
             .onContinueUserActivity(inventoryActivityType) { _ in
+                tabSelection = TabSelection.home.rawValue
+            }
+            .onContinueUserActivity(inventoryGridActivityType) { _ in
                 tabSelection = TabSelection.home.rawValue
             }
             .onContinueUserActivity(settingsActivityType) { _ in

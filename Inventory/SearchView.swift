@@ -197,7 +197,8 @@ struct SearchView: View {
     
     private func updateUserActivity(_ activity: NSUserActivity) {
         activity.addUserInfoEntries(from: [searchCategoryKey: selectedCategory])
-        activity.title = "Search \(selectedCategory) Inventory"
+        activity.title = "Search \(selectedCategory)"
+        activity.userInfo = ["tabSelection": 2]
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true

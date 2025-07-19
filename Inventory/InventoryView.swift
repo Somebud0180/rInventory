@@ -13,8 +13,6 @@ import Foundation
 import Combine
 
 let inventoryActivityType = "ethanj.Inventory.viewingInventory"
-let inventorySortTypeKey = "sortType"
-let inventoryCategoryKey = "category"
 
 /// Represents a unique identifier for an item that can be transferred between devices.
 struct ItemIdentifier: Transferable {
@@ -48,6 +46,8 @@ struct InventoryView: View {
     @State var isActive: Bool
     
     @StateObject private var viewModel = InventoryViewModel()
+    @State private var continuedGridCategory: String? = nil
+    @State private var showContinuedGrid: Bool = false
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
@@ -76,12 +76,6 @@ struct InventoryView: View {
                 headerSection
                     .padding(.leading, 4)
                 
-                HStack(alignment: .bottom) {
-                    categoryPicker
-                    Spacer()
-                    sortPicker
-                }
-                
                 if items.isEmpty {
                     emptyItemsView
                 } else {
@@ -91,6 +85,13 @@ struct InventoryView: View {
                         }
                         
                         inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                        
+                        ForEach(categories, id: \.id) { category in
+                            let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
+                            if !categoryItems.isEmpty {
+                                inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
+                            }
+                        }
                     }
                 }
             }
@@ -135,23 +136,22 @@ struct InventoryView: View {
                 Text(errorMessage)
             }
         }
+        .fullScreenCover(isPresented: $showContinuedGrid) {
+            InventoryGridView(
+                title: continuedGridCategory ?? "Inventory",
+                itemsGroup: items.filter { $0.category?.name == continuedGridCategory },
+                showCategoryPicker: true,
+                showSortPicker: true,
+                selectedItem: $selectedItem
+            )
+        }
         .userActivity(inventoryActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)
         }
-        .onContinueUserActivity(inventoryActivityType) { activity in
-            if let info = activity.userInfo {
-                // Handle case of deleted categories by verifying existence before assignment
-                if let cat = info[inventoryCategoryKey] as? String {
-                    if categories.contains(where: { $0.name == cat }) {
-                        viewModel.selectedCategory = cat
-                    } else {
-                        viewModel.selectedCategory = "All Items"
-                    }
-                }
-                // Sort order is only used for restoring UI state, not for system activity
-                if let sortRaw = info[inventorySortTypeKey] as? String, let type = SortType(rawValue: sortRaw) {
-                    viewModel.selectedSortType = type
-                }
+        .onContinueUserActivity(inventoryGridActivityType) { activity in
+            if let category = activity.userInfo?[inventoryGridCategoryKey] as? String {
+                continuedGridCategory = category
+                showContinuedGrid = true
             }
         }
     }
@@ -191,31 +191,6 @@ struct InventoryView: View {
         }
     }
     
-    /// Returns a category picker menu for selecting inventory categories.
-    private var categoryPicker: some View {
-        InventoryViewModel.categoryPicker(
-            selectedCategory: viewModel.selectedCategory,
-            categories: categories,
-            menuPresented: $categoryMenuPresented
-        ) { selected in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                viewModel.selectedCategory = selected
-            }
-        }
-    }
-    
-    /// Returns a sort picker menu for selecting how to sort inventory items.
-    private var sortPicker: some View {
-        InventoryViewModel.sortPicker(
-            selectedSortType: viewModel.selectedSortType,
-            menuPresented: $sortMenuPresented
-        ) { selected in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                viewModel.selectedSortType = selected
-            }
-        }
-    }
-    
     /// Returns a row of inventory items with a navigation title.
     /// - Parameters:
     /// - items: The array of items to display in the row.
@@ -228,7 +203,9 @@ struct InventoryView: View {
                 } label: {
                     Text(title)
                         .font(.headline)
+                        .lineLimit(2)
                         .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
                     Image(systemName: "chevron.right")
                         .foregroundColor(.gray)
                 }
@@ -257,9 +234,9 @@ struct InventoryView: View {
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
-                        if items.count < 5 {
+                        if rowItems.count < 5 {
                             Spacer()
-                        } else if items.count > 5 {
+                        } else if rowItems.count > 5 {
                             NavigationLink {
                                 InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
@@ -333,13 +310,11 @@ struct InventoryView: View {
     /// Updates the user activity with the current category and sort type.
     /// - Parameter activity: The user activity to update.
     private func updateUserActivity(_ activity: NSUserActivity) {
-        activity.addUserInfoEntries(from: [inventoryCategoryKey: viewModel.selectedCategory])
-        activity.title = "View \(viewModel.selectedCategory)"
+        activity.title = "View Inventory"
+        activity.userInfo = ["tabSelection": 0]
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
-        activity.keywords = Set([viewModel.selectedCategory])
-        activity.persistentIdentifier = "category-\(viewModel.selectedCategory)"
     }
 }
 
@@ -353,4 +328,3 @@ struct InventoryView: View {
     InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
-
