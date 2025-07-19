@@ -9,6 +9,7 @@
 import SwiftUI
 import SwiftData
 import SwiftyCrop
+import PhotosUI
 
 struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
@@ -23,6 +24,7 @@ struct ItemCreationView: View {
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
     @State private var imageToCrop: UIImage? = nil
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
     // Item creation variables
     @State private var name: String = "New Item"
@@ -120,8 +122,12 @@ struct ItemCreationView: View {
                                 .frame(width: 60, height: 60)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
-                        Button(imageButtonTitle) {
-                            showImagePicker = true
+                        PhotosPicker(
+                            selection: $selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            Text(imageButtonTitle)
                         }
                     }
                     
@@ -150,7 +156,7 @@ struct ItemCreationView: View {
                 
                 Section {
                     Button("Save Item") { saveItem() }
-                    .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
+                        .disabled(name.isEmpty || locationName.isEmpty || !isBackgroundValid)
                 }
             }
             .padding(.top, -24)
@@ -175,28 +181,14 @@ struct ItemCreationView: View {
                 }
             ))
         }
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: Binding(
-                get: {
-                    if case let .image(data) = background {
-                        return UIImage(data: data)
-                    } else {
-                        return nil
-                    }
-                },
-                set: { newImage in
-                    if let newImage, let data = newImage.pngData() {
-                        background = .image(data)
-                    }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let item = newItem else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    imageToCrop = uiImage
+                    showCropper = true
                 }
-            ), cropImage: { picked, completion in
-                imageToCrop = picked
-            })
-        }
-        .onChange(of: imageToCrop) { _, newValue in
-            if newValue != nil {
-                // Show cropper after image is loaded
-                showCropper = true
             }
         }
         .sheet(isPresented: $showCropper) {
@@ -211,6 +203,7 @@ struct ItemCreationView: View {
                         }
                         showCropper = false
                         imageToCrop = nil
+                        selectedPhotoItem = nil
                     }
                 )
                 .interactiveDismissDisabled()

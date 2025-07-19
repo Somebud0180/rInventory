@@ -30,7 +30,9 @@ struct InventorySortView: View {
                     Picker("View As", selection: $viewAs) {
                         Text("Rows").tag("Rows")
                         Text("Grid").tag("Grid")
-                    }.pickerStyle(.segmented)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowSeparator(.hidden)
                     
                     Toggle("Show Recently Added", isOn: $showRecentlyAdded)
                     
@@ -39,7 +41,6 @@ struct InventorySortView: View {
                         Toggle("Show Locations", isOn: $showLocations)
                     }
                 }
-                .animation(.interactiveSpring, value: viewAs)
                 
                 Section("Sort Categories") {
                     ForEach(categories, id: \.id) { category in

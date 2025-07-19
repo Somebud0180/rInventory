@@ -387,6 +387,7 @@ public class CloudKitSyncEngine: ObservableObject {
         for record in records {
             await processCategoryRecord(record)
         }
+        await cleanupDuplicateCategories()
     }
     
     private func processCategoryRecord(_ record: CKRecord) async {
@@ -409,6 +410,22 @@ public class CloudKitSyncEngine: ObservableObject {
                 displayInRow: record["CD_displayInRow"] as? Bool ?? true
             )
             _modelContext.insert(newCategory)
+        }
+        try? _modelContext.save()
+    }
+    
+    /// Remove duplicate Category objects with the same id, keeping the first and merging if needed
+    private func cleanupDuplicateCategories() async {
+        let descriptor = FetchDescriptor<Category>()
+        guard let allCategories = try? _modelContext.fetch(descriptor) else { return }
+        let grouped = Dictionary(grouping: allCategories, by: { $0.id })
+        for (_, group) in grouped where group.count > 1 {
+            let winner = group.first!
+            for duplicate in group.dropFirst() {
+                // Optionally merge fields here if needed
+                // For now, just keep the winner and delete the rest
+                _modelContext.delete(duplicate)
+            }
         }
         try? _modelContext.save()
     }

@@ -9,6 +9,7 @@
 import SwiftUI
 import SwiftData
 import SwiftyCrop
+import PhotosUI
 
 struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
@@ -28,6 +29,7 @@ struct ItemView: View {
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
     @State private var imageToCrop: UIImage? = nil
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -101,23 +103,14 @@ struct ItemView: View {
                 }
             ))
         }
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: Binding(
-                get: {
-                    if case let .image(data) = editBackground {
-                        return UIImage(data: data)
-                    } else {
-                        return nil
-                    }
-                },
-                set: { newImage in
-                    if let newImage, let data = newImage.pngData() {
-                        editBackground = .image(data)
-                    }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let item = newItem else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    imageToCrop = uiImage
                 }
-            ), cropImage: { picked, completion in
-                imageToCrop = picked
-            })
+            }
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {
@@ -137,6 +130,7 @@ struct ItemView: View {
                         }
                         showCropper = false
                         imageToCrop = nil
+                        selectedPhotoItem = nil
                     }
                 )
                 .interactiveDismissDisabled()
@@ -391,17 +385,28 @@ struct ItemView: View {
         Group {
             if isEditing {
                 HStack(spacing: 0) {
-                    Menu {
-                        Button("Change Symbol") { showSymbolPicker = true }
-                        Button("Change Image") { showImagePicker = true }
-                    } label: {
-                        Image(systemName: "photo.circle").font(.title2)
+                    Button(action: { showSymbolPicker = true }) {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.title2)
                             .adaptiveGlassButton()
                             .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
                     }
-                    .menuStyle(.borderlessButton)
+                    .accessibilityLabel("Change Symbol")
+                    PhotosPicker(
+                        selection: $selectedPhotoItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        Image(systemName: "photo.circle")
+                            .font(.title2)
+                            .adaptiveGlassButton()
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .padding(.horizontal, 4)
+                    }
+                    .accessibilityLabel("Change Image")
                     if case .symbol = editBackground {
                         ColorPicker("Symbol Color", selection: Binding(
                             get: { editSymbolColor ?? .accentColor },
