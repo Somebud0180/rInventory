@@ -52,6 +52,7 @@ struct InventoryView: View {
     @State private var sortMenuPresented = false
     @State private var draggedItem: Item?
     @State private var showingSyncError = false
+    @State private var showingSyncSpinner = false
     
     private var recentlyAddedItems: [Item] {
         let cutoffDate = Date().addingTimeInterval(-7 * 24 * 60 * 60)
@@ -75,6 +76,7 @@ struct InventoryView: View {
             ScrollView {
                 headerSection
                     .padding(.leading, 4)
+                    .padding(.bottom, 16)
                 
                 if items.isEmpty {
                     emptyItemsView
@@ -109,9 +111,17 @@ struct InventoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if showingSyncSpinner {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                    }
+                }
             }
             .refreshable {
-                await syncEngine.refreshFromCloud()
+                showingSyncSpinner = true
+                await syncEngine.manualSync()
+                showingSyncSpinner = false
             }
             .onAppear {
                 initializeSortOrders()
@@ -119,6 +129,8 @@ struct InventoryView: View {
                 if syncEngine.modelContext != modelContext {
                     syncEngine.updateModelContext(modelContext)
                 }
+                // If syncing is in progress on appear, show spinner
+                showingSyncSpinner = syncEngine.syncState == .syncing
             }
             .onChange(of: editMode?.wrappedValue) {
                 if editMode?.wrappedValue == .inactive {
@@ -129,6 +141,8 @@ struct InventoryView: View {
                 if case .error = syncEngine.syncState {
                     showingSyncError = true
                 }
+                // Show spinner while syncing, hide when done
+                showingSyncSpinner = syncEngine.syncState == .syncing
             }
             .alert("Sync Error", isPresented: $showingSyncError) {
                 Button("OK") { }

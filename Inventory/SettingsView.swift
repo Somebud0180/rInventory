@@ -104,11 +104,19 @@ struct SettingsView: View {
                             Text(iCloudStatusDescription)
                                 .foregroundColor(.secondary)
                         }
-                        Button("Manually Sync") {
-                            Task {
-                                await syncEngine.manualSync()
+                        HStack {
+                            Button("Sync Now") {
+                                Task {
+                                    await syncEngine.manualSync()
+                                }
                             }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                            Spacer()
+                            if syncEngine.syncState == .syncing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
