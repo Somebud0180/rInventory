@@ -1,5 +1,5 @@
 //
-//  InventoryRowSortView.swift
+//  InventorySortView.swift
 //  Inventory
 //
 //  Created by Ethan John Lagera on 7/19/25.
@@ -9,7 +9,7 @@
 import SwiftUI
 import SwiftData
 
-struct InventoryRowSortView: View {
+struct InventorySortView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
@@ -107,6 +107,6 @@ struct InventoryRowSortView: View {
 }
 
 #Preview {
-    InventoryRowSortView()
+    InventorySortView()
         .modelContainer(for: [Location.self, Category.self])
 }
