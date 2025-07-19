@@ -16,6 +16,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    @Query private var config: [Config]
+    
     @State var isActive: Bool
     @StateObject var syncEngine: CloudKitSyncEngine
     
@@ -43,14 +45,11 @@ struct SettingsView: View {
         }
     }
     
-    func checkiCloudAccountStatus() {
-        CKContainer.default().accountStatus { status, _ in
-            DispatchQueue.main.async {
-                self.iCloudStatus = status
-            }
-        }
-    }
-    
+    // View Temporary Config Variables
+    @State private var showCounterForSingleItemsBinding: Bool = true
+    @State private var themeModeBinding: Int = 0
+    @State private var defaultInventorySortBinding: Int = 0
+
     var body: some View {
         NavigationStack {
             Form {
@@ -74,17 +73,50 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
                 }
                 Group {
-                    Section("Grid View") {
-                        Toggle("Show Counter For Single Items", isOn: .constant(true))
-                            .disabled(true) // Placeholder for actual functionality
+                    Section("Visuals") {
+                        Toggle("Show Counter For Single Items", isOn: $showCounterForSingleItemsBinding)
+                            .onChange(of: showCounterForSingleItemsBinding) {
+                                var currentConfig = ensureConfigExists()
+                                currentConfig.showCounterForSingleItems = showCounterForSingleItemsBinding
+                                do {
+                                    try modelContext.save()
+                                } catch {
+                                    print("Failed to save config: \(error)")
+                                }
+                            }
+                        Picker("Theme", selection: $themeModeBinding) {
+                            Text("System").tag(0)
+                            Text("Light").tag(1)
+                            Text("Dark").tag(2)
+                        }
+                        .onChange(of: themeModeBinding) {
+                            var currentConfig = ensureConfigExists()
+                            currentConfig.themeMode = themeModeBinding
+                            do {
+                                try modelContext.save()
+                            } catch {
+                                print("Failed to save config: \(error)")
+                            }
+                        }
                     }
                 }
                 Group {
-                    Section(header: Text("Accessibility"), footer: Text("Transitions appear when rotating the device or opening the keyboard.")) {
-                        Toggle("Disable Transitions", isOn: .constant(false))
-                            .disabled(true) // Placeholder for actual functionality
-                        Toggle("Reduce Motion", isOn: .constant(false))
-                            .disabled(true) // Placeholder for actual functionality
+                    Section(header: Text("Defaults")) {
+                        Picker("Default Inventory Sort", selection: $defaultInventorySortBinding) {
+                            Text("Sort Order").tag(0)
+                            Text("Alphabetical").tag(1)
+                            Text("Date Added").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: defaultInventorySortBinding) {
+                            var currentConfig = ensureConfigExists()
+                            currentConfig.defaultInventorySort = defaultInventorySortBinding
+                            do {
+                                try modelContext.save()
+                            } catch {
+                                print("Failed to save config: \(error)")
+                            }
+                        }
                     }
                 }
                 Group {
@@ -107,12 +139,47 @@ struct SettingsView: View {
             }
             .onAppear {
                 checkiCloudAccountStatus()
+                loadConfig()
             }
         }
         .userActivity(settingsActivityType, isActive: isActive) { activity in
             activity.title = "Settings"
             activity.userInfo = ["tabSelection": 1] // 1 = Settings tab
         }
+    }
+    
+    private func checkiCloudAccountStatus() {
+        CKContainer.default().accountStatus { status, _ in
+            DispatchQueue.main.async {
+                self.iCloudStatus = status
+            }
+        }
+    }
+    
+    private func ensureConfigExists() -> Config {
+        print("CONFIG COUNT: \(config.count)")
+               if let firstConfig = config.first {
+            print("USING EXISTING CONFIG: \(firstConfig)")
+                   return firstConfig
+        } else {
+            let newConfig = Config()
+            modelContext.insert(newConfig)
+            do {
+                try modelContext.save()
+                print("CREATED NEW CONFIG: \(newConfig)")
+            } catch {
+                print("Failed to create and save new Config: \(error)")
+            }
+            return newConfig
+        }
+    }
+    
+    private func loadConfig() {
+        let currentConfig = ensureConfigExists()
+        showCounterForSingleItemsBinding = currentConfig.showCounterForSingleItems
+        themeModeBinding = currentConfig.themeMode
+        defaultInventorySortBinding = currentConfig.defaultInventorySort
+        try? modelContext.save()
     }
 }
 
@@ -123,3 +190,4 @@ struct SettingsView: View {
     
     SettingsView(isActive: isActive, syncEngine: syncEngine)
 }
+

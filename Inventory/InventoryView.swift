@@ -36,6 +36,7 @@ struct InventoryView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
+    @Query private var config: [Config]
     @Query private var items: [Item]
     @Query private var categories: [Category]
     
@@ -217,6 +218,7 @@ struct InventoryView: View {
                             DraggableItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
+                                showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true,
                                 draggedItem: $draggedItem,
                                 onTap: {
                                     selectedItem = item

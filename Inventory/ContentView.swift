@@ -20,7 +20,6 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
     

@@ -24,15 +24,22 @@ struct InventoryApp: App {
         }
     }()
     
-    @StateObject private var syncEngine: CloudKitSyncEngine
-    
     init() {
         self._syncEngine = StateObject(wrappedValue: CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext))
     }
+    
+    @StateObject private var syncEngine: CloudKitSyncEngine
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
 
     var body: some Scene {
+        let context = InventoryApp.sharedModelContainer.mainContext
+        let configFetch = FetchDescriptor<Config>()
+        let config = try? context.fetch(configFetch)
+        
         WindowGroup {
             ContentView(syncEngine: syncEngine)
+                .preferredColorScheme(config?.first?.resolvedColorScheme(systemColorScheme: colorScheme))
         }
         .modelContainer(InventoryApp.sharedModelContainer)
     }

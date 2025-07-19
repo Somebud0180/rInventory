@@ -17,6 +17,7 @@ struct InventoryGridView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.editMode) private var editMode
     
+    @Query private var config: [Config]
     @Query private var items: [Item]
     
     // Grab Categories from Items
@@ -81,6 +82,11 @@ struct InventoryGridView: View {
                 viewModel.selectedItemIDs.removeAll()
             }
         }
+        .onAppear {
+            let sortTypeIndex = config.first?.defaultInventorySort
+            viewModel.selectedSortType =
+                (sortTypeIndex.flatMap { [SortType.order, .alphabetical, .dateModified].indices.contains($0) ? [SortType.order, .alphabetical, .dateModified][$0] : nil }) ?? .order
+        }
         .userActivity(inventoryGridActivityType, isActive: true) { activity in
             updateUserActivity(activity)
         }
@@ -93,6 +99,7 @@ struct InventoryGridView: View {
                         DraggableItemCard(
                             item: item,
                             colorScheme: colorScheme,
+                            showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true,
                             draggedItem: $draggedItem,
                             onTap: {
                                 if editMode?.wrappedValue.isEditing == true {
@@ -172,4 +179,3 @@ struct InventoryGridView: View {
     
     InventoryGridView(title: title, itemsGroup: itemsGroup, selectedItem: $selectedItem)
 }
-

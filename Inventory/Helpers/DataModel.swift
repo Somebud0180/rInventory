@@ -11,6 +11,29 @@ import SwiftData
 import SwiftUI
 
 @Model
+final class Config {
+    var themeMode: Int = 0 // 0 = Default, 1 = Light, 2 = Dark
+    var showCounterForSingleItems: Bool = false // Whether to show a counter for items with quantity 1
+    var defaultInventorySort: Int = 0 // 0 = Sort Order, 1 = Alphabetical, 2 = Modification Date
+    
+    init(themeMode: Int = 0, showCounterForSingleItems: Bool = false, defaultInventorySort: Int = 0) {
+        self.themeMode = themeMode
+        self.showCounterForSingleItems = showCounterForSingleItems
+        self.defaultInventorySort = defaultInventorySort
+    }
+}
+
+extension Config {
+    func resolvedColorScheme(systemColorScheme: ColorScheme) -> ColorScheme {
+        switch self.themeMode {
+        case 1: return .light
+        case 2: return .dark
+        default: return systemColorScheme
+        }
+    }
+}
+
+@Model
 final class Item {
     var id: UUID = UUID()
     var name: String = ""
@@ -321,3 +344,4 @@ extension Color {
         return (Double(r), Double(g), Double(b), Double(a))
     }
 }
+

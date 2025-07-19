@@ -15,9 +15,9 @@ struct ItemCreationView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     
+    @Query private var config: [Config]
     @Query private var categories: [Category]
     @Query private var locations: [Location]
-    
     
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
@@ -56,7 +56,8 @@ struct ItemCreationView: View {
                         background: background,
                         symbolColor: symbolColor,
                         colorScheme: colorScheme,
-                        largeFont: true
+                        largeFont: true,
+                        showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true
                     )
                     .frame(maxWidth: 250, maxHeight: 250, alignment: .center)
                     

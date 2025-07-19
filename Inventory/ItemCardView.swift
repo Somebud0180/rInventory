@@ -110,9 +110,10 @@ struct ItemCardButton<Content: View>: View {
 ///   - colorScheme: The current color scheme of the app.
 ///   - largeFont: Optional boolean to determine if a larger font should be used for the item name.
 ///   - hideQuantity: Optional boolean to hide the quantity label.
+///   - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false) -> some View {
+func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
     let isLargeFont = largeFont ?? false
     let fontConfig = FontConfig(isLarge: isLargeFont)
     
@@ -156,7 +157,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                 if hideQuantity {
                     Spacer(minLength: 32)
                 } else {
-                    if quantity > 0 {
+                    if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
                         Spacer()
                         Text("\(quantity)")
                             .font(fontConfig.bodyFont)
@@ -199,9 +200,10 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
 ///  - item: The item to display.
 ///  - colorScheme: The current color scheme of the app.
 ///  - hideQuantity: Optional boolean to hide the quantity label.
+///  - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///  - Returns: A view representing the item card with the item's properties.
 ///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false) -> some View {
+func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
     let location = item.location ?? Location(name: "Unknown", color: .white)
     let category = item.category ?? Category(name: "")
     
@@ -222,7 +224,8 @@ func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false) 
         background: background,
         symbolColor: item.symbolColor,
         colorScheme: colorScheme,
-        hideQuantity: hideQuantity
+        hideQuantity: hideQuantity,
+        showCounterForSingleItems: showCounterForSingleItems
     )
 }
 
@@ -251,18 +254,19 @@ func handleDrop(_ items: [Item], filteredItems: [Item], draggedItem: Binding<Ite
 struct ItemCard: View {
     let item: Item
     let colorScheme: ColorScheme
+    var showCounterForSingleItems: Bool = true
     var onTap: () -> Void = {}
     
     @State private var isHovered = false
     
     var body: some View {
         ItemCardButton {
-            itemCard(item: item, colorScheme: colorScheme)
+            itemCard(item: item, colorScheme: colorScheme, showCounterForSingleItems: showCounterForSingleItems)
         } onTap: {
             onTap()
         }
         .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme)
+            itemCard(item: item, colorScheme: colorScheme, showCounterForSingleItems: showCounterForSingleItems)
                 .frame(width: 150, height: 150)
                 .opacity(0.8)
         }
@@ -277,6 +281,7 @@ struct ItemCard: View {
 struct DraggableItemCard: View {
     let item: Item
     let colorScheme: ColorScheme
+    var showCounterForSingleItems: Bool = true
     @Binding var draggedItem: Item?
     var onTap: () -> Void = {}
     var onDragChanged: (Bool) -> Void
@@ -290,7 +295,7 @@ struct DraggableItemCard: View {
     
     var body: some View {
         Button(action: handleTap) {
-            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
+            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, showCounterForSingleItems: showCounterForSingleItems)
                 .overlay(alignment: .topTrailing) {
                     if isEditing {
                         checkmarkIcon
@@ -304,7 +309,7 @@ struct DraggableItemCard: View {
             isDragged: draggedItem?.id == item.id
         ))
         .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing)
+            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, showCounterForSingleItems: showCounterForSingleItems)
                 .frame(width: 150, height: 150)
                 .opacity(0.8)
                 .overlay(alignment: .topTrailing) {
@@ -354,3 +359,4 @@ struct DraggableItemCard: View {
         .modelContainer(for: Category.self)
         .modelContainer(for: Location.self)
 }
+
