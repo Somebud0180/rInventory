@@ -216,27 +216,34 @@ public class CloudKitSyncEngine: ObservableObject {
         
         var fetchedRecords: [CKRecord] = []
         
-        operation.recordMatchedBlock = { recordID, result in
-            switch result {
-            case .success(let record):
-                fetchedRecords.append(record)
-            case .failure(let error):
-                print("Error fetching item record: \(error)")
-            }
-        }
-        
-        operation.queryResultBlock = { result in
-            switch result {
-            case .success:
-                Task {
-                    await self.processItemRecords(fetchedRecords)
+        return try await withCheckedThrowingContinuation { continuation in
+            operation.recordMatchedBlock = { recordID, result in
+                switch result {
+                case .success(let record):
+                    fetchedRecords.append(record)
+                case .failure(let error):
+                    print("Error fetching item record: \(error)")
                 }
-            case .failure(let error):
-                print("Query failed: \(error)")
+            }
+            
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success:
+                    Task {
+                        await self.processItemRecords(fetchedRecords)
+                        continuation.resume()
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+            
+            do {
+                try self.database.add(operation)
+            } catch {
+                continuation.resume(throwing: error)
             }
         }
-        
-        try await database.add(operation)
     }
     
     private func processItemRecords(_ records: [CKRecord]) async {
@@ -345,7 +352,7 @@ public class CloudKitSyncEngine: ObservableObject {
     // MARK: - Categories Sync
     
     private func fetchCategories() async throws {
-        // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString). 
+        // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString).
         // Do NOT use predicates on recordName for querying.
         let query = CKQuery(recordType: "CD_Category", predicate: NSPredicate(value: true))
         let operation = CKQueryOperation(query: query)
@@ -560,4 +567,3 @@ public enum CloudKitSyncError: LocalizedError {
         }
     }
 }
-

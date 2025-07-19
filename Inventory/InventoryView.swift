@@ -103,6 +103,12 @@ struct InventoryView: View {
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if showingSyncSpinner {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showItemCreationView = true }) {
                         Label("Add", systemImage: "plus.circle")
@@ -111,17 +117,9 @@ struct InventoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if showingSyncSpinner {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                    }
-                }
             }
             .refreshable {
-                showingSyncSpinner = true
                 await syncEngine.manualSync()
-                showingSyncSpinner = false
             }
             .onAppear {
                 initializeSortOrders()

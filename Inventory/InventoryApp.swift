@@ -27,7 +27,7 @@ class AppDefaults: ObservableObject {
     }
     
     var showCounterForSingleItems: Bool {
-        get { defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? false }
+        get { defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Keys.showCounterForSingleItems) }
     }
     
