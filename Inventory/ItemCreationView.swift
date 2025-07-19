@@ -15,7 +15,6 @@ struct ItemCreationView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     
-    @Query private var config: [Config]
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     
@@ -57,7 +56,7 @@ struct ItemCreationView: View {
                         symbolColor: symbolColor,
                         colorScheme: colorScheme,
                         largeFont: true,
-                        showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true
+                        showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems
                     )
                     .frame(maxWidth: 250, maxHeight: 250, alignment: .center)
                     

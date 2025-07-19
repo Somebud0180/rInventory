@@ -7,16 +7,13 @@
 //  A view for managing app settings.
 
 import SwiftUI
-import SwiftData
 import CloudKit
+import SwiftData
 
 let settingsActivityType = "ethanj.Inventory.managingSettings"
 
 struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
-    @Query private var config: [Config]
     
     @State var isActive: Bool
     @StateObject var syncEngine: CloudKitSyncEngine
@@ -45,11 +42,11 @@ struct SettingsView: View {
         }
     }
     
-    // View Temporary Config Variables
-    @State private var showCounterForSingleItemsBinding: Bool = true
-    @State private var themeModeBinding: Int = 0
-    @State private var defaultInventorySortBinding: Int = 0
-
+    // Use AppDefaults for config variables
+    @State private var showCounterForSingleItemsBinding: Bool = AppDefaults.shared.showCounterForSingleItems
+    @State private var themeModeBinding: Int = AppDefaults.shared.themeMode
+    @State private var defaultInventorySortBinding: Int = AppDefaults.shared.defaultInventorySort
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -76,13 +73,7 @@ struct SettingsView: View {
                     Section("Visuals") {
                         Toggle("Show Counter For Single Items", isOn: $showCounterForSingleItemsBinding)
                             .onChange(of: showCounterForSingleItemsBinding) {
-                                var currentConfig = ensureConfigExists()
-                                currentConfig.showCounterForSingleItems = showCounterForSingleItemsBinding
-                                do {
-                                    try modelContext.save()
-                                } catch {
-                                    print("Failed to save config: \(error)")
-                                }
+                                AppDefaults.shared.showCounterForSingleItems = showCounterForSingleItemsBinding
                             }
                         Picker("Theme", selection: $themeModeBinding) {
                             Text("System").tag(0)
@@ -90,13 +81,7 @@ struct SettingsView: View {
                             Text("Dark").tag(2)
                         }
                         .onChange(of: themeModeBinding) {
-                            var currentConfig = ensureConfigExists()
-                            currentConfig.themeMode = themeModeBinding
-                            do {
-                                try modelContext.save()
-                            } catch {
-                                print("Failed to save config: \(error)")
-                            }
+                            AppDefaults.shared.themeMode = themeModeBinding
                         }
                     }
                 }
@@ -109,13 +94,7 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented)
                         .onChange(of: defaultInventorySortBinding) {
-                            var currentConfig = ensureConfigExists()
-                            currentConfig.defaultInventorySort = defaultInventorySortBinding
-                            do {
-                                try modelContext.save()
-                            } catch {
-                                print("Failed to save config: \(error)")
-                            }
+                            AppDefaults.shared.defaultInventorySort = defaultInventorySortBinding
                         }
                     }
                 }
@@ -156,30 +135,11 @@ struct SettingsView: View {
         }
     }
     
-    private func ensureConfigExists() -> Config {
-        print("CONFIG COUNT: \(config.count)")
-               if let firstConfig = config.first {
-            print("USING EXISTING CONFIG: \(firstConfig)")
-                   return firstConfig
-        } else {
-            let newConfig = Config()
-            modelContext.insert(newConfig)
-            do {
-                try modelContext.save()
-                print("CREATED NEW CONFIG: \(newConfig)")
-            } catch {
-                print("Failed to create and save new Config: \(error)")
-            }
-            return newConfig
-        }
-    }
-    
+    // Remove ensureConfigExists and update loadConfig to use AppDefaults
     private func loadConfig() {
-        let currentConfig = ensureConfigExists()
-        showCounterForSingleItemsBinding = currentConfig.showCounterForSingleItems
-        themeModeBinding = currentConfig.themeMode
-        defaultInventorySortBinding = currentConfig.defaultInventorySort
-        try? modelContext.save()
+        showCounterForSingleItemsBinding = AppDefaults.shared.showCounterForSingleItems
+        themeModeBinding = AppDefaults.shared.themeMode
+        defaultInventorySortBinding = AppDefaults.shared.defaultInventorySort
     }
 }
 
@@ -190,4 +150,3 @@ struct SettingsView: View {
     
     SettingsView(isActive: isActive, syncEngine: syncEngine)
 }
-

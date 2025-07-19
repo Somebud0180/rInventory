@@ -16,7 +16,6 @@ struct SearchView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
-    @Query private var config: [Config]
     @Query private var items: [Item]
     @Query private var categories: [Category]
     
@@ -62,7 +61,7 @@ struct SearchView: View {
                                 ItemCard(
                                     item: item,
                                     colorScheme: colorScheme,
-                                    showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true,
+                                    showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
                                     onTap: {
                                         selectedItem = item
                                     }

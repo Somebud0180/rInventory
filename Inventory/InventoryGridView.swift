@@ -17,7 +17,6 @@ struct InventoryGridView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.editMode) private var editMode
     
-    @Query private var config: [Config]
     @Query private var items: [Item]
     
     // Grab Categories from Items
@@ -55,7 +54,7 @@ struct InventoryGridView: View {
                         sortPicker
                     }
                 }
-            
+                
                 inventoryGrid
             }
             .padding(.horizontal, 16)
@@ -83,9 +82,9 @@ struct InventoryGridView: View {
             }
         }
         .onAppear {
-            let sortTypeIndex = config.first?.defaultInventorySort
+            let sortTypeIndex = AppDefaults.shared.defaultInventorySort
             viewModel.selectedSortType =
-                (sortTypeIndex.flatMap { [SortType.order, .alphabetical, .dateModified].indices.contains($0) ? [SortType.order, .alphabetical, .dateModified][$0] : nil }) ?? .order
+            ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
         }
         .userActivity(inventoryGridActivityType, isActive: true) { activity in
             updateUserActivity(activity)
@@ -93,37 +92,37 @@ struct InventoryGridView: View {
     }
     
     private var inventoryGrid: some View {
-            VStack {
-                LazyVGrid(columns: itemColumns) {
-                    ForEach(filteredItems, id: \.id) { item in
-                        DraggableItemCard(
-                            item: item,
-                            colorScheme: colorScheme,
-                            showCounterForSingleItems: config.first?.showCounterForSingleItems ?? true,
-                            draggedItem: $draggedItem,
-                            onTap: {
-                                if editMode?.wrappedValue.isEditing == true {
-                                    if viewModel.selectedItemIDs.contains(item.id) {
-                                        viewModel.selectedItemIDs.remove(item.id)
-                                    } else {
-                                        viewModel.selectedItemIDs.insert(item.id)
-                                    }
+        VStack {
+            LazyVGrid(columns: itemColumns) {
+                ForEach(filteredItems, id: \.id) { item in
+                    DraggableItemCard(
+                        item: item,
+                        colorScheme: colorScheme,
+                        showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
+                        draggedItem: $draggedItem,
+                        onTap: {
+                            if editMode?.wrappedValue.isEditing == true {
+                                if viewModel.selectedItemIDs.contains(item.id) {
+                                    viewModel.selectedItemIDs.remove(item.id)
                                 } else {
-                                    selectedItem = item
+                                    viewModel.selectedItemIDs.insert(item.id)
                                 }
-                            },
-                            onDragChanged: { isDragging in
-                                draggedItem = isDragging ? item : nil
-                            },
-                            onDrop: { droppedItemId in
-                                handleDrop(items, filteredItems: itemsGroup, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                            },
-                            isEditing: editMode?.wrappedValue.isEditing ?? false,
-                            isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
-                        )
-                    }
+                            } else {
+                                selectedItem = item
+                            }
+                        },
+                        onDragChanged: { isDragging in
+                            draggedItem = isDragging ? item : nil
+                        },
+                        onDrop: { droppedItemId in
+                            handleDrop(items, filteredItems: itemsGroup, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                        },
+                        isEditing: editMode?.wrappedValue.isEditing ?? false,
+                        isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
+                    )
                 }
-                Spacer()
+            }
+            Spacer()
         }
     }
     

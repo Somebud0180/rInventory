@@ -11,29 +11,6 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class Config {
-    var themeMode: Int = 0 // 0 = Default, 1 = Light, 2 = Dark
-    var showCounterForSingleItems: Bool = false // Whether to show a counter for items with quantity 1
-    var defaultInventorySort: Int = 0 // 0 = Sort Order, 1 = Alphabetical, 2 = Modification Date
-    
-    init(themeMode: Int = 0, showCounterForSingleItems: Bool = false, defaultInventorySort: Int = 0) {
-        self.themeMode = themeMode
-        self.showCounterForSingleItems = showCounterForSingleItems
-        self.defaultInventorySort = defaultInventorySort
-    }
-}
-
-extension Config {
-    func resolvedColorScheme(systemColorScheme: ColorScheme) -> ColorScheme {
-        switch self.themeMode {
-        case 1: return .light
-        case 2: return .dark
-        default: return systemColorScheme
-        }
-    }
-}
-
-@Model
 final class Item {
     var id: UUID = UUID()
     var name: String = ""
@@ -163,7 +140,7 @@ extension Item {
         context.insert(item)
         try? context.save()
     }
-
+    
     /// Updates this Item and persists, cleaning up orphans.
     func updateItem(
         name: String? = nil,
@@ -185,7 +162,7 @@ extension Item {
             let trimmedLocationName = locationName.trimmingCharacters(in: .whitespacesAndNewlines)
             newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, locations: locations) : nil
         }
-            
+        
         // Find or create Category
         var newCategory: Category?
         if let categoryName = categoryName, !categoryName.isEmpty {
@@ -230,7 +207,7 @@ extension Item {
         Category.cleanupEmpty(in: context)
         try? context.save()
     }
-
+    
     /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
     func deleteItem(
         context: ModelContext
@@ -344,4 +321,3 @@ extension Color {
         return (Double(r), Double(g), Double(b), Double(a))
     }
 }
-
