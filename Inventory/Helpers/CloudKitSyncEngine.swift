@@ -44,6 +44,8 @@ public class CloudKitSyncEngine: ObservableObject {
     private var _modelContext: ModelContext
     private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var lastAutoSyncAttempt: Date = Date.distantPast
+    private let autoSyncDebounceInterval: TimeInterval = 60.0 // Increased from 30 seconds
     
     // Public accessor for model context
     public var modelContext: ModelContext {
@@ -167,6 +169,11 @@ public class CloudKitSyncEngine: ObservableObject {
     /// Perform automatic sync (less intrusive than manual sync)
     private func performAutoSync() async {
         guard isAccountAvailable && syncState != .syncing else { return }
+        
+        // Debounce auto-sync attempts
+        let now = Date()
+        guard now.timeIntervalSince(lastAutoSyncAttempt) > autoSyncDebounceInterval else { return }
+        lastAutoSyncAttempt = now
         
         do {
             try await performSync()
@@ -493,6 +500,7 @@ public class CloudKitSyncEngine: ObservableObject {
         for record in records {
             await processLocationRecord(record)
         }
+        await cleanupDuplicateLocations()
     }
     
     private func processLocationRecord(_ record: CKRecord) async {
@@ -529,6 +537,20 @@ public class CloudKitSyncEngine: ObservableObject {
             _modelContext.insert(newLocation)
         }
         try? _modelContext.save()
+    }
+    
+    private func cleanupDuplicateLocations() async {
+        let descriptor = FetchDescriptor<Location>()
+        guard let allLocations = try? _modelContext.fetch(descriptor) else { return }
+        let grouped = Dictionary(grouping: allLocations, by: { $0.id })
+        for (_, group) in grouped where group.count > 1 {
+            let winner = group.first!
+            for duplicate in group.dropFirst() {
+                _modelContext.delete(duplicate)
+            }
+        }
+        try? _modelContext.save()
+        try? await sendChanges()
     }
     
     private func sendLocations() async throws {

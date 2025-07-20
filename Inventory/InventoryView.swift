@@ -92,35 +92,43 @@ struct InventoryView: View {
                             inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                         }
                         
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Categories")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 8)
-                                .padding(.bottom, -8)
-                            
-                            LazyVGrid(columns: rowColumns, spacing: 16) {
-                                ForEach(categories, id: \.id) { category in
-                                    let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                                    if !categoryItems.isEmpty {
-                                        inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
+                        // Categories section
+                        if !categories.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                if !categories.isEmpty {
+                                    Text("Categories")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 8)
+                                        .padding(.bottom, -8)
+                                    
+                                    LazyVGrid(columns: rowColumns, spacing: 16) {
+                                        ForEach(categories, id: \.id) { category in
+                                            let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
+                                            if !categoryItems.isEmpty {
+                                                inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                         
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Locations")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 8)
-                                .padding(.bottom, -8)
-                            
-                            LazyVGrid(columns: rowColumns, spacing: 16) {
-                                ForEach(locations, id: \.id) { location in
-                                    let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                                    if !locationItems.isEmpty {
-                                        inventoryRow(rowItems: locationItems, title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
+                        // Locations section
+                        if !locations.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Locations")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 8)
+                                    .padding(.bottom, -8)
+                                
+                                LazyVGrid(columns: rowColumns, spacing: 16) {
+                                    ForEach(locations, id: \.id) { location in
+                                        let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
+                                        if !locationItems.isEmpty {
+                                            inventoryRow(rowItems: locationItems, title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
+                                        }
                                     }
                                 }
                             }

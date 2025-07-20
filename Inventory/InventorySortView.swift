@@ -24,6 +24,7 @@ struct InventorySortView: View {
     @State private var showLocations: Bool = true
     @State private var isCategorySectionExpanded: Bool = true
     @State private var isLocationSectionExpanded: Bool = true
+    @State private var isReordering: Bool = false // Track reordering state
     
     var body: some View {
         NavigationStack {
@@ -150,25 +151,51 @@ struct InventorySortView: View {
     
     // MARK: - Move Handlers
     private func moveCategory(from source: IndexSet, to destination: Int) {
+        guard !isReordering else { return } // Prevent concurrent reordering
+        isReordering = true
+        
         var revised = categories
         revised.move(fromOffsets: source, toOffset: destination)
+        
+        // Batch the updates
         for (index, category) in revised.enumerated() {
-            withAnimation {
-                category.sortOrder = index
-            }
+            category.sortOrder = index
         }
-        try? modelContext.save()
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving category reorder: \(error)")
+        }
+        
+        // Delay to prevent rapid reordering
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isReordering = false
+        }
     }
     
     private func moveLocation(from source: IndexSet, to destination: Int) {
+        guard !isReordering else { return } // Prevent concurrent reordering
+        isReordering = true
+        
         var revised = locations
         revised.move(fromOffsets: source, toOffset: destination)
+        
+        // Batch the updates
         for (index, location) in revised.enumerated() {
-            withAnimation {
-                location.sortOrder = index
-            }
+            location.sortOrder = index
         }
-        try? modelContext.save()
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving location reorder: \(error)")
+        }
+        
+        // Delay to prevent rapid reordering
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isReordering = false
+        }
     }
 }
 
