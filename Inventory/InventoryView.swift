@@ -95,9 +95,9 @@ struct InventoryView: View {
                         }
                         
                         ForEach(locations, id: \.id) { location in
-                            let locationItems = items.filter { $0.location?.id == location.id }
+                            let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
                             if !locationItems.isEmpty {
-                                inventoryRow(rowItems: locationItems, title: location.name, showSortPicker: true)
+                                inventoryRow(rowItems: locationItems, title: location.name, showCategoryPicker: true, showSortPicker: true)
                             }
                         }
                     }
