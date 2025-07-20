@@ -13,6 +13,9 @@ import Foundation
 import Combine
 
 let inventoryActivityType = "ethanj.Inventory.viewingInventory"
+let rowColumns = [
+    GridItem(.adaptive(minimum: 500), spacing: 16)
+]
 
 /// Represents a unique identifier for an item that can be transferred between devices.
 struct ItemIdentifier: Transferable {
@@ -36,8 +39,8 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     
     @Query private var items: [Item]
-    @Query(sort: \Location.sortOrder, order: .forward) private var locations: [Location]
-    @Query(sort: \Category.sortOrder, order: .forward) private var categories: [Category]
+    @Query(filter: #Predicate<Location> { $0.displayInRow == true }, sort: \Location.sortOrder, order: .forward) private var locations: [Location]
+    @Query(filter: #Predicate<Category> { $0.displayInRow == true }, sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
     @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
@@ -81,30 +84,51 @@ struct InventoryView: View {
                     emptyItemsView
                 } else {
                     VStack(spacing: 16) {
-                        if !recentlyAddedItems.isEmpty {
-                            inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
+                        LazyVGrid(columns: rowColumns, spacing: 16) {
+                            if !recentlyAddedItems.isEmpty {
+                                inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
+                            }
+                            
+                            inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                         }
                         
-                        inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
-                        
-                        ForEach(categories, id: \.id) { category in
-                            let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                            if !categoryItems.isEmpty {
-                                inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Categories")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 8)
+                                .padding(.bottom, -8)
+                            
+                            LazyVGrid(columns: rowColumns, spacing: 16) {
+                                ForEach(categories, id: \.id) { category in
+                                    let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
+                                    if !categoryItems.isEmpty {
+                                        inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
+                                    }
+                                }
                             }
                         }
                         
-                        ForEach(locations, id: \.id) { location in
-                            let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                            if !locationItems.isEmpty {
-                                inventoryRow(rowItems: locationItems, title: location.name, showCategoryPicker: true, showSortPicker: true)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Locations")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 8)
+                                .padding(.bottom, -8)
+                            
+                            LazyVGrid(columns: rowColumns, spacing: 16) {
+                                ForEach(locations, id: \.id) { location in
+                                    let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
+                                    if !locationItems.isEmpty {
+                                        inventoryRow(rowItems: locationItems, title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
             .scrollDisabled(items.isEmpty)
-            .scrollClipDisabled(true)
             .navigationTitle("Inventory")
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
@@ -214,7 +238,7 @@ struct InventoryView: View {
     /// - Parameters:
     /// - items: The array of items to display in the row.
     /// - title: The title for the row.
-    private func inventoryRow(rowItems: [Item], title: String, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+    private func inventoryRow(rowItems: [Item], title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
@@ -227,12 +251,12 @@ struct InventoryView: View {
                         .multilineTextAlignment(.leading)
                     Image(systemName: "chevron.right")
                         .foregroundColor(.gray)
-                }
+                }.padding(.leading, 8)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
-                        ForEach(rowItems.prefix(6), id: \.id) { item in
+                        ForEach(rowItems.prefix(4), id: \.id) { item in
                             ItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
@@ -245,9 +269,9 @@ struct InventoryView: View {
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
-                        if rowItems.count < 6 {
+                        if rowItems.count < 4 {
                             Spacer()
-                        } else if rowItems.count > 6 {
+                        } else if rowItems.count > 4 {
                             NavigationLink {
                                 InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
@@ -271,8 +295,16 @@ struct InventoryView: View {
                         }
                     }
                 }
+                .scrollClipDisabled()
             }
-                .scrollClipDisabled(true)
+                .padding(.top, 4)
+                .padding(.leading, 8)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                        .foregroundStyle(color.opacity(colorScheme == .light ? 0.1 : 0.25))
+                )
+                .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
         )
     }
     

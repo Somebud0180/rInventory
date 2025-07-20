@@ -293,7 +293,6 @@ struct ItemView: View {
             }
             .padding(.top, 12)
             .padding(.vertical, 12)
-            .scrollClipDisabled()
             .frame(maxWidth: geometry.size.width * 0.52, maxHeight: geometry.size.height)
         }
         .padding(.leading, geometry.safeAreaInsets.leading * 0.25)

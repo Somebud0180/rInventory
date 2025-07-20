@@ -153,7 +153,9 @@ struct InventorySortView: View {
         var revised = categories
         revised.move(fromOffsets: source, toOffset: destination)
         for (index, category) in revised.enumerated() {
-            category.sortOrder = index
+            withAnimation {
+                category.sortOrder = index
+            }
         }
         try? modelContext.save()
     }
@@ -162,7 +164,9 @@ struct InventorySortView: View {
         var revised = locations
         revised.move(fromOffsets: source, toOffset: destination)
         for (index, location) in revised.enumerated() {
-            location.sortOrder = index
+            withAnimation {
+                location.sortOrder = index
+            }
         }
         try? modelContext.save()
     }

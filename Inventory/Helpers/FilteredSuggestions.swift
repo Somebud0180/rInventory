@@ -52,6 +52,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
                     .adaptiveGlassBackground(tintStrength: 0.5)
                 }
             }
-        }.scrollClipDisabled(true)
+        }
+            .clipShape(Capsule())
     )
 }

@@ -422,12 +422,11 @@ public class CloudKitSyncEngine: ObservableObject {
         for (_, group) in grouped where group.count > 1 {
             let winner = group.first!
             for duplicate in group.dropFirst() {
-                // Optionally merge fields here if needed
-                // For now, just keep the winner and delete the rest
                 _modelContext.delete(duplicate)
             }
         }
         try? _modelContext.save()
+        try? await sendChanges()
     }
     
     private func sendCategories() async throws {
