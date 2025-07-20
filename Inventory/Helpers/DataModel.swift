@@ -265,24 +265,6 @@ extension Location {
             context.delete(location)
         }
         try? context.save()
-        
-        removeDuplicates(in: context)
-    }
-    
-    /// Removes duplicate locations by name, keeping only the first occurrence.
-    static func removeDuplicates(in context: ModelContext) {
-        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
-        var seenNames: Set<String> = []
-        
-        for location in locations {
-            if seenNames.contains(location.name) {
-                context.delete(location)
-            } else {
-                seenNames.insert(location.name)
-            }
-        }
-        
-        try? context.save()
     }
 }
 
@@ -315,25 +297,7 @@ extension Category {
             context.delete(category)
         }
         try? context.save()
-        
-        removeDuplicates(in: context)
     }
-    
-    static func removeDuplicates(in context: ModelContext) {
-        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
-        var seenNames: Set<String> = []
-        
-        for category in categories {
-            if seenNames.contains(category.name) {
-                context.delete(category)
-            } else {
-                seenNames.insert(category.name)
-            }
-        }
-        
-        try? context.save()
-    }
-
 }
 
 extension Color {

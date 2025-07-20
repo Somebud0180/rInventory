@@ -329,6 +329,14 @@ struct InventoryView: View {
             }
         }
         
+        // Initialize location sort orders if there's multiple locations without a sort order
+        let locationsNeedingOrder = locations.filter { $0.sortOrder == 0 }
+        if locationsNeedingOrder.count > 1 {
+            for (index, location) in locationsNeedingOrder.enumerated() {
+                location.sortOrder = index
+            }
+        }
+        
         // Initialize item sort orders if there's multiple items without a sort order
         let itemsNeedingOrder = items.filter { $0.sortOrder == 0 }
         if itemsNeedingOrder.count > 1 {

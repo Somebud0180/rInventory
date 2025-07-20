@@ -44,8 +44,6 @@ public class CloudKitSyncEngine: ObservableObject {
     private var _modelContext: ModelContext
     private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
-    private var lastAutoSyncAttempt: Date = Date.distantPast
-    private let autoSyncDebounceInterval: TimeInterval = 60.0 // Increased from 30 seconds
     
     // Public accessor for model context
     public var modelContext: ModelContext {
@@ -169,11 +167,6 @@ public class CloudKitSyncEngine: ObservableObject {
     /// Perform automatic sync (less intrusive than manual sync)
     private func performAutoSync() async {
         guard isAccountAvailable && syncState != .syncing else { return }
-        
-        // Debounce auto-sync attempts
-        let now = Date()
-        guard now.timeIntervalSince(lastAutoSyncAttempt) > autoSyncDebounceInterval else { return }
-        lastAutoSyncAttempt = now
         
         do {
             try await performSync()
@@ -433,7 +426,7 @@ public class CloudKitSyncEngine: ObservableObject {
             }
         }
         try? _modelContext.save()
-        try? await sendChanges()
+        // Removed sendChanges() call to prevent race conditions during reordering
     }
     
     private func sendCategories() async throws {
@@ -550,7 +543,7 @@ public class CloudKitSyncEngine: ObservableObject {
             }
         }
         try? _modelContext.save()
-        try? await sendChanges()
+        // Removed sendChanges() call to prevent race conditions during reordering
     }
     
     private func sendLocations() async throws {

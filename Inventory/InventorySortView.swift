@@ -24,7 +24,8 @@ struct InventorySortView: View {
     @State private var showLocations: Bool = true
     @State private var isCategorySectionExpanded: Bool = true
     @State private var isLocationSectionExpanded: Bool = true
-    @State private var isReordering: Bool = false // Track reordering state
+    @State private var isReordering: Bool = false
+    @State private var pendingSave: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -151,50 +152,79 @@ struct InventorySortView: View {
     
     // MARK: - Move Handlers
     private func moveCategory(from source: IndexSet, to destination: Int) {
-        guard !isReordering else { return } // Prevent concurrent reordering
+        // Prevent overlapping reorder operations
+        guard !isReordering else { return }
+        
+        // Set reordering state
         isReordering = true
         
+        // Perform the array reordering first
         var revised = categories
         revised.move(fromOffsets: source, toOffset: destination)
         
-        // Batch the updates
-        for (index, category) in revised.enumerated() {
-            category.sortOrder = index
+        // Update sort orders with animation - wrap the entire batch
+        withAnimation(.smooth(duration: 0.3)) {
+            for (index, category) in revised.enumerated() {
+                category.sortOrder = index
+            }
         }
         
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving category reorder: \(error)")
-        }
+        // Save after animation completes, with debouncing
+        debouncedSave()
         
-        // Delay to prevent rapid reordering
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Reset reordering state after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             isReordering = false
         }
     }
     
     private func moveLocation(from source: IndexSet, to destination: Int) {
-        guard !isReordering else { return } // Prevent concurrent reordering
+        // Prevent overlapping reorder operations
+        guard !isReordering else { return }
+        
+        // Set reordering state
         isReordering = true
         
+        // Perform the array reordering first
         var revised = locations
         revised.move(fromOffsets: source, toOffset: destination)
         
-        // Batch the updates
-        for (index, location) in revised.enumerated() {
-            location.sortOrder = index
+        // Update sort orders with animation
+        withAnimation(.smooth(duration: 0.3)) {
+            for (index, location) in revised.enumerated() {
+                location.sortOrder = index
+            }
         }
         
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving location reorder: \(error)")
-        }
+        // Save after animation completes, with debouncing
+        debouncedSave()
         
-        // Delay to prevent rapid reordering
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Reset reordering state after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             isReordering = false
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func debouncedSave() {
+        // Cancel any pending save
+        pendingSave = false
+        
+        // Schedule a new save after animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            guard !self.pendingSave else { return }
+            self.pendingSave = true
+            
+            do {
+                try self.modelContext.save()
+            } catch {
+                print("Error saving reorder: \(error)")
+            }
+            
+            // Reset pending save flag
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.pendingSave = false
+            }
         }
     }
 }
