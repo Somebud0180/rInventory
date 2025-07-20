@@ -37,11 +37,11 @@ class AppDefaults: ObservableObject {
         set { defaults.set(newValue, forKey: Keys.defaultInventorySort) }
     }
     
-    func resolvedColorScheme(systemColorScheme: ColorScheme) -> ColorScheme {
+    func resolvedColorScheme() -> ColorScheme? {
         switch themeMode {
         case 1: return .light
         case 2: return .dark
-        default: return systemColorScheme
+        default: return nil
         }
     }
 }
@@ -102,8 +102,9 @@ struct InventoryApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(syncEngine: syncEngine)
+                .id(appDefaults.themeMode)
                 .environmentObject(appDefaults)
-                .preferredColorScheme(appDefaults.themeMode == 0 ? nil : appDefaults.resolvedColorScheme(systemColorScheme: colorScheme))
+                .preferredColorScheme(appDefaults.resolvedColorScheme())
         }
         .modelContainer(InventoryApp.sharedModelContainer)
     }
