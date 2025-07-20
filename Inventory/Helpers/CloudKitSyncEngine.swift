@@ -384,16 +384,33 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processCategoryRecords(_ records: [CKRecord]) async {
+        // Process all records without saving individual changes
+        var categoriesToUpdate: [Category] = []
+        var categoriesToInsert: [Category] = []
+        
         for record in records {
-            await processCategoryRecord(record)
+            if let processedCategory = await processCategoryRecord(record, saveImmediately: false) {
+                // Check if this category already exists in the context
+                let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == processedCategory.id })
+                let existingCount = (try? _modelContext.fetchCount(descriptor)) ?? 0
+                
+                if existingCount > 0 {
+                    categoriesToUpdate.append(processedCategory)
+                } else {
+                    categoriesToInsert.append(processedCategory)
+                }
+            }
         }
-        await cleanupDuplicateCategories()
+        
+        // Perform deduplication on the batch before saving anything
+        await deduplicateAndSaveCategories(toUpdate: categoriesToUpdate, toInsert: categoriesToInsert)
     }
     
-    private func processCategoryRecord(_ record: CKRecord) async {
+    private func processCategoryRecord(_ record: CKRecord, saveImmediately: Bool = true) async -> Category? {
         guard let idString = record["CD_id"] as? String,
               let id = UUID(uuidString: idString),
-              let name = record["CD_name"] as? String else { return }
+              let name = record["CD_name"] as? String else { return nil }
+        
         // When querying for a specific Category by id, use NSPredicate(format: "id == %@", uuid.uuidString).
         let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
         let existingCategories = (try? _modelContext.fetch(descriptor)) ?? []
@@ -411,22 +428,47 @@ public class CloudKitSyncEngine: ObservableObject {
             )
             _modelContext.insert(newCategory)
         }
-        try? _modelContext.save()
+        
+        if saveImmediately {
+            try? _modelContext.save()
+        }
+        
+        return existingCategories.first ?? nil
     }
     
-    /// Remove duplicate Category objects with the same id, keeping the first and merging if needed
-    private func cleanupDuplicateCategories() async {
-        let descriptor = FetchDescriptor<Category>()
-        guard let allCategories = try? _modelContext.fetch(descriptor) else { return }
-        let grouped = Dictionary(grouping: allCategories, by: { $0.id })
-        for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
-            for duplicate in group.dropFirst() {
-                _modelContext.delete(duplicate)
+    /// Deduplicate and save categories in a single transaction
+    private func deduplicateAndSaveCategories(toUpdate: [Category], toInsert: [Category]) async {
+        // For insertions, check for duplicates by ID
+        var validInsertions: [Category] = []
+        let existingIds = Set((try? _modelContext.fetch(FetchDescriptor<Category>())) ?? []).map { $0.id }
+        
+        // Group new categories by ID to handle duplicates in the batch itself
+        let groupedInsertions = Dictionary(grouping: toInsert, by: { $0.id })
+        
+        for (id, categories) in groupedInsertions {
+            // Skip if category with this ID already exists in context
+            guard !existingIds.contains(id) else { continue }
+            
+            // If multiple categories with same ID in this batch, take the first one
+            if let categoryToInsert = categories.first {
+                validInsertions.append(categoryToInsert)
             }
         }
-        try? _modelContext.save()
-        // Removed sendChanges() call to prevent race conditions during reordering
+        
+        // Insert only the deduplicated categories
+        for category in validInsertions {
+            _modelContext.insert(category)
+        }
+        
+        // Save everything in one transaction
+        do {
+            try _modelContext.save()
+        } catch {
+            print("Error saving deduplicated categories: \(error)")
+        }
+        
+        // Clean up any remaining duplicates (safety net)
+        cleanupDuplicateCategories()
     }
     
     private func sendCategories() async throws {
@@ -490,16 +532,36 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func processLocationRecords(_ records: [CKRecord]) async {
+        // Process all records without saving individual changes
+        var locationsToUpdate: [Location] = []
+        var locationsToInsert: [Location] = []
+        
         for record in records {
-            await processLocationRecord(record)
+            if let processedLocation = await processLocationRecord(record, saveImmediately: false) {
+                // Check if this location already exists in the context
+                let locationId = processedLocation.id
+                let descriptor = FetchDescriptor<Location>(predicate: #Predicate<Location> { location in
+                    location.id == locationId
+                })
+                let existingCount = (try? _modelContext.fetchCount(descriptor)) ?? 0
+                
+                if existingCount > 0 {
+                    locationsToUpdate.append(processedLocation)
+                } else {
+                    locationsToInsert.append(processedLocation)
+                }
+            }
         }
-        await cleanupDuplicateLocations()
+        
+        // Perform deduplication on the batch before saving anything
+        await deduplicateAndSaveLocations(toUpdate: locationsToUpdate, toInsert: locationsToInsert)
     }
     
-    private func processLocationRecord(_ record: CKRecord) async {
+    private func processLocationRecord(_ record: CKRecord, saveImmediately: Bool = true) async -> Location? {
         guard let idString = record["CD_id"] as? String,
               let id = UUID(uuidString: idString),
-              let name = record["CD_name"] as? String else { return }
+              let name = record["CD_name"] as? String else { return nil }
+        
         // When querying for a specific Location by id, use NSPredicate(format: "id == %@", uuid.uuidString).
         let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
         let existingLocations = (try? _modelContext.fetch(descriptor)) ?? []
@@ -529,21 +591,47 @@ public class CloudKitSyncEngine: ObservableObject {
             )
             _modelContext.insert(newLocation)
         }
-        try? _modelContext.save()
+        
+        if saveImmediately {
+            try? _modelContext.save()
+        }
+        
+        return existingLocations.first ?? nil
     }
     
-    private func cleanupDuplicateLocations() async {
-        let descriptor = FetchDescriptor<Location>()
-        guard let allLocations = try? _modelContext.fetch(descriptor) else { return }
-        let grouped = Dictionary(grouping: allLocations, by: { $0.id })
-        for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
-            for duplicate in group.dropFirst() {
-                _modelContext.delete(duplicate)
+    /// Deduplicate and save locations in a single transaction
+    private func deduplicateAndSaveLocations(toUpdate: [Location], toInsert: [Location]) async {
+        // For insertions, check for duplicates by ID
+        var validInsertions: [Location] = []
+        let existingIds = Set((try? _modelContext.fetch(FetchDescriptor<Location>())) ?? []).map { $0.id }
+        
+        // Group new locations by ID to handle duplicates in the batch itself
+        let groupedInsertions = Dictionary(grouping: toInsert, by: { $0.id })
+        
+        for (id, locations) in groupedInsertions {
+            // Skip if location with this ID already exists in context
+            guard !existingIds.contains(id) else { continue }
+            
+            // If multiple locations with same ID in this batch, take the first one
+            if let locationToInsert = locations.first {
+                validInsertions.append(locationToInsert)
             }
         }
-        try? _modelContext.save()
-        // Removed sendChanges() call to prevent race conditions during reordering
+        
+        // Insert only the deduplicated locations
+        for location in validInsertions {
+            _modelContext.insert(location)
+        }
+        
+        // Save everything in one transaction
+        do {
+            try _modelContext.save()
+        } catch {
+            print("Error saving deduplicated locations: \(error)")
+        }
+        
+        // Clean up any remaining duplicates (safety net)
+        cleanupDuplicateLocations()
     }
     
     private func sendLocations() async throws {
@@ -574,6 +662,34 @@ public class CloudKitSyncEngine: ObservableObject {
             
             try await database.add(operation)
         }
+    }
+    
+    /// Remove duplicate Category objects with the same id, keeping the first and merging if needed
+    private func cleanupDuplicateCategories() {
+        let descriptor = FetchDescriptor<Category>()
+        guard let allCategories = try? _modelContext.fetch(descriptor) else { return }
+        let grouped = Dictionary(grouping: allCategories, by: { $0.id })
+        for (_, group) in grouped where group.count > 1 {
+            let winner = group.first!
+            for duplicate in group.dropFirst() {
+                _modelContext.delete(duplicate)
+            }
+        }
+        try? _modelContext.save()
+    }
+    
+    /// Remove duplicate Location objects with the same id, keeping the first and merging if needed
+    private func cleanupDuplicateLocations() {
+        let descriptor = FetchDescriptor<Location>()
+        guard let allLocations = try? _modelContext.fetch(descriptor) else { return }
+        let grouped = Dictionary(grouping: allLocations, by: { $0.id })
+        for (_, group) in grouped where group.count > 1 {
+            let winner = group.first!
+            for duplicate in group.dropFirst() {
+                _modelContext.delete(duplicate)
+            }
+        }
+        try? _modelContext.save()
     }
     
     deinit {
