@@ -34,7 +34,7 @@ struct ItemCreationView: View {
     @State private var locationColor: Color = .white
     @State private var categoryName: String = ""
     @State private var background: ItemCardBackground = .symbol("square.grid.2x2")
-    @State private var symbolColor: Color = .accentColor
+    @State private var symbolColor: Color = .white
     
     // Helper to determine if Liquid Glass design is available
     let usesLiquidGlass: Bool = {
