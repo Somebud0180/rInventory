@@ -391,7 +391,8 @@ public class CloudKitSyncEngine: ObservableObject {
         for record in records {
             if let processedCategory = await processCategoryRecord(record, saveImmediately: false) {
                 // Check if this category already exists in the context
-                let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == processedCategory.id })
+                let categoryId = processedCategory.id
+                let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == categoryId })
                 let existingCount = (try? _modelContext.fetchCount(descriptor)) ?? 0
                 
                 if existingCount > 0 {
@@ -419,6 +420,7 @@ public class CloudKitSyncEngine: ObservableObject {
                 existingCategory.sortOrder = sortOrder
             }
             existingCategory.name = name
+            return existingCategory
         } else {
             let newCategory = Category(
                 id,
@@ -426,14 +428,14 @@ public class CloudKitSyncEngine: ObservableObject {
                 sortOrder: record["CD_sortOrder"] as? Int ?? 0,
                 displayInRow: record["CD_displayInRow"] as? Bool ?? true
             )
-            _modelContext.insert(newCategory)
+            if !saveImmediately {
+                return newCategory
+            } else {
+                _modelContext.insert(newCategory)
+                try? _modelContext.save()
+                return newCategory
+            }
         }
-        
-        if saveImmediately {
-            try? _modelContext.save()
-        }
-        
-        return existingCategories.first ?? nil
     }
     
     /// Deduplicate and save categories in a single transaction
@@ -540,9 +542,7 @@ public class CloudKitSyncEngine: ObservableObject {
             if let processedLocation = await processLocationRecord(record, saveImmediately: false) {
                 // Check if this location already exists in the context
                 let locationId = processedLocation.id
-                let descriptor = FetchDescriptor<Location>(predicate: #Predicate<Location> { location in
-                    location.id == locationId
-                })
+                let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == locationId })
                 let existingCount = (try? _modelContext.fetchCount(descriptor)) ?? 0
                 
                 if existingCount > 0 {
@@ -573,6 +573,7 @@ public class CloudKitSyncEngine: ObservableObject {
                 existingLocation.colorData = colorData
             }
             existingLocation.name = name
+            return existingLocation
         } else {
             let color: Color =
             {
@@ -589,14 +590,15 @@ public class CloudKitSyncEngine: ObservableObject {
                 displayInRow: record["CD_displayInRow"] as? Bool ?? true,
                 color: color
             )
-            _modelContext.insert(newLocation)
+            
+            if !saveImmediately {
+                return newLocation
+            } else {
+                _modelContext.insert(newLocation)
+                try? _modelContext.save()
+                return newLocation
+            }
         }
-        
-        if saveImmediately {
-            try? _modelContext.save()
-        }
-        
-        return existingLocations.first ?? nil
     }
     
     /// Deduplicate and save locations in a single transaction
@@ -718,3 +720,4 @@ public enum CloudKitSyncError: LocalizedError {
         }
     }
 }
+
