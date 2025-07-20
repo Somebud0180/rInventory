@@ -310,6 +310,9 @@ struct InventoryView: View {
     
     /// Initializes sort orders for categories and items if they are not set.
     private func initializeSortOrders() {
+        Location.cleanupEmpty(in: modelContext)
+        Category.cleanupEmpty(in: modelContext)
+        
         // Initialize category sort orders if there's multiple categories without a sort order
         let categoriesNeedingOrder = categories.filter { $0.sortOrder == 0 }
         if categoriesNeedingOrder.count > 1 {

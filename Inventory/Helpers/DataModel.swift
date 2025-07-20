@@ -257,6 +257,9 @@ extension Location {
     
     /// Scans all locations and deletes those with no items.
     static func cleanupEmpty(in context: ModelContext) {
+        // Save changes before cleanup
+        try? context.save()
+        
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
         for location in locations where (location.items?.isEmpty ?? true) {
             context.delete(location)
