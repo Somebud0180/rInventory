@@ -32,12 +32,12 @@ struct ItemIdentifier: Transferable {
 }
 
 struct InventoryView: View {
-    @Environment(\.editMode) private var editMode
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
     @Query private var items: [Item]
-    @Query private var categories: [Category]
+    @Query(sort: \Location.sortOrder, order: .forward) private var locations: [Location]
+    @Query(sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
     @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
@@ -46,11 +46,10 @@ struct InventoryView: View {
     @State var isActive: Bool
     
     @StateObject private var viewModel = InventoryViewModel()
+    @State private var showInventorySortView: Bool = false
+    @State private var showInventoryRowView: Bool = false
     @State private var continuedGridCategory: String? = nil
     @State private var showContinuedGrid: Bool = false
-    @State private var categoryMenuPresented = false
-    @State private var sortMenuPresented = false
-    @State private var draggedItem: Item?
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
@@ -94,6 +93,13 @@ struct InventoryView: View {
                                 inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
                             }
                         }
+                        
+                        ForEach(locations, id: \.id) { location in
+                            let locationItems = items.filter { $0.location?.id == location.id }
+                            if !locationItems.isEmpty {
+                                inventoryRow(rowItems: locationItems, title: location.name, showSortPicker: true)
+                            }
+                        }
                     }
                 }
             }
@@ -102,6 +108,9 @@ struct InventoryView: View {
             .navigationTitle("Inventory")
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
+            .sheet(isPresented: $showInventorySortView) {
+                InventorySortView()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if showingSyncSpinner {
@@ -115,7 +124,10 @@ struct InventoryView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    EditButton()
+                    Button(action: { showInventorySortView = true }) {
+                        Label("Edit", systemImage: "arrow.up.arrow.down")
+                            .labelStyle(.titleOnly)
+                    }
                 }
             }
             .refreshable {
@@ -129,11 +141,6 @@ struct InventoryView: View {
                 }
                 // If syncing is in progress on appear, show spinner
                 showingSyncSpinner = syncEngine.syncState == .syncing
-            }
-            .onChange(of: editMode?.wrappedValue) {
-                if editMode?.wrappedValue == .inactive {
-                    viewModel.selectedItemIDs.removeAll()
-                }
             }
             .onChange(of: syncEngine.syncState) {
                 if case .error = syncEngine.syncState {
@@ -226,22 +233,13 @@ struct InventoryView: View {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
                         ForEach(rowItems.prefix(6), id: \.id) { item in
-                            DraggableItemCard(
+                            ItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
                                 showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
-                                draggedItem: $draggedItem,
                                 onTap: {
                                     selectedItem = item
-                                },
-                                onDragChanged: { isDragging in
-                                    draggedItem = isDragging ? item : nil
-                                },
-                                onDrop: { droppedItemId in
-                                    handleDrop(items, filteredItems: filteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
-                                },
-                                isEditing: editMode?.wrappedValue.isEditing ?? false,
-                                isSelected: viewModel.selectedItemIDs.contains(item.id)
+                                }
                             )
                             .aspectRatio(1.0, contentMode: .fit)
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
