@@ -145,14 +145,10 @@ public class CloudKitSyncEngine: ObservableObject {
     private func setupRecordZones() async {
         guard isAccountAvailable else { return }
         
-        do {
-            let zones = [itemsZone, categoriesZone, locationsZone]
-            let operation = CKModifyRecordZonesOperation(recordZonesToSave: zones, recordZoneIDsToDelete: nil)
-            
-            try await database.add(operation)
-        } catch {
-            print("Failed to setup record zones: \(error)")
-        }
+        let zones = [itemsZone, categoriesZone, locationsZone]
+        let operation = CKModifyRecordZonesOperation(recordZonesToSave: zones, recordZoneIDsToDelete: nil)
+        
+        database.add(operation)
     }
     
     /// Start automatic synchronization
@@ -238,11 +234,7 @@ public class CloudKitSyncEngine: ObservableObject {
                 }
             }
             
-            do {
-                try self.database.add(operation)
-            } catch {
-                continuation.resume(throwing: error)
-            }
+            self.database.add(operation)
         }
     }
     
@@ -345,7 +337,7 @@ public class CloudKitSyncEngine: ObservableObject {
             let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave)
             operation.savePolicy = .changedKeys
             
-            try await database.add(operation)
+            database.add(operation)
         }
     }
     
@@ -380,7 +372,7 @@ public class CloudKitSyncEngine: ObservableObject {
             }
         }
         
-        try await database.add(operation)
+        database.add(operation)
     }
     
     private func processCategoryRecords(_ records: [CKRecord]) async {
@@ -495,7 +487,7 @@ public class CloudKitSyncEngine: ObservableObject {
             let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave)
             operation.savePolicy = .changedKeys
             
-            try await database.add(operation)
+            database.add(operation)
         }
     }
     
@@ -530,7 +522,7 @@ public class CloudKitSyncEngine: ObservableObject {
             }
         }
         
-        try await database.add(operation)
+        database.add(operation)
     }
     
     private func processLocationRecords(_ records: [CKRecord]) async {
@@ -662,7 +654,7 @@ public class CloudKitSyncEngine: ObservableObject {
             let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave)
             operation.savePolicy = .changedKeys
             
-            try await database.add(operation)
+            database.add(operation)
         }
     }
     
@@ -672,7 +664,7 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allCategories = try? _modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allCategories, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
+            let _winner = group.first!
             for duplicate in group.dropFirst() {
                 _modelContext.delete(duplicate)
             }
@@ -686,7 +678,7 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allLocations = try? _modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allLocations, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
+            let _winner = group.first!
             for duplicate in group.dropFirst() {
                 _modelContext.delete(duplicate)
             }
