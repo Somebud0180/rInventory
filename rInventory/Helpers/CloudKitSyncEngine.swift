@@ -562,9 +562,9 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
             }
             
             // Clean up any duplicates
-            // cleanupDuplicateItems()
-            // cleanupDuplicateCategories()
-            // cleanupDuplicateLocations()
+            cleanupDuplicateItems()
+            cleanupDuplicateCategories()
+            cleanupDuplicateLocations()
             
             try? modelContext.save()
             

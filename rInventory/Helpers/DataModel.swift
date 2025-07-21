@@ -177,10 +177,14 @@ extension Item {
             self.quantity = quantity
         }
         if let location = newLocation {
+            let oldLocation = self.location
             self.location = location
+            oldLocation?.checkAndCleanup(location: oldLocation!, context: context)
         }
         if let category = newCategory {
+            let oldCategory = self.category
             self.category = category
+            oldCategory?.checkAndCleanup(category: oldCategory!, context: context)
         }
         
         if let background = background {
@@ -203,8 +207,6 @@ extension Item {
         
         self.modifiedDate = Date()
         
-        Location.cleanupEmpty(in: context)
-        Category.cleanupEmpty(in: context)
         try? context.save()
     }
     
@@ -213,13 +215,15 @@ extension Item {
         context: ModelContext
     ) {
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
+        let oldLocation = self.location
+        let oldCategory = self.category
         let deletedOrder = self.sortOrder
         
         context.delete(self)
         
         // Clean up old location/category if they are empty
-        Location.cleanupEmpty(in: context)
-        Category.cleanupEmpty(in: context)
+        oldLocation?.checkAndCleanup(location: oldLocation!, context: context)
+        oldCategory?.checkAndCleanup(category: oldCategory!, context: context)
         
         // Cascade sortOrder
         let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
@@ -255,15 +259,14 @@ extension Location {
         }
     }
     
-    /// Scans all locations and deletes those with no items.
-    static func cleanupEmpty(in context: ModelContext) {
+    func checkAndCleanup(location: Location, context: ModelContext) {
         // Save changes before cleanup
         try? context.save()
         
-        let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
-        for location in locations where (location.items?.isEmpty ?? true) {
+        if location.items?.isEmpty ?? true {
             context.delete(location)
         }
+        
         try? context.save()
     }
 }
@@ -290,12 +293,15 @@ extension Category {
         }
     }
     
-    /// Scans all categories and deletes those with no items.
-    static func cleanupEmpty(in context: ModelContext) {
-        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
-        for category in categories where (category.items?.isEmpty ?? true) {
+    /// Checks if this category has no items and deletes it if empty.
+    func checkAndCleanup(category: Category, context: ModelContext) {
+        // Save changes before cleanup
+        try? context.save()
+        
+        if category.items?.isEmpty ?? true {
             context.delete(category)
         }
+        
         try? context.save()
     }
 }

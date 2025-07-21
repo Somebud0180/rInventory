@@ -59,11 +59,7 @@ struct InventoryView: View {
     
     private var recentlyAddedItems: [Item] {
         let cutoffDate = Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        return items.lazy.filter { $0.itemCreationDate > cutoffDate }.sorted { $0.itemCreationDate > $1.itemCreationDate }
-    }
-    
-    private var filteredItems: [Item] {
-        viewModel.filteredItems(from: items)
+        return items.filter { $0.itemCreationDate > cutoffDate }.sorted { $0.itemCreationDate > $1.itemCreationDate }
     }
     
     var body: some View {
@@ -353,10 +349,7 @@ struct InventoryView: View {
     }
     
     /// Initializes sort orders for categories and items if they are not set.
-    private func initializeSortOrders() {
-        Location.cleanupEmpty(in: modelContext)
-        Category.cleanupEmpty(in: modelContext)
-        
+    private func initializeSortOrders() {        
         // Initialize category sort orders if there's multiple categories without a sort order
         let categoriesNeedingOrder = categories.filter { $0.sortOrder == 0 }
         if categoriesNeedingOrder.count > 1 {
