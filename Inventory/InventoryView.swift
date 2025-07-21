@@ -230,19 +230,50 @@ struct InventoryView: View {
             .font(.subheadline)
             .padding(12)
             
+            
             // Pseudo-grid to display app feel
-            // A gray square grid to simulate items
-            LazyVGrid(columns: itemColumns) {
+            VStack(spacing: 16) {
                 ForEach(0..<6, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 25.0)
-                        .fill(Color.gray.opacity(0.8))
-                        .aspectRatio(1.0, contentMode: .fit)
+                    LazyVGrid(columns: rowColumns, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 8.0)
+                                .fill(Color.gray.opacity(0.8))
+                                .frame(width: 100, height: 16)
+                                .padding(.bottom, 4)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(spacing: 16) {
+                                    ForEach(0..<5, id: \.self) { _ in
+                                        RoundedRectangle(cornerRadius: 25.0)
+                                            .fill(Color.gray.opacity(0.8))
+                                            .aspectRatio(1.0, contentMode: .fit)
+                                            .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
+                                    }
+                                }
+                            }
+                            .scrollDisabled(true)
+                            .scrollClipDisabled()
+                        }
+                        .padding(.top, 4)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                                .foregroundStyle(.gray.opacity(colorScheme == .light ? 0.1 : 0.25)))
+                        .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
+                    }
                 }
             }
-            .mask(
-                Rectangle()
-                    .foregroundStyle(LinearGradient(colors: [.white.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom))
-            )
+            .mask {
+                GeometryReader { geo in
+                    LinearGradient(
+                        colors: [.white.opacity(0.8), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geo.size.height * 0.5)
+                }
+            }
         }
     }
     
@@ -311,7 +342,7 @@ struct InventoryView: View {
             }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
-                .padding(.leading, 8)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
