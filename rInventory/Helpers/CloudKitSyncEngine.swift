@@ -242,6 +242,7 @@ public class CloudKitSyncEngine: ObservableObject {
         for record in records {
             await processItemRecord(record)
         }
+        cleanupDuplicateItems()
     }
     
     private func processItemRecord(_ record: CKRecord) async {
@@ -339,6 +340,19 @@ public class CloudKitSyncEngine: ObservableObject {
             
             database.add(operation)
         }
+    }
+    
+    private func cleanupDuplicateItems() {
+        let descriptor = FetchDescriptor<Item>()
+        guard let allItems = try? _modelContext.fetch(descriptor) else { return }
+        let grouped = Dictionary(grouping: allItems, by: { $0.id })
+        for (_, group) in grouped where group.count > 1 {
+            let _winner = group.first!
+            for duplicate in group.dropFirst() {
+                _modelContext.delete(duplicate)
+            }
+        }
+        try? _modelContext.save()
     }
     
     // MARK: - Categories Sync
