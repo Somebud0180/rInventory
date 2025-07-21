@@ -567,6 +567,13 @@ struct ItemView: View {
                             .labelsHidden()
                             .padding(.trailing, 12)
                             .frame(width: 32, height: 32)
+                            .onChange(of: editLocationName) { oldValue, newValue in
+                                if let found = locations.first(where: { $0.name == newValue }) {
+                                    editLocationColor = found.color
+                                } else {
+                                    editLocationColor = .white
+                                }
+                            }
                     }
                     filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $editLocationName)
                 }
