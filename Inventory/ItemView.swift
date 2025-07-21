@@ -413,7 +413,7 @@ struct ItemView: View {
                         ColorPicker("Symbol Color", selection: Binding(
                             get: { editSymbolColor ?? .accentColor },
                             set: { editSymbolColor = $0 }
-                        ))
+                        ), supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 36, height: 36)
                         .padding(.horizontal, 4)
@@ -563,7 +563,7 @@ struct ItemView: View {
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                         
-                        ColorPicker("Location Color", selection: $editLocationColor)
+                        ColorPicker("Location Color", selection: $editLocationColor, supportsOpacity: false)
                             .labelsHidden()
                             .padding(.trailing, 12)
                             .frame(width: 32, height: 32)
