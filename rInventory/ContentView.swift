@@ -1,5 +1,5 @@
 //  ContentView.swift
-//  Inventory
+//  rInventory
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //

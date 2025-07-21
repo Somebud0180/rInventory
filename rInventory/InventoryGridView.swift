@@ -1,6 +1,6 @@
 //
 //  InventoryGridView.swift
-//  Inventory
+//  rInventory
 //
 //  Created by Ethan John Lagera on 7/13/25.
 //

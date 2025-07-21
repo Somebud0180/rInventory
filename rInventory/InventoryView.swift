@@ -1,6 +1,6 @@
 //
 //  InventoryView.swift
-//  Inventory
+//  rInventory
 //
 //  Created by Ethan John Lagera on 7/3/25.
 //
@@ -141,7 +141,7 @@ struct InventoryView: View {
                 }
             }
             .scrollDisabled(items.isEmpty)
-            .navigationTitle("Inventory")
+            .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
             .sheet(isPresented: $showInventoryOptionsView) {

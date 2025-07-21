@@ -1,6 +1,6 @@
 //
 //  SymbolPickerView.swift
-//  Inventory
+//  rInventory
 //
 //  Contains symbols and a symbol picker functionality
 //

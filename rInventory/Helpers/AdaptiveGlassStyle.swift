@@ -1,6 +1,6 @@
 //
 //  AdaptiveGlassStyle.swift
-//  Inventory
+//  rInventory
 //
 //  Created by Ethan John Lagera on 7/4/25.
 //

@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  Inventory
+//  rInventory
 //
 //  Created by Ethan John Lagera on 7/5/25.
 //
