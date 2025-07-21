@@ -144,7 +144,7 @@ struct InventoryView: View {
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
-            .sheet(isPresented: $showInventoryOptionsView) {
+            .sheet(isPresented: $showInventoryOptionsView, onDismiss: { Task { await syncEngine.manualSync() } }) {
                 InventoryOptionsView()
             }
             .toolbar {

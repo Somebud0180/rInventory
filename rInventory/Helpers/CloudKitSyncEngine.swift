@@ -617,32 +617,34 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
     
     public func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
         logger.info("Preparing next record change batch")
-
+        
         // Fetch all entities from the model context
         let itemDescriptor = FetchDescriptor<Item>()
         let categoryDescriptor = FetchDescriptor<Category>()
         let locationDescriptor = FetchDescriptor<Location>()
-
+        
         let items = (try? modelContext.fetch(itemDescriptor)) ?? []
         let categories = (try? modelContext.fetch(categoryDescriptor)) ?? []
         let locations = (try? modelContext.fetch(locationDescriptor)) ?? []
-
+        
         // Generate records for all entities
         let itemRecords = items.map { self.itemToRecord($0) }
         let categoryRecords = categories.map { self.categoryToRecord($0) }
         let locationRecords = locations.map { self.locationToRecord($0) }
-
+        
         // Combine all records
         let allRecords = itemRecords + categoryRecords + locationRecords
-
+        
         // Create a record map for the batch
         var recordMap: [CKRecord.ID: CKRecord] = [:]
         for record in allRecords {
             recordMap[record.recordID] = record
         }
-
-        // Instead of context.pendingRecordZoneChanges, just send all records
-        return CKSyncEngine.RecordZoneChangeBatch()
+        
+        // Create batch with the pendingChanges parameter as suggested by the compiler
+        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: [CKSyncEngine.PendingRecordZoneChange]()) { recordID in
+            return recordMap[recordID]
+        }
     }
 }
 
@@ -670,4 +672,3 @@ public enum CloudKitSyncError: LocalizedError {
         }
     }
 }
-
