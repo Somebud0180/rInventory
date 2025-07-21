@@ -559,7 +559,7 @@ struct ItemView: View {
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.bold)
                             .foregroundStyle(editLocationColor)
-                            .minimumScaleFactor(0.5)
+                            .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                         
@@ -577,7 +577,7 @@ struct ItemView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(location.color)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.75)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 12)
                     .adaptiveGlassBackground(tintStrength: 0.5)
@@ -594,10 +594,10 @@ struct ItemView: View {
                             .font(.system(.body, design: .rounded))
                             .bold()
                             .foregroundStyle(.white.opacity(0.95))
-                            .minimumScaleFactor(0.5)
+                            .minimumScaleFactor(0.75)
                     }
                     .foregroundStyle(.white.opacity(0.95))
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.75)
                     .padding(.leading, 8)
                     .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
@@ -609,13 +609,13 @@ struct ItemView: View {
                             .font(.system(.body, design: .rounded))
                             .bold()
                             .foregroundStyle(.white.opacity(0.95))
-                            .minimumScaleFactor(0.5)
+                            .minimumScaleFactor(0.75)
                     }
                     .onChange(of: quantity) {
                         updateQuantity(quantity)
                     }
                     .foregroundStyle(.white.opacity(0.95))
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.75)
                     .padding(.leading, 8)
                     .padding(8)
                     .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
