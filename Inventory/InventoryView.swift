@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-let inventoryActivityType = "ethanj.Inventory.viewingInventory"
+let inventoryActivityType = "com.lagera.Inventory.viewingInventory"
 let rowColumns = [
     GridItem(.adaptive(minimum: 500), spacing: 16)
 ]
@@ -233,8 +233,8 @@ struct InventoryView: View {
             
             // Pseudo-grid to display app feel
             VStack(spacing: 16) {
-                ForEach(0..<6, id: \.self) { _ in
-                    LazyVGrid(columns: rowColumns, spacing: 16) {
+                LazyVGrid(columns: rowColumns, spacing: 16) {
+                    ForEach(0..<6, id: \.self) { _ in
                         VStack(alignment: .leading, spacing: 8) {
                             RoundedRectangle(cornerRadius: 8.0)
                                 .fill(Color.gray.opacity(0.8))

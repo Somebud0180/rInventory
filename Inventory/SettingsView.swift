@@ -10,7 +10,7 @@ import SwiftUI
 import CloudKit
 import SwiftData
 
-let settingsActivityType = "ethanj.Inventory.managingSettings"
+let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss

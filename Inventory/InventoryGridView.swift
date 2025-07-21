@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-let inventoryGridActivityType = "ethanj.Inventory.viewingInventoryGrid"
+let inventoryGridActivityType = "com.lagera.Inventory.viewingInventoryGrid"
 let inventoryGridCategoryKey = "category"
 
 struct InventoryGridView: View {

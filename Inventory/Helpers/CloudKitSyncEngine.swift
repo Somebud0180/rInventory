@@ -56,7 +56,7 @@ public class CloudKitSyncEngine: ObservableObject {
     private let locationsZone = CKRecordZone(zoneName: "InventoryLocations")
     
     // MARK: - Initialization
-    public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.ethanj.inventory") {
+    public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.lagera.Inventory") {
         self._modelContext = modelContext
         self.container = CKContainer(identifier: containerIdentifier)
         self.database = container.privateCloudDatabase

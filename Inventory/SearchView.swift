@@ -9,7 +9,7 @@
 import SwiftUI
 import SwiftData
 
-let searchActivityType = "ethanj.Inventory.searchingInventory"
+let searchActivityType = "com.lagera.Inventory.searchingInventory"
 let searchCategoryKey = "category"
 
 struct SearchView: View {
