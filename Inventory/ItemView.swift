@@ -326,26 +326,29 @@ struct ItemView: View {
             .frame(width: geometry.size.width, height: geometry.size.height)
             
             // Card - contains all the item details and controls
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .center) {
-                    categorySection
-                    Spacer()
-                    quantitySection
-                }
-                
-                HStack() {
-                    nameSection
-                    if isEditing {
-                        toolbarView
+            ZStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .center) {
+                        categorySection
+                        Spacer()
+                        quantitySection
                     }
+                    
+                    HStack() {
+                        nameSection
+                        if isEditing {
+                            toolbarView
+                        }
+                    }
+                    locationSection
+                    quantityStepperSection
+                    buttonSection
+                        .padding(.vertical, 6)
                 }
-                locationSection
-                quantityStepperSection
-                buttonSection
-                    .padding(.vertical, 6)
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 25))
             }
-            .padding(12)
-            .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
+            .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 25))
             .frame(maxWidth: geometry.size.width * 0.65, maxHeight: geometry.size.height * 0.45, alignment: .bottom)
             .padding(.bottom, 12 - geometry.safeAreaInsets.bottom * 0.26)
         }
