@@ -4,9 +4,9 @@
 <dict>
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>com.lagera.Inventory.viewingInventory</string>
-		<string>com.lagera.Inventory.managingSettings</string>
-		<string>com.lagera.Inventory.searchingInventory</string>
+		<string>com.lagera.rInventory.viewingInventory</string>
+		<string>com.lagera.rInventory.managingSettings</string>
+		<string>com.lagera.rInventory.searchingInventory</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

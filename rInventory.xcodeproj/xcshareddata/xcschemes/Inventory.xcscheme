@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AAC9D5922E16056A0066997C"
-               BuildableName = "Inventory.app"
-               BlueprintName = "Inventory"
-               ReferencedContainer = "container:Inventory.xcodeproj">
+               BuildableName = "rInventory.app"
+               BlueprintName = "rInventory"
+               ReferencedContainer = "container:rInventory.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AAC9D5A32E16056C0066997C"
-               BuildableName = "InventoryTests.xctest"
-               BlueprintName = "InventoryTests"
-               ReferencedContainer = "container:Inventory.xcodeproj">
+               BuildableName = "rInventoryTests.xctest"
+               BlueprintName = "rInventoryTests"
+               ReferencedContainer = "container:rInventory.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -47,9 +47,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AAC9D5AD2E16056D0066997C"
-               BuildableName = "InventoryUITests.xctest"
-               BlueprintName = "InventoryUITests"
-               ReferencedContainer = "container:Inventory.xcodeproj">
+               BuildableName = "rInventoryUITests.xctest"
+               BlueprintName = "rInventoryUITests"
+               ReferencedContainer = "container:rInventory.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -69,9 +69,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AAC9D5922E16056A0066997C"
-            BuildableName = "Inventory.app"
-            BlueprintName = "Inventory"
-            ReferencedContainer = "container:Inventory.xcodeproj">
+            BuildableName = "rInventory.app"
+            BlueprintName = "rInventory"
+            ReferencedContainer = "container:rInventory.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -86,9 +86,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AAC9D5922E16056A0066997C"
-            BuildableName = "Inventory.app"
-            BlueprintName = "Inventory"
-            ReferencedContainer = "container:Inventory.xcodeproj">
+            BuildableName = "rInventory.app"
+            BlueprintName = "rInventory"
+            ReferencedContainer = "container:rInventory.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
