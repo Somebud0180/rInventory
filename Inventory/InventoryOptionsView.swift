@@ -1,15 +1,16 @@
 //
-//  InventorySortView.swift
+//  InventoryOptionsView.swift
 //  Inventory
 //
 //  Created by Ethan John Lagera on 7/19/25.
 //
-//  Contains the view for sorting inventory rows.
+//  Contains the view for configuring the inventory view.
 
 import SwiftUI
 import SwiftData
 
-struct InventorySortView: View {
+struct InventoryOptionsView: View {
+    @EnvironmentObject var appDefaults: AppDefaults
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
@@ -18,10 +19,6 @@ struct InventorySortView: View {
     @Query(sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
     // Configurations
-    @State private var viewAs: String = "Rows"
-    @State private var showRecentlyAdded: Bool = true
-    @State private var showCategories: Bool = true
-    @State private var showLocations: Bool = true
     @State private var isCategorySectionExpanded: Bool = true
     @State private var isLocationSectionExpanded: Bool = true
     @State private var isReordering: Bool = false
@@ -56,25 +53,65 @@ struct InventorySortView: View {
     // MARK: - Sections
     private var sortOptionsSection: some View {
         Section("Sort Options") {
-            Picker("View As", selection: Binding(
-                get: { viewAs },
-                set: { newValue in
-                    withAnimation(.interactiveSpring) {
-                        viewAs = newValue
-                    }
-                })
-            ) {
-                Text("Rows").tag("Rows")
-                Text("Grid").tag("Grid")
+            VStack(alignment: .leading) {
+                Text("Default Sort By")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Picker("Default Inventory Sort", selection: $appDefaults.defaultInventorySort) {
+                    Text("Sort Order").tag(0)
+                    Text("Alphabetical").tag(1)
+                    Text("Date Added").tag(2)
+                }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
             .listRowSeparator(.hidden)
             
-            Toggle("Show Recently Added", isOn: $showRecentlyAdded)
+            VStack(alignment: .leading) {
+                Text("View As")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Picker("View As Rows", selection: Binding(
+                    get: { appDefaults.showInventoryAsRows },
+                    set: { newValue in
+                        withAnimation(.smooth) { appDefaults.showInventoryAsRows = newValue }
+                    })
+                ) {
+                    Text("Rows").tag(true)
+                    Text("Grid").tag(false)
+                }
+                .pickerStyle(.segmented)
+            }
+            .listRowSeparator(.hidden)
             
-            if viewAs == "Rows" {
-                Toggle("Show Categories", isOn: $showCategories)
-                Toggle("Show Locations", isOn: $showLocations)
+            VStack(spacing: 12) {
+                Toggle("Show Recently Added", isOn: Binding(
+                    get: { appDefaults.showRecentlyAdded },
+                    set: { newValue in
+                        withAnimation(.smooth) { appDefaults.showRecentlyAdded = newValue }
+                    })
+                ).transition(.opacity)
+                
+                if appDefaults.showInventoryAsRows {
+                    Group {
+                        Divider()
+                        
+                        Toggle("Show Categories", isOn: Binding(
+                            get: { appDefaults.showCategories },
+                            set: { newValue in
+                                withAnimation(.smooth) { appDefaults.showCategories = newValue }
+                            })
+                        )
+                        
+                        Divider()
+                        
+                        Toggle("Show Locations", isOn: Binding(
+                            get: { appDefaults.showLocations },
+                            set: { newValue in
+                                withAnimation(.smooth) { appDefaults.showLocations = newValue }
+                            })
+                        )
+                    }.transition(.opacity)
+                }
             }
         }
     }
@@ -231,6 +268,7 @@ struct InventorySortView: View {
 
 
 #Preview {
-    InventorySortView()
+    InventoryOptionsView()
         .modelContainer(for: [Location.self, Category.self])
 }
+

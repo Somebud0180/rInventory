@@ -16,26 +16,44 @@ class AppDefaults: ObservableObject {
     static let shared = AppDefaults()
     private let defaults = UserDefaults.standard
     
+    @Published var themeMode: Int
+    @Published var showCounterForSingleItems: Bool
+    @Published var defaultInventorySort: Int
+    @Published var showInventoryAsRows: Bool
+    @Published var showRecentlyAdded: Bool
+    @Published var showCategories: Bool
+    @Published var showLocations: Bool
+    
     private enum Keys {
         static let themeMode = "themeMode"
         static let showCounterForSingleItems = "showCounterForSingleItems"
         static let defaultInventorySort = "defaultInventorySort"
+        static let showInventoryAsRows = "showInventoryAsRows"
+        static let showRecentlyAdded = "showRecentlyAdded"
+        static let showCategories = "showCategories"
+        static let showLocations = "showLocations"
     }
     
-    var themeMode: Int {
-        get { defaults.integer(forKey: Keys.themeMode) }
-        set { defaults.set(newValue, forKey: Keys.themeMode) }
+    private init() {
+        themeMode = defaults.integer(forKey: Keys.themeMode) 
+        showCounterForSingleItems = defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true
+        defaultInventorySort = defaults.integer(forKey: Keys.defaultInventorySort)
+        showInventoryAsRows = defaults.object(forKey: Keys.showInventoryAsRows) as? Bool ?? true
+        showRecentlyAdded = defaults.object(forKey: Keys.showRecentlyAdded) as? Bool ?? true
+        showCategories = defaults.object(forKey: Keys.showCategories) as? Bool ?? true
+        showLocations = defaults.object(forKey: Keys.showLocations) as? Bool ?? true
+        
+        // Add observers to save on change
+        $themeMode.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.themeMode) }.store(in: &cancellables)
+        $showCounterForSingleItems.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCounterForSingleItems) }.store(in: &cancellables)
+        $defaultInventorySort.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.defaultInventorySort) }.store(in: &cancellables)
+        $showInventoryAsRows.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showInventoryAsRows) }.store(in: &cancellables)
+        $showRecentlyAdded.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showRecentlyAdded) }.store(in: &cancellables)
+        $showCategories.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCategories) }.store(in: &cancellables)
+        $showLocations.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showLocations) }.store(in: &cancellables)
     }
     
-    var showCounterForSingleItems: Bool {
-        get { defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true }
-        set { defaults.set(newValue, forKey: Keys.showCounterForSingleItems) }
-    }
-    
-    var defaultInventorySort: Int {
-        get { defaults.integer(forKey: Keys.defaultInventorySort) }
-        set { defaults.set(newValue, forKey: Keys.defaultInventorySort) }
-    }
+    private var cancellables = Set<AnyCancellable>()
     
     func resolvedColorScheme() -> ColorScheme? {
         switch themeMode {

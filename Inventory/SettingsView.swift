@@ -67,31 +67,12 @@ struct SettingsView: View {
                 }
                 Group {
                     Section("Visuals") {
-                        Toggle("Show Counter For Single Items", isOn: Binding(
-                            get: { appDefaults.showCounterForSingleItems },
-                            set: { appDefaults.showCounterForSingleItems = $0 }
-                        ))
-                        Picker("Theme", selection: Binding(
-                            get: { appDefaults.themeMode },
-                            set: { appDefaults.themeMode = $0 }
-                        )) {
+                        Toggle("Show Counter For Single Items", isOn: $appDefaults.showCounterForSingleItems)
+                        Picker("Theme", selection: $appDefaults.themeMode) {
                             Text("System").tag(0)
                             Text("Light").tag(1)
                             Text("Dark").tag(2)
                         }
-                    }
-                }
-                Group {
-                    Section(header: Text("Defaults")) {
-                        Picker("Default Inventory Sort", selection: Binding(
-                            get: { appDefaults.defaultInventorySort },
-                            set: { appDefaults.defaultInventorySort = $0 }
-                        )) {
-                            Text("Sort Order").tag(0)
-                            Text("Alphabetical").tag(1)
-                            Text("Date Added").tag(2)
-                        }
-                        .pickerStyle(.segmented)
                     }
                 }
                 Group {

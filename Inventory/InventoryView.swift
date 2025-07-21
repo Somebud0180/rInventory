@@ -35,6 +35,7 @@ struct ItemIdentifier: Transferable {
 }
 
 struct InventoryView: View {
+    @EnvironmentObject private var appDefaults: AppDefaults
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -49,7 +50,7 @@ struct InventoryView: View {
     @State var isActive: Bool
     
     @StateObject private var viewModel = InventoryViewModel()
-    @State private var showInventorySortView: Bool = false
+    @State private var showInventoryOptionsView: Bool = false
     @State private var showInventoryRowView: Bool = false
     @State private var continuedGridCategory: String? = nil
     @State private var showContinuedGrid: Bool = false
@@ -84,16 +85,19 @@ struct InventoryView: View {
                     emptyItemsView
                 } else {
                     VStack(spacing: 16) {
-                        LazyVGrid(columns: rowColumns, spacing: 16) {
-                            if !recentlyAddedItems.isEmpty {
+                        if !recentlyAddedItems.isEmpty && appDefaults.showRecentlyAdded {
+                            LazyVGrid(columns: rowColumns, spacing: 16) {
                                 inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
+                                inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
                             }
-                            
-                            inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                        } else {
+                            inventoryRow(rowItems: items, itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                                .transition(.opacity)
                         }
                         
                         // Categories section
-                        if !categories.isEmpty {
+                        if !categories.isEmpty && appDefaults.showCategories {
                             VStack(alignment: .leading, spacing: 16) {
                                 if !categories.isEmpty {
                                     Text("Categories")
@@ -115,7 +119,7 @@ struct InventoryView: View {
                         }
                         
                         // Locations section
-                        if !locations.isEmpty {
+                        if !locations.isEmpty && appDefaults.showLocations {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Locations")
                                     .font(.headline)
@@ -140,8 +144,8 @@ struct InventoryView: View {
             .navigationTitle("Inventory")
             .navigationBarTitleDisplayMode(.large)
             .padding(.horizontal, 16)
-            .sheet(isPresented: $showInventorySortView) {
-                InventorySortView()
+            .sheet(isPresented: $showInventoryOptionsView) {
+                InventoryOptionsView()
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -156,7 +160,7 @@ struct InventoryView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showInventorySortView = true }) {
+                    Button(action: { showInventoryOptionsView = true }) {
                         Label("Edit", systemImage: "arrow.up.arrow.down")
                             .labelStyle(.titleOnly)
                     }
@@ -246,7 +250,7 @@ struct InventoryView: View {
     /// - Parameters:
     /// - items: The array of items to display in the row.
     /// - title: The title for the row.
-    private func inventoryRow(rowItems: [Item], title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+    private func inventoryRow(rowItems: [Item], itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
@@ -264,7 +268,7 @@ struct InventoryView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 16) {
                         // Limit to only 5 items per row
-                        ForEach(rowItems.prefix(4), id: \.id) { item in
+                        ForEach(rowItems.prefix(itemAmount), id: \.id) { item in
                             ItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
@@ -277,9 +281,9 @@ struct InventoryView: View {
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
-                        if rowItems.count < 4 {
+                        if rowItems.count < itemAmount {
                             Spacer()
-                        } else if rowItems.count > 4 {
+                        } else if rowItems.count > itemAmount {
                             NavigationLink {
                                 InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
@@ -305,6 +309,7 @@ struct InventoryView: View {
                 }
                 .scrollClipDisabled()
             }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
                 .padding(.leading, 8)
                 .padding(.vertical, 8)
