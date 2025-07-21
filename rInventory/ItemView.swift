@@ -442,6 +442,11 @@ struct ItemView: View {
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                             .frame(minHeight: 22)
+                        
+                        Button(action: { editCategoryName = "" }, label: {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.secondary)
+                        })
                     }
                     filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $editCategoryName)
                 }
@@ -562,6 +567,11 @@ struct ItemView: View {
                             .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                        
+                        Button(action: { editLocationName = "" }, label: {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.secondary)
+                        })
                         
                         ColorPicker("Location Color", selection: $editLocationColor, supportsOpacity: false)
                             .labelsHidden()
