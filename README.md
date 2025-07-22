@@ -6,11 +6,13 @@ Keep track on what you have and where you have it. Keep your stuff in your new m
 
 #### Features (Tentative!!)
 - **Item entries**
-  -  Keep track with the name, location and image/symbol of the item
+  -  Keep track with the name, location, amount, and an image or symbol of the item
 - **Item overview**
-  -  View all your items in a grid or list
+  -  View all your items in rows and grids
 - **Search and Categories**
   -  Search an object or categorize them to make it easier to find where that item is
+- **Sort and Organize**
+  -  Sort your home menu and items, hide specific sections or categories and locations, make it work just for you.
 - **Multiplatform with iCloud Syncing**
   -   Access your inventory from your iPhone to your Mac, kept in sync with iCloud
 
