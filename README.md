@@ -1,5 +1,6 @@
 # rInventory
 ### rThink the Inventory
+[SomeAppsWeb - rInventory](https://somebud0180.github.io/SomeAppsWeb/rinventory.html)
 
 Keep track on what you have and where you have it. Keep your stuff in your new mobile inventory.<sup>[*](#footnote1)</sup> Built with Swift and SwiftUI, targetting all Apple devices so that you can access your inventory across your devices.
 
