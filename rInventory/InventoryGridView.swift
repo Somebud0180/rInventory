@@ -8,6 +8,12 @@
 import SwiftUI
 import SwiftData
 
+let inventoryGridActivityType = "com.lagera.Inventory.viewingGrid"
+let inventoryGridTitleKey = "title"
+let inventoryGridPredicateKey = "predicate"
+let inventoryGridCategoryKey = "category"
+let inventoryGridSortKey = "sort"
+
 struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -22,11 +28,10 @@ struct InventoryGridView: View {
         Array(Set(items.compactMap { $0.category }))
     }
     
-    var title: String
-    /// A string that can contain either "RecentlyAdded", "Categories: Category.id", or "Locations: Location.id"
-    var predicate: String? = nil
-    var showCategoryPicker: Bool = false
-    var showSortPicker: Bool = false
+    @State var title: String
+    @State var predicate: String? = nil
+    @State var showCategoryPicker: Bool = false
+    @State var showSortPicker: Bool = false
     @Binding var selectedItem: Item?
         
     // Generate a Predicate based on the predicate string
@@ -109,6 +114,9 @@ struct InventoryGridView: View {
             viewModel.selectedSortType =
             ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
         }
+        .userActivity(inventoryGridActivityType, isActive: true) { activity in
+            updateUserActivity(activity)
+        }
     }
     
     private var inventoryGrid: some View {
@@ -173,6 +181,26 @@ struct InventoryGridView: View {
     
     private func deleteSelectedItems() {
         viewModel.deleteSelectedItems(allItems: items, modelContext: modelContext)
+    }
+    
+    private func updateUserActivity(_ activity: NSUserActivity) {
+        var userInfo: [String: Any] = [
+            inventoryGridPredicateKey: predicate ?? "",
+            inventoryGridTitleKey: title
+        ]
+        if showCategoryPicker {
+            userInfo[inventoryGridCategoryKey] = viewModel.selectedCategory
+        }
+        if showSortPicker {
+            userInfo[inventoryGridSortKey] = viewModel.selectedSortType.rawValue
+        }
+        
+        activity.title = "View rInventory: \(title)"
+        activity.addUserInfoEntries(from: userInfo)
+        activity.userInfo = ["tabSelection": 0]
+        activity.isEligibleForHandoff = true
+        activity.isEligibleForPrediction = true
+        activity.isEligibleForSearch = true
     }
 }
 
