@@ -1,10 +1,18 @@
 {
-  "fill" : {
-    "linear-gradient" : [
-      "display-p3:0.01569,0.02745,0.06275,1.00000",
-      "srgb:0.37647,0.69020,0.98431,1.00000"
-    ]
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.37647,0.69020,0.98431,1.00000",
+          "display-p3:0.07843,0.13333,0.32157,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : "automatic"
+    }
+  ],
   "groups" : [
     {
       "blur-material" : 0.5,
@@ -52,10 +60,37 @@
     {
       "layers" : [
         {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.37647,0.69020,0.98431,1.00000",
+                  "display-p3:0.07843,0.13333,0.32157,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : "automatic"
+            }
+          ],
           "glass" : false,
           "hidden" : false,
           "image-name" : "Vector 1.png",
           "name" : "Vector 1",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 1
+            }
+          ],
           "position" : {
             "scale" : 1,
             "translation-in-points" : [
@@ -63,13 +98,6 @@
               164
             ]
           }
-        },
-        {
-          "fill" : "automatic",
-          "glass" : false,
-          "hidden" : true,
-          "image-name" : "Rectangle 1.png",
-          "name" : "Rectangle 1"
         }
       ],
       "shadow" : {
