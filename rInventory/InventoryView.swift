@@ -48,11 +48,11 @@ struct InventoryView: View {
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
     @State var isActive: Bool
+    @State var isInventoryGridActive: Bool = false
     
     @StateObject private var viewModel = InventoryViewModel()
     @State private var showInventoryOptionsView: Bool = false
     @State private var showInventoryGridView: Bool = false
-    @State private var inventoryGridActivity: NSUserActivity? = nil
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
@@ -130,17 +130,6 @@ struct InventoryView: View {
             .sheet(isPresented: $showInventoryOptionsView, onDismiss: { Task { await syncEngine.manualSync() } }) {
                 InventoryOptionsView()
             }
-            .fullScreenCover(isPresented: $showInventoryGridView) {
-                if let activity = inventoryGridActivity {
-                    InventoryGridView(
-                        title: activity.userInfo?[inventoryGridTitleKey] as? String ?? "Inventory",
-                        predicate: activity.userInfo?[inventoryGridPredicateKey] as? String,
-                        showCategoryPicker: activity.userInfo?[inventoryGridCategoryKey] as? Bool ?? false,
-                        showSortPicker: activity.userInfo?[inventoryGridSortKey] as? Bool ?? false,
-                        selectedItem: $selectedItem
-                    )
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if showingSyncSpinner {
@@ -183,12 +172,8 @@ struct InventoryView: View {
                 Text(errorMessage)
             }
         }
-        .userActivity(inventoryActivityType, isActive: isActive && !showInventoryGridView) { activity in
+        .userActivity(inventoryActivityType, isActive: (isActive && !isInventoryGridActive)) { activity in
             updateUserActivity(activity)
-        }
-        .onContinueUserActivity(inventoryGridActivityType) { activity in
-            inventoryGridActivity = activity
-            showInventoryGridView = true
         }
     }
     
@@ -268,10 +253,12 @@ struct InventoryView: View {
     /// - showSortPicker: Whether to show the sort picker.
     private func inventoryRow(predicate: String? = nil, itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         let filteredItems = filteredItems(for: predicate)
+        let InventoryGridViewConstants = InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+            
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
+                    InventoryGridViewConstants
                 } label: {
                     HStack {
                         Text(title)
@@ -304,7 +291,7 @@ struct InventoryView: View {
                             Spacer()
                         } else if filteredItems.count > itemAmount {
                             NavigationLink {
-                                InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
+                                InventoryGridViewConstants
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 25.0)

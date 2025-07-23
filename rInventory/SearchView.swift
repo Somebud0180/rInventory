@@ -47,7 +47,7 @@ struct SearchView: View {
             VStack(spacing: 0) {
                 // Category picker
                 categorySelector
-                .padding(.vertical)
+                    .padding(.vertical)
                 
                 ScrollView {
                     if filteredItems.isEmpty {
@@ -203,7 +203,6 @@ struct SearchView: View {
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
-        activity.keywords = Set([selectedCategory])
         activity.persistentIdentifier = "category-\(selectedCategory)"
     }
 }

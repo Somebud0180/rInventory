@@ -33,6 +33,8 @@ struct InventoryGridView: View {
     @State var showCategoryPicker: Bool = false
     @State var showSortPicker: Bool = false
     @Binding var selectedItem: Item?
+    @Binding var isInventoryActive: Bool
+    @Binding var isInventoryGridActive: Bool
         
     // Generate a Predicate based on the predicate string
     private var filteredItems: [Item] {
@@ -115,12 +117,20 @@ struct InventoryGridView: View {
                 viewModel.selectedItemIDs.removeAll()
             }
         }
+        .onChange(of: isInventoryActive) {
+            if isInventoryActive {
+                isInventoryGridActive = true
+            } else {
+                isInventoryGridActive = false
+            }
+        }
         .onAppear {
+            isInventoryGridActive = true
             let sortTypeIndex = AppDefaults.shared.defaultInventorySort
             viewModel.selectedSortType =
             ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
         }
-        .userActivity(inventoryGridActivityType, isActive: true) { activity in
+        .userActivity(inventoryGridActivityType, isActive: isInventoryGridActive) { activity in
             updateUserActivity(activity)
         }
     }
@@ -201,7 +211,7 @@ struct InventoryGridView: View {
             userInfo[inventoryGridSortKey] = viewModel.selectedSortType.rawValue
         }
         
-        activity.title = "View rInventory: \(title)"
+        activity.title = "View \(title)"
         activity.addUserInfoEntries(from: userInfo)
         activity.userInfo = ["tabSelection": 0]
         activity.isEligibleForHandoff = true
@@ -213,6 +223,8 @@ struct InventoryGridView: View {
 #Preview {
     @Previewable @State var title: String = "All Items"
     @Previewable @State var selectedItem: Item? = nil
+    @Previewable @State var isInventoryActive: Bool = true
+    @Previewable @State var isInventoryGridActive: Bool = true
     
-    InventoryGridView(title: title, selectedItem: $selectedItem)
+    InventoryGridView(title: title, selectedItem: $selectedItem, isInventoryActive: $isInventoryActive, isInventoryGridActive: $isInventoryGridActive)
 }

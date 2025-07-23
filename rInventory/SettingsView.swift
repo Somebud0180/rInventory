@@ -16,8 +16,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appDefaults: AppDefaults
     
-    @State var isActive: Bool
     @StateObject var syncEngine: CloudKitSyncEngine
+    @State var isActive: Bool
     
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     
@@ -125,5 +125,5 @@ struct SettingsView: View {
     @Previewable @State var isActive = true
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
     
-    SettingsView(isActive: isActive, syncEngine: syncEngine)
+    SettingsView(syncEngine: syncEngine, isActive: isActive)
 }

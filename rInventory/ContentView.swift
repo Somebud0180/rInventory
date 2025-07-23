@@ -37,8 +37,9 @@ struct ContentView: View {
         set { tabSelection = newValue.rawValue }
     }
     
-    
+    @State private var continuedActivity: NSUserActivity? = nil
     @State private var selectedItem: Item? = nil
+    @State private var showInventoryGridView: Bool = false
     @State private var showItemCreationView: Bool = false
     @State private var showItemView: Bool = false
     
@@ -64,10 +65,24 @@ struct ContentView: View {
                     ProgressView("Loading item...")
                 }
             }
+            .fullScreenCover(isPresented: $showInventoryGridView, onDismiss: { continuedActivity = nil }) {
+                if let activity = continuedActivity {
+                    InventoryGridView(
+                        title: activity.userInfo?[inventoryGridTitleKey] as? String ?? "Inventory",
+                        predicate: activity.userInfo?[inventoryGridPredicateKey] as? String,
+                        showCategoryPicker: activity.userInfo?[inventoryGridCategoryKey] as? Bool ?? false,
+                        showSortPicker: activity.userInfo?[inventoryGridSortKey] as? Bool ?? false,
+                        selectedItem: $selectedItem,
+                        isInventoryActive: .constant(false),
+                        isInventoryGridActive: .constant(false)
+                    )
+                }
+            }
             .onContinueUserActivity(inventoryActivityType) { _ in
                 tabSelection = TabSelection.home.rawValue
             }
-            .onContinueUserActivity(inventoryGridActivityType) { _ in
+            .onContinueUserActivity(inventoryGridActivityType) { activity in
+                continuedActivity = activity
                 tabSelection = TabSelection.home.rawValue
             }
             .onContinueUserActivity(settingsActivityType) { _ in
@@ -75,6 +90,11 @@ struct ContentView: View {
             }
             .onContinueUserActivity(searchActivityType) { _ in
                 tabSelection = TabSelection.search.rawValue
+            }
+            .onChange(of: continuedActivity) {
+                if continuedActivity != nil {
+                    showInventoryGridView = true
+                }
             }
     }
     
@@ -86,12 +106,10 @@ struct ContentView: View {
                 Tab("Home", systemImage: "house", value: 0) {
                     InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                 }
-                
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
-                    SettingsView(isActive: currentTab == .settings, syncEngine: syncEngine)
+                    SettingsView(syncEngine: syncEngine, isActive: currentTab == .settings)
                 }
-                
                 // Search Action
                 Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
                     SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
@@ -105,14 +123,12 @@ struct ContentView: View {
                         Label("Home", systemImage: "house")
                     }
                     .tag(0) // Tag for Home Tab
-                
                 // Settings Tab
-                SettingsView(isActive: currentTab == .settings, syncEngine: syncEngine)
+                SettingsView(syncEngine: syncEngine, isActive: currentTab == .settings)
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }
                     .tag(1) // Tag for Settings Tab
-                
                 // Search Tab
                 SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
                     .tabItem {
