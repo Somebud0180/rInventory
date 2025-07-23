@@ -83,7 +83,13 @@ struct InventoryGridView: View {
                     }
                 }
                 
-                inventoryGrid
+                if modelFilteredItems.isEmpty {
+                    Text("No items found")
+                        .foregroundColor(.gray)
+                        .padding(10)
+                } else {
+                    inventoryGrid
+                }
             }
             .padding(.horizontal, 16)
         }

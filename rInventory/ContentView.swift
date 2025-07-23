@@ -67,6 +67,9 @@ struct ContentView: View {
             .onContinueUserActivity(inventoryActivityType) { _ in
                 tabSelection = TabSelection.home.rawValue
             }
+            .onContinueUserActivity(inventoryGridActivityType) { _ in
+                tabSelection = TabSelection.home.rawValue
+            }
             .onContinueUserActivity(settingsActivityType) { _ in
                 tabSelection = TabSelection.settings.rawValue
             }
