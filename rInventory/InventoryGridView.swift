@@ -16,8 +16,6 @@ let inventoryGridSortKey = "sort"
 
 struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.editMode) private var editMode
     
     @Query private var items: [Item]
@@ -49,9 +47,13 @@ struct InventoryGridView: View {
     @StateObject private var viewModel = InventoryViewModel()
     
     // State variable for UI
+    @State private var isLoading: Bool = true
     @State private var draggedItem: Item? = nil
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
+    
+    // Clean up viewModel on disappear
+    @State private var hasAppeared = false
     
     var body: some View {
         NavigationStack {
@@ -66,7 +68,10 @@ struct InventoryGridView: View {
                     }
                 }
                 
-                if viewModel.displayedItems.isEmpty {
+                if isLoading {
+                    ProgressView("Loading items...")
+                        .padding(10)
+                } else if viewModel.displayedItems.isEmpty {
                     Text("No items found")
                         .foregroundColor(.gray)
                         .padding(10)
@@ -75,23 +80,44 @@ struct InventoryGridView: View {
                 }
             }
             .padding(.horizontal, 16)
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .destructive) {
-                        deleteSelectedItems()
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundStyle(.red)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            deleteSelectedItems()
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
+                }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                EditButton()
+            .onChange(of: viewModel.displayedItems) {
+                isLoading = false
             }
+        }
+        .onAppear {
+            if !hasAppeared {
+                hasAppeared = true
+                isInventoryGridActive = true
+                let sortTypeIndex = AppDefaults.shared.defaultInventorySort
+                viewModel.selectedSortType =
+                ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
+                isLoading = true
+                DispatchQueue.main.async {
+                    viewModel.updateDisplayedItems(from: items, predicate: predicate)
+                }
+            }
+        }
+        .onDisappear {
+            // Explicitly cancel any Combine pipeline in viewModel
+            viewModel.cleanup()
+            hasAppeared = false
         }
         .onChange(of: editMode?.wrappedValue.isEditing == true) {
             if !(editMode?.wrappedValue.isEditing == true) {
@@ -105,21 +131,23 @@ struct InventoryGridView: View {
                 isInventoryGridActive = false
             }
         }
-        .onAppear {
-            isInventoryGridActive = true
-            let sortTypeIndex = AppDefaults.shared.defaultInventorySort
-            viewModel.selectedSortType =
-            ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: items) {
+            isLoading = true
+            DispatchQueue.main.async {
+                viewModel.updateDisplayedItems(from: items, predicate: predicate)
+            }
         }
-        .onChange(of: items) { _, _ in
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: viewModel.selectedSortType) {
+            isLoading = true
+            DispatchQueue.main.async {
+                viewModel.updateDisplayedItems(from: items, predicate: predicate)
+            }
         }
-        .onChange(of: viewModel.selectedSortType) { _, _ in
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
-        }
-        .onChange(of: viewModel.selectedCategory) { _, _ in
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: viewModel.selectedCategory) {
+            isLoading = true
+            DispatchQueue.main.async {
+                viewModel.updateDisplayedItems(from: items, predicate: predicate)
+            }
         }
     }
     
@@ -184,7 +212,7 @@ struct InventoryGridView: View {
     }
     
     private func deleteSelectedItems() {
-        viewModel.deleteSelectedItems(allItems: items, modelContext: modelContext)
+        viewModel.deleteSelectedItems(allItems: items)
     }
     
     private func updateUserActivity(_ activity: NSUserActivity) {

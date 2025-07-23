@@ -21,6 +21,7 @@ let itemColumns = [
 ]
 
 class InventoryViewModel: ObservableObject {
+    @Environment(\.modelContext) private var modelContext
     @Published var selectedSortType: SortType = .order
     @Published var selectedCategory: String = "All Items"
     @Published var selectedItemIDs: Set<UUID> = []
@@ -30,13 +31,10 @@ class InventoryViewModel: ObservableObject {
     // Call this to filter and sort items asynchronously
     func updateDisplayedItems(from items: [Item], predicate: String?) {
         filterCancellable?.cancel()
-        let selectedCategory = self.selectedCategory
-        let selectedSortType = self.selectedSortType
         filterCancellable = Just((items, predicate, selectedSortType, selectedCategory))
             .subscribe(on: DispatchQueue.global(qos: .userInitiated))
             .map { (items, predicate, sortType, selectedCategory) -> [Item] in
                 var filtered = items
-                // Apply predicate filtering
                 if let predicate = predicate {
                     if predicate == "RecentlyAdded" {
                         filtered = filtered.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
@@ -56,10 +54,6 @@ class InventoryViewModel: ObservableObject {
                         }
                     }
                 }
-                // Apply selectedCategory filtering (unless All Items)
-                if selectedCategory != "All Items" {
-                    filtered = filtered.filter { $0.category?.name == selectedCategory }
-                }
                 // Sort
                 switch sortType {
                 case .order:
@@ -77,7 +71,19 @@ class InventoryViewModel: ObservableObject {
             }
     }
     
-    func deleteSelectedItems(allItems: [Item], modelContext: ModelContext) {
+    // Provide sorting for any provided item array
+    func filteredItems(from items: [Item]) -> [Item] {
+        switch selectedSortType {
+        case .order:
+            return items.sorted(by: { $0.sortOrder < $1.sortOrder })
+        case .alphabetical:
+            return items.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
+        case .dateModified:
+            return items.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
+        }
+    }
+    
+    func deleteSelectedItems(allItems: [Item]) {
         let itemsToDelete = allItems.filter { selectedItemIDs.contains($0.id) }
         for item in itemsToDelete {
             item.deleteItem(context: modelContext)
@@ -329,7 +335,7 @@ class InventoryViewModel: ObservableObject {
         }
     }
     
-    deinit {
+    func cleanup() {
         filterCancellable?.cancel()
     }
 }

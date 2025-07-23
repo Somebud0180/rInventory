@@ -13,7 +13,6 @@ import SwiftData
 let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appDefaults: AppDefaults
     
     @StateObject var syncEngine: CloudKitSyncEngine

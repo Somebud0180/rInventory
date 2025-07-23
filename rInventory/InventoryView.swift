@@ -253,12 +253,11 @@ struct InventoryView: View {
     /// - showSortPicker: Whether to show the sort picker.
     private func inventoryRow(predicate: String? = nil, itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         let filteredItems = filteredItems(for: predicate)
-        let InventoryGridViewConstants = InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
             
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridViewConstants
+                    InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                 } label: {
                     HStack {
                         Text(title)
@@ -291,7 +290,7 @@ struct InventoryView: View {
                             Spacer()
                         } else if filteredItems.count > itemAmount {
                             NavigationLink {
-                                InventoryGridViewConstants
+                                InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 25.0)
