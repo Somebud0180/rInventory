@@ -22,10 +22,20 @@ struct InventoryGridView: View {
     
     @Query private var items: [Item]
     
-    // Grab Categories from Items
+    // Grab Categories from displayedItems (efficient, deduplicated by id)
     private var categories: [Category] {
-        [Category(name: "All Items")] +
-        Array(Set(items.compactMap { $0.category }))
+        if showCategoryPicker {
+            var seen = Set<UUID>()
+            var uniqueCategories: [Category] = []
+            for item in viewModel.displayedItems {
+                if let cat = item.category, !seen.contains(cat.id) {
+                    seen.insert(cat.id)
+                    uniqueCategories.append(cat)
+                }
+            }
+            return [Category(name: "All Items")] + uniqueCategories
+        }
+        return [Category(name: "All Items")]
     }
     
     @State var title: String
@@ -35,31 +45,6 @@ struct InventoryGridView: View {
     @Binding var selectedItem: Item?
     @Binding var isInventoryActive: Bool
     @Binding var isInventoryGridActive: Bool
-        
-    // Generate a Predicate based on the predicate string
-    private var filteredItems: [Item] {
-        if let predicate = predicate {
-            if predicate == "RecentlyAdded" {
-                return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
-            } else if predicate.contains("Category: ") {
-                return items.filter {
-                    if let catID = $0.category?.id.uuidString {
-                        return catID == predicate.replacingOccurrences(of: "Category: ", with: "")
-                    }
-                    return false
-                }
-            } else if predicate.contains("Location: ") {
-                return items.filter {
-                    if let locID = $0.location?.id.uuidString {
-                        return locID == predicate.replacingOccurrences(of: "Location: ", with: "")
-                    }
-                    return false
-                }
-            }
-        }
-    
-        return items
-    }
     
     @StateObject private var viewModel = InventoryViewModel()
     
@@ -67,10 +52,6 @@ struct InventoryGridView: View {
     @State private var draggedItem: Item? = nil
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
-    
-    private var modelFilteredItems: [Item] {
-        viewModel.filteredItems(from: filteredItems)
-    }
     
     var body: some View {
         NavigationStack {
@@ -85,7 +66,7 @@ struct InventoryGridView: View {
                     }
                 }
                 
-                if modelFilteredItems.isEmpty {
+                if viewModel.displayedItems.isEmpty {
                     Text("No items found")
                         .foregroundColor(.gray)
                         .padding(10)
@@ -129,16 +110,23 @@ struct InventoryGridView: View {
             let sortTypeIndex = AppDefaults.shared.defaultInventorySort
             viewModel.selectedSortType =
             ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
         }
-        .userActivity(inventoryGridActivityType, isActive: isInventoryGridActive) { activity in
-            updateUserActivity(activity)
+        .onChange(of: items) { _, _ in
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        }
+        .onChange(of: viewModel.selectedSortType) { _, _ in
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        }
+        .onChange(of: viewModel.selectedCategory) { _, _ in
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
         }
     }
     
     private var inventoryGrid: some View {
         VStack {
             LazyVGrid(columns: itemColumns) {
-                ForEach(modelFilteredItems, id: \.id) { item in
+                ForEach(viewModel.displayedItems, id: \.id) { item in
                     DraggableItemCard(
                         item: item,
                         colorScheme: colorScheme,
@@ -159,7 +147,7 @@ struct InventoryGridView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: modelFilteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                            handleDrop(items, filteredItems: viewModel.displayedItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
                         isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)

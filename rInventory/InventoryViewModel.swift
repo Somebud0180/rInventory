@@ -24,17 +24,57 @@ class InventoryViewModel: ObservableObject {
     @Published var selectedSortType: SortType = .order
     @Published var selectedCategory: String = "All Items"
     @Published var selectedItemIDs: Set<UUID> = []
+    @Published var displayedItems: [Item] = []
+    private var filterCancellable: AnyCancellable?
     
-    // Provide sorting for any provided item array
-    func filteredItems(from items: [Item]) -> [Item] {
-        switch selectedSortType {
-        case .order:
-            return items.sorted(by: { $0.sortOrder < $1.sortOrder })
-        case .alphabetical:
-            return items.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
-        case .dateModified:
-            return items.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
-        }
+    // Call this to filter and sort items asynchronously
+    func updateDisplayedItems(from items: [Item], predicate: String?) {
+        filterCancellable?.cancel()
+        let selectedCategory = self.selectedCategory
+        let selectedSortType = self.selectedSortType
+        filterCancellable = Just((items, predicate, selectedSortType, selectedCategory))
+            .subscribe(on: DispatchQueue.global(qos: .userInitiated))
+            .map { (items, predicate, sortType, selectedCategory) -> [Item] in
+                var filtered = items
+                // Apply predicate filtering
+                if let predicate = predicate {
+                    if predicate == "RecentlyAdded" {
+                        filtered = filtered.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+                    } else if predicate.contains("Category: ") {
+                        filtered = filtered.filter {
+                            if let catID = $0.category?.id.uuidString {
+                                return catID == predicate.replacingOccurrences(of: "Category: ", with: "")
+                            }
+                            return false
+                        }
+                    } else if predicate.contains("Location: ") {
+                        filtered = filtered.filter {
+                            if let locID = $0.location?.id.uuidString {
+                                return locID == predicate.replacingOccurrences(of: "Location: ", with: "")
+                            }
+                            return false
+                        }
+                    }
+                }
+                // Apply selectedCategory filtering (unless All Items)
+                if selectedCategory != "All Items" {
+                    filtered = filtered.filter { $0.category?.name == selectedCategory }
+                }
+                // Sort
+                switch sortType {
+                case .order:
+                    filtered = filtered.sorted(by: { $0.sortOrder < $1.sortOrder })
+                case .alphabetical:
+                    filtered = filtered.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
+                case .dateModified:
+                    filtered = filtered.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
+                }
+                return filtered
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] filtered in
+                self?.displayedItems = filtered
+            }
     }
     
     func deleteSelectedItems(allItems: [Item], modelContext: ModelContext) {
@@ -287,5 +327,9 @@ class InventoryViewModel: ObservableObject {
         case .alphabetical: return "textformat.abc"
         case .dateModified: return "calendar"
         }
+    }
+    
+    deinit {
+        filterCancellable?.cancel()
     }
 }
