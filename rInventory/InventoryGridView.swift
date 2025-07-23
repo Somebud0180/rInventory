@@ -8,9 +8,6 @@
 import SwiftUI
 import SwiftData
 
-let inventoryGridActivityType = "com.lagera.Inventory.viewingInventoryGrid"
-let inventoryGridCategoryKey = "category"
-
 struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -22,14 +19,40 @@ struct InventoryGridView: View {
     // Grab Categories from Items
     private var categories: [Category] {
         [Category(name: "All Items")] +
-        Array(Set(itemsGroup.compactMap { $0.category }))
+        Array(Set(items.compactMap { $0.category }))
     }
     
     var title: String
-    var itemsGroup: [Item]
+    /// A string that can contain either "RecentlyAdded", "Categories: Category.id", or "Locations: Location.id"
+    var predicate: String? = nil
     var showCategoryPicker: Bool = false
     var showSortPicker: Bool = false
     @Binding var selectedItem: Item?
+        
+    // Generate a Predicate based on the predicate string
+    private var filteredItems: [Item] {
+        if let predicate = predicate {
+            if predicate == "RecentlyAdded" {
+                return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            } else if predicate.contains("Category: ") {
+                return items.filter {
+                    if let catID = $0.category?.id.uuidString {
+                        return catID == predicate.replacingOccurrences(of: "Category: ", with: "")
+                    }
+                    return false
+                }
+            } else if predicate.contains("Location: ") {
+                return items.filter {
+                    if let locID = $0.location?.id.uuidString {
+                        return locID == predicate.replacingOccurrences(of: "Location: ", with: "")
+                    }
+                    return false
+                }
+            }
+        }
+    
+        return items
+    }
     
     @StateObject private var viewModel = InventoryViewModel()
     
@@ -38,8 +61,8 @@ struct InventoryGridView: View {
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     
-    private var filteredItems: [Item] {
-        viewModel.filteredItems(from: itemsGroup)
+    private var modelFilteredItems: [Item] {
+        viewModel.filteredItems(from: filteredItems)
     }
     
     var body: some View {
@@ -86,15 +109,12 @@ struct InventoryGridView: View {
             viewModel.selectedSortType =
             ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
         }
-        .userActivity(inventoryGridActivityType, isActive: true) { activity in
-            updateUserActivity(activity)
-        }
     }
     
     private var inventoryGrid: some View {
         VStack {
             LazyVGrid(columns: itemColumns) {
-                ForEach(filteredItems, id: \.id) { item in
+                ForEach(modelFilteredItems, id: \.id) { item in
                     DraggableItemCard(
                         item: item,
                         colorScheme: colorScheme,
@@ -115,7 +135,7 @@ struct InventoryGridView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: itemsGroup, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                            handleDrop(items, filteredItems: modelFilteredItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
                         isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
@@ -154,27 +174,11 @@ struct InventoryGridView: View {
     private func deleteSelectedItems() {
         viewModel.deleteSelectedItems(allItems: items, modelContext: modelContext)
     }
-    
-    /// Updates the user activity with the current category and sort type.
-    /// - Parameter activity: The user activity to update.
-    private func updateUserActivity(_ activity: NSUserActivity) {
-        activity.addUserInfoEntries(from: [inventoryGridCategoryKey: viewModel.selectedCategory])
-        activity.title = "View \(viewModel.selectedCategory)"
-        activity.userInfo = ["tabSelection": 0]
-        activity.isEligibleForHandoff = true
-        activity.isEligibleForPrediction = true
-        activity.isEligibleForSearch = true
-    }
 }
 
 #Preview {
     @Previewable @State var title: String = "All Items"
-    @Previewable @State var itemsGroup: [Item] = [
-        Item(name: "Item 1", quantity: 0, location: Location(name: "Location 1"), category: Category(name: "Category 1")),
-        Item(name: "Item 2", quantity: 0, location: Location(name: "Location 2"), category: Category(name: "Category 2")),
-        Item(name: "Item 3", quantity: 0, location: Location(name: "Location 3"), category: Category(name: "Category 3"))
-    ]
     @Previewable @State var selectedItem: Item? = nil
     
-    InventoryGridView(title: title, itemsGroup: itemsGroup, selectedItem: $selectedItem)
+    InventoryGridView(title: title, selectedItem: $selectedItem)
 }

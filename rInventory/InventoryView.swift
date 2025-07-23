@@ -52,25 +52,17 @@ struct InventoryView: View {
     @StateObject private var viewModel = InventoryViewModel()
     @State private var showInventoryOptionsView: Bool = false
     @State private var showInventoryRowView: Bool = false
-    @State private var continuedGridCategory: String? = nil
-    @State private var showContinuedGrid: Bool = false
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
-    private var recentlyAddedItems: [Item] {
-        let cutoffDate = Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        return items.filter { $0.itemCreationDate > cutoffDate }.sorted { $0.itemCreationDate > $1.itemCreationDate }
+    private var errorMessage: String {
+        if case .error(let error) = syncEngine.syncState {
+            return error
+        }
+        return ""
     }
     
     var body: some View {
-        // Extract error message for sync error alert
-        let errorMessage: String = {
-            if case .error(let error) = syncEngine.syncState {
-                return error
-            }
-            return ""
-        }()
-        
         NavigationStack {
             ScrollView {
                 headerSection
@@ -81,14 +73,14 @@ struct InventoryView: View {
                     emptyItemsView
                 } else {
                     VStack(spacing: 16) {
-                        if !recentlyAddedItems.isEmpty && appDefaults.showRecentlyAdded {
+                        if appDefaults.showRecentlyAdded {
                             LazyVGrid(columns: rowColumns, spacing: 16) {
-                                inventoryRow(rowItems: recentlyAddedItems, title: "Recently Added")
-                                inventoryRow(rowItems: items, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                                inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
+                                inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                     .transition(.opacity.combined(with: .move(edge: .trailing)))
                             }
                         } else {
-                            inventoryRow(rowItems: items, itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                            inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                 .transition(.opacity)
                         }
                         
@@ -103,11 +95,8 @@ struct InventoryView: View {
                                         .padding(.bottom, -8)
                                     
                                     LazyVGrid(columns: rowColumns, spacing: 16) {
-                                        ForEach(categories, id: \.id) { category in
-                                            let categoryItems = (category.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                                            if !categoryItems.isEmpty {
-                                                inventoryRow(rowItems: categoryItems, title: category.name, showSortPicker: true)
-                                            }
+                                        ForEach(categories, id: \ .id) { category in
+                                            inventoryRow(predicate: "Category: \(category.id)", title: category.name, showSortPicker: true)
                                         }
                                     }
                                 }
@@ -124,11 +113,8 @@ struct InventoryView: View {
                                     .padding(.bottom, -8)
                                 
                                 LazyVGrid(columns: rowColumns, spacing: 16) {
-                                    ForEach(locations, id: \.id) { location in
-                                        let locationItems = (location.items ?? []).sorted { $0.sortOrder < $1.sortOrder }
-                                        if !locationItems.isEmpty {
-                                            inventoryRow(rowItems: locationItems, title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
-                                        }
+                                    ForEach(locations, id: \ .id) { location in
+                                        inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                     }
                                 }
                             }
@@ -171,8 +157,6 @@ struct InventoryView: View {
                 if syncEngine.modelContext != modelContext {
                     syncEngine.updateModelContext(modelContext)
                 }
-                // If syncing is in progress on appear, show spinner
-                showingSyncSpinner = syncEngine.syncState == .syncing
             }
             .onChange(of: syncEngine.syncState) {
                 if case .error = syncEngine.syncState {
@@ -187,23 +171,8 @@ struct InventoryView: View {
                 Text(errorMessage)
             }
         }
-        .fullScreenCover(isPresented: $showContinuedGrid) {
-            InventoryGridView(
-                title: continuedGridCategory ?? "Inventory",
-                itemsGroup: items.filter { $0.category?.name == continuedGridCategory },
-                showCategoryPicker: true,
-                showSortPicker: true,
-                selectedItem: $selectedItem
-            )
-        }
         .userActivity(inventoryActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)
-        }
-        .onContinueUserActivity(inventoryGridActivityType) { activity in
-            if let category = activity.userInfo?[inventoryGridCategoryKey] as? String {
-                continuedGridCategory = category
-                showContinuedGrid = true
-            }
         }
     }
     
@@ -275,27 +244,34 @@ struct InventoryView: View {
     
     /// Returns a row of inventory items with a navigation title.
     /// - Parameters:
-    /// - items: The array of items to display in the row.
+    /// - predicate: A predicate to filter items in the row. (RecentlyAdded, Category: Category.id, Location: Location.id)
+    /// - itemAmount: The maximum number of items to display (default is 4).
     /// - title: The title for the row.
-    private func inventoryRow(rowItems: [Item], itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+    /// - color: The color theme for the row.
+    /// - showCategoryPicker: Whether to show the category picker.
+    /// - showSortPicker: Whether to show the sort picker.
+    private func inventoryRow(predicate: String? = nil, itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+        let filteredItems = filteredItems(for: predicate)
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
+                    InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                 } label: {
-                    Text(title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.leading)
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.leading)
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.gray)
+                    }
                 }.padding(.leading, 8)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 16) {
-                        // Limit to only 5 items per row
-                        ForEach(rowItems.prefix(itemAmount), id: \.id) { item in
+                        // Limit to only itemAmount items per row
+                        ForEach(filteredItems.prefix(itemAmount), id: \ .id) { item in
                             ItemCard(
                                 item: item,
                                 colorScheme: colorScheme,
@@ -308,11 +284,11 @@ struct InventoryView: View {
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
                         }
                         
-                        if rowItems.count < itemAmount {
+                        if filteredItems.count < itemAmount {
                             Spacer()
-                        } else if rowItems.count > itemAmount {
+                        } else if filteredItems.count > itemAmount {
                             NavigationLink {
-                                InventoryGridView(title: title, itemsGroup: rowItems, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
+                                InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem)
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 25.0)
@@ -348,8 +324,32 @@ struct InventoryView: View {
         )
     }
     
+    /// Filters items based on the given predicate.
+    private func filteredItems(for predicate: String?) -> [Item] {
+        if let predicate = predicate {
+            if predicate == "RecentlyAdded" {
+                return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            } else if predicate.contains("Category: ") {
+                return items.filter {
+                    if let catID = $0.category?.id.uuidString {
+                        return catID == predicate.replacingOccurrences(of: "Category: ", with: "")
+                    }
+                    return false
+                }
+            } else if predicate.contains("Location: ") {
+                return items.filter {
+                    if let locID = $0.location?.id.uuidString {
+                        return locID == predicate.replacingOccurrences(of: "Location: ", with: "")
+                    }
+                    return false
+                }
+            }
+        }
+        return items
+    }
+    
     /// Initializes sort orders for categories and items if they are not set.
-    private func initializeSortOrders() {        
+    private func initializeSortOrders() {
         // Initialize category sort orders if there's multiple categories without a sort order
         let categoriesNeedingOrder = categories.filter { $0.sortOrder == 0 }
         if categoriesNeedingOrder.count > 1 {
