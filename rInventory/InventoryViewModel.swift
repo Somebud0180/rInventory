@@ -334,8 +334,4 @@ class InventoryViewModel: ObservableObject {
         case .dateModified: return "calendar"
         }
     }
-    
-    func cleanup() {
-        filterCancellable?.cancel()
-    }
 }

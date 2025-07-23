@@ -115,8 +115,6 @@ struct InventoryGridView: View {
             }
         }
         .onDisappear {
-            // Explicitly cancel any Combine pipeline in viewModel
-            viewModel.cleanup()
             hasAppeared = false
         }
         .onChange(of: editMode?.wrappedValue.isEditing == true) {
