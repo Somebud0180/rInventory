@@ -66,67 +66,69 @@ struct InventoryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                headerSection
-                    .padding(.leading, 4)
-                    .padding(.bottom, 16)
-                
-                if items.isEmpty {
-                    emptyItemsView
-                } else {
-                    VStack(spacing: 16) {
-                        if appDefaults.showRecentlyAdded {
-                            LazyVGrid(columns: rowColumns, spacing: 16) {
-                                inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
-                                inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
-                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                VStack {
+                    headerSection
+                        .padding(.leading, 4)
+                        .padding(.bottom, 16)
+                    
+                    if items.isEmpty {
+                        emptyItemsView
+                    } else {
+                        VStack(spacing: 16) {
+                            if appDefaults.showRecentlyAdded {
+                                LazyVGrid(columns: rowColumns, spacing: 16) {
+                                    inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
+                                    inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                }
+                            } else {
+                                inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
+                                    .transition(.opacity)
                             }
-                        } else {
-                            inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
-                                .transition(.opacity)
-                        }
-                        
-                        // Categories section
-                        if !categories.isEmpty && appDefaults.showCategories {
-                            VStack(alignment: .leading, spacing: 16) {
-                                if !categories.isEmpty {
-                                    Text("Categories")
+                            
+                            // Categories section
+                            if !categories.isEmpty && appDefaults.showCategories {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    if !categories.isEmpty {
+                                        Text("Categories")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                            .padding(.leading, 8)
+                                            .padding(.bottom, -8)
+                                        
+                                        LazyVGrid(columns: rowColumns, spacing: 16) {
+                                            ForEach(categories, id: \ .id) { category in
+                                                inventoryRow(predicate: "Category: \(category.id)", title: category.name, showSortPicker: true)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Locations section
+                            if !locations.isEmpty && appDefaults.showLocations {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Locations")
                                         .font(.headline)
                                         .foregroundColor(.secondary)
                                         .padding(.leading, 8)
                                         .padding(.bottom, -8)
                                     
                                     LazyVGrid(columns: rowColumns, spacing: 16) {
-                                        ForEach(categories, id: \ .id) { category in
-                                            inventoryRow(predicate: "Category: \(category.id)", title: category.name, showSortPicker: true)
+                                        ForEach(locations, id: \ .id) { location in
+                                            inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                         }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Locations section
-                        if !locations.isEmpty && appDefaults.showLocations {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Locations")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                    .padding(.leading, 8)
-                                    .padding(.bottom, -8)
-                                
-                                LazyVGrid(columns: rowColumns, spacing: 16) {
-                                    ForEach(locations, id: \ .id) { location in
-                                        inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                     }
                                 }
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 16)
             }
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
-            .padding(.horizontal, 16)
             .sheet(isPresented: $showInventoryOptionsView, onDismiss: { Task { await syncEngine.manualSync() } }) {
                 InventoryOptionsView()
             }
