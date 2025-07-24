@@ -323,13 +323,20 @@ struct ItemView: View {
             // Card - contains all the item details and controls
             ZStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Button(action: { withAnimation { isCollapsed.toggle() }}) {
-                        Image(systemName: "chevron.up")
-                            .rotationEffect(.degrees(isCollapsed ? 0 : 180))
-                            .frame(maxWidth: geometry.size.width, alignment: .center)
+                    if !isEditing {
+                        Button(action: { withAnimation { isCollapsed.toggle() }}) {
+                            Image(systemName: "chevron.up")
+                                .rotationEffect(.degrees(isCollapsed ? 0 : 180))
+                                .frame(maxWidth: geometry.size.width, alignment: .center)
+                        }
                     }
+                    
                     if isCollapsed {
-                        nameSection
+                        HStack(alignment: .center) {
+                            nameSection
+                            Spacer()
+                            quantitySection
+                        }
                         buttonSection
                             .padding(.vertical, 6)
                     } else {
@@ -402,6 +409,7 @@ struct ItemView: View {
     
     /// View for displaying either an image or a symbol background with a mask.
     private struct ItemBackgroundView: View {
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         let background: ItemCardBackground
         let symbolColor: Color?
         let mask: AnyView
@@ -419,7 +427,10 @@ struct ItemView: View {
                     .resizable()
                     .scaledToFit()
                     .ignoresSafeArea(.all)
-                    .padding(.top, UIDevice.current.userInterfaceIdiom == .pad ? 16 : 64)
+                    .padding(.top,
+                             (UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular)
+                             ? 16
+                             : 64)
                     .padding(.horizontal, 22)
                     .foregroundStyle(symbolColor ?? .white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -766,6 +777,7 @@ struct ItemView: View {
     private func editItem() {
         withAnimation() {
             isEditing = true
+            isCollapsed = false
             // Load current item values into edit variables
             editName = item.name
             editQuantity = item.quantity
@@ -784,7 +796,7 @@ struct ItemView: View {
     }
     
     private func saveItem() {
-        withAnimation() {
+        DispatchQueue.main.async {
             // Save item with updated details using Item instance method
             item.updateItem(
                 name: editName,
@@ -796,7 +808,9 @@ struct ItemView: View {
                 symbolColor: editSymbolColor,
                 context: modelContext
             )
-            
+        }
+        
+        withAnimation() {
             isEditing = false
             
             // Update display variables from saved data
