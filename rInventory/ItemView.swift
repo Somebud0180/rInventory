@@ -70,16 +70,16 @@ struct ItemView: View {
                     } else if isLandscape {
                         landscapeLayout(geometry)
                             .ignoresSafeArea(.keyboard)
+                            .preferredColorScheme(.dark)
                     } else {
                         portraitLayout(geometry)
                             .ignoresSafeArea(.keyboard)
+                            .preferredColorScheme(.dark)
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .if(UIDevice.current.userInterfaceIdiom != .pad) { view in
-                view.ignoresSafeArea(.keyboard)
-            }
+            .ignoresSafeArea(.keyboard)
             .background(backgroundGradient)
         }
         .onAppear {
@@ -158,7 +158,8 @@ struct ItemView: View {
     }
     
     private var backgroundLinearGradient: LinearGradient {
-        return LinearGradient(colors: [.accentDark.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        let secondaryColor = (colorScheme == .dark) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
+        return LinearGradient(colors: [.accentDark.opacity(0.9), secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
     private func initializeDisplayVariables() {
@@ -199,10 +200,6 @@ struct ItemView: View {
             )
             .frame(maxHeight: geometry.size.height * 0.48)
             
-            
-            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
-                .ignoresSafeArea(.all)
-            
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center) {
                     categorySection
@@ -216,7 +213,7 @@ struct ItemView: View {
                     
                     VStack(alignment: .leading) {
                         Spacer()
-                            .frame(maxHeight: 256)
+                            .frame(maxHeight: isEditing ? 296 : 320)
                         
                         nameSection
                         locationSection
@@ -365,8 +362,8 @@ struct ItemView: View {
                     .resizable()
                     .scaledToFit()
                     .ignoresSafeArea(.all)
-                    .padding(.top, 24)
-                    .padding(22)
+                    .padding(.top, 88)
+                    .padding(.horizontal, 22)
                     .foregroundStyle(symbolColor ?? .accentColor)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .mask(mask)
@@ -472,9 +469,9 @@ struct ItemView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                             .padding(8)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, 4)
                             .frame(minHeight: 32)
-                            .adaptiveGlassBackground(tintStrength: 0.5)
+                            .adaptiveGlassBackground(tintStrength: 0.5, shape: editQuantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
                     }
                     .menuStyle(.borderlessButton)
                 } else {
@@ -500,9 +497,9 @@ struct ItemView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                         .padding(8)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, 4)
                         .frame(minHeight: 32)
-                        .adaptiveGlassBackground(tintStrength: 0.5)
+                        .adaptiveGlassBackground(tintStrength: 0.5, shape: quantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
                 }
             }
         }
@@ -601,7 +598,7 @@ struct ItemView: View {
                 }
             } else {
                 if quantity > 0 {
-                    Stepper(value: $quantity, in: 0...1000, step: 1) {
+                    Stepper(value: $quantity, in: 1...1000, step: 1) {
                         Text("Quantity: \(quantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
@@ -621,7 +618,20 @@ struct ItemView: View {
     }
     
     private var buttonSection: some View {
-        // Edit, Delete, and Dismiss buttons
+        Group {
+            if #available(iOS 26, *) {
+                GlassEffectContainer {
+                    buttonContent
+                }
+            } else {
+                buttonContent
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: 50)
+    }
+    
+    private var buttonContent: some View {
         HStack {
             if !isEditing {
                 Button(action: editItem) {
@@ -638,14 +648,13 @@ struct ItemView: View {
                 Button(action: saveItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.titleAndIcon)
-                        .foregroundStyle(.accentDark)
                         .frame(maxWidth: .infinity, minHeight: 24)
                         .bold()
                         .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassEditButton(isEditing)
-                .foregroundStyle(.white)
+                .foregroundStyle(.accentDark)
             }
             
             Button(action: {
@@ -675,6 +684,7 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
             } else {
                 Button(action: {
                     dismiss()
@@ -687,10 +697,9 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
             }
         }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, maxHeight: 50)
     }
     
     private func editItem() {
