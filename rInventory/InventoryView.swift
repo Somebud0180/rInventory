@@ -66,10 +66,9 @@ struct InventoryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack {
+                VStack(spacing: 16) {
                     headerSection
                         .padding(.leading, 4)
-                        .padding(.bottom, 16)
                     
                     if items.isEmpty {
                         emptyItemsView
@@ -123,6 +122,10 @@ struct InventoryView: View {
                             }
                         }
                     } else {
+                        if appDefaults.showRecentlyAdded {
+                            inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
+                        }
+                        
                         // Grid view for items
                         InventoryGridView(title: "All Items", predicate: nil, showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             .transition(.opacity)
