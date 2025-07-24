@@ -64,10 +64,11 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
 struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     let tintStrength: CGFloat
+    let tint: Color
     let shape: S
     
     func body(content: Content) -> some View {
-        let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(tintStrength)
+        let tintColor = colorScheme == .dark ? tint.opacity(0.2) : tint.opacity(tintStrength)
         if #available(iOS 26.0, *) {
             content
                 .glassEffect(
@@ -77,9 +78,6 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
         } else {
             content
                 .background(tintColor, in: shape)
-                .background(
-                    .ultraThinMaterial,
-                    in: shape)
         }
     }
 }
@@ -93,8 +91,8 @@ extension View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor))
     }
     
-    func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, shape: S = Capsule()) -> some View {
-        self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, shape: shape))
+    func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, tintColor: Color = Color.gray, shape: S = Capsule()) -> some View {
+        self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, tint: tintColor, shape: shape))
     }
 }
 

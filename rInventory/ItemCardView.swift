@@ -17,12 +17,12 @@ enum ItemCardBackground {
 // MARK: - Constants
 struct ItemCardConstants {
     static let backgroundGradient = LinearGradient(
-        colors: [.black.opacity(0.9), .gray.opacity(0.9)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
+        colors: [.accentDark, .gray],
+        startPoint: .top,
+        endPoint: .bottom
     )
     static let overlayGradient = LinearGradient(
-        colors: [.clear, .black],
+        colors: [.clear, .black.opacity(0.75)],
         startPoint: .center,
         endPoint: .bottom
     )
@@ -171,23 +171,26 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                 }
             }
             Spacer()
-            VStack(alignment: .leading, spacing: 0) {
-                Text(name)
-                    .font(fontConfig.titleFont)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .foregroundStyle(.white.opacity(0.95))
-                if !location.name.isEmpty {
-                    Text(location.name)
-                        .font(fontConfig.captionFont)
-                        .fontWeight(.medium)
-                        .lineLimit(2)
-                        .foregroundStyle(location.color)
+            if !name.isEmpty && !location.name.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    if !name.isEmpty {
+                        Text(name)
+                            .font(fontConfig.titleFont)
+                            .fontWeight(.bold)
+                            .lineLimit(1)
+                    }
+                    if !location.name.isEmpty {
+                        Text(location.name)
+                            .font(fontConfig.captionFont)
+                            .fontWeight(.medium)
+                            .lineLimit(2)
+                    }
                 }
+                .foregroundStyle(.white.opacity(0.95))
+                .padding(4)
+                .padding(.horizontal, 4)
+                .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color, shape: RoundedRectangle(cornerRadius: 15.0))
             }
-            .padding(4)
-            .padding(.horizontal, 4)
-            .adaptiveGlassBackground(tintStrength: 0.5, shape: RoundedRectangle(cornerRadius: 15.0))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
