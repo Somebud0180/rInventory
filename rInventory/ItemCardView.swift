@@ -186,7 +186,9 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                             .lineLimit(2)
                     }
                 }
-                .foregroundStyle((location.color.luminance() > 0.5) ? .black.opacity(0.95) : .white.opacity(0.95))
+                .foregroundStyle((location.color.luminance() > 0.5)
+                                 ? (colorScheme == .dark) ? .white.opacity(0.95) : .black.opacity(0.95)
+                                 : .white.opacity(0.95))
                 .padding(4)
                 .padding(.horizontal, 4)
                 .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color, shape: RoundedRectangle(cornerRadius: 15.0))
