@@ -73,7 +73,7 @@ struct InventoryView: View {
                     
                     if items.isEmpty {
                         emptyItemsView
-                    } else {
+                    } else if appDefaults.showInventoryAsRows {
                         VStack(spacing: 16) {
                             if appDefaults.showRecentlyAdded {
                                 LazyVGrid(columns: rowColumns, spacing: 16) {
@@ -122,10 +122,15 @@ struct InventoryView: View {
                                 }
                             }
                         }
+                    } else {
+                        // Grid view for items
+                        InventoryGridView(title: "All Items", predicate: nil, showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                            .transition(.opacity)
+                            .padding(.horizontal, -16) // Cancel InventoryGridView's horizontal padding
                     }
                 }
-                .padding(.horizontal, 16)
             }
+            .padding(.horizontal, 16)
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
@@ -147,7 +152,7 @@ struct InventoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showInventoryOptionsView = true }) {
                         Label("Edit", systemImage: "arrow.up.arrow.down")
-                            .labelStyle(.titleOnly)
+                            .labelStyle(.iconOnly)
                     }
                 }
             }

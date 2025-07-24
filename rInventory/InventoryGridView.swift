@@ -71,7 +71,7 @@ struct InventoryGridView: View {
                 if isLoading {
                     ProgressView("Loading items...")
                         .padding(10)
-                } else if viewModel.displayedItems.isEmpty {
+                } else if viewModel.filteredItems(from: viewModel.displayedItems).isEmpty {
                     Text("No items found")
                         .foregroundColor(.gray)
                         .padding(10)
@@ -79,7 +79,6 @@ struct InventoryGridView: View {
                     inventoryGrid
                 }
             }
-            .padding(.horizontal, 16)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -101,6 +100,7 @@ struct InventoryGridView: View {
                 isLoading = false
             }
         }
+        .padding(.horizontal, 16)
         .onAppear {
             if !hasAppeared {
                 hasAppeared = true
@@ -130,29 +130,20 @@ struct InventoryGridView: View {
             }
         }
         .onChange(of: items) {
-            isLoading = true
-            DispatchQueue.main.async {
-                viewModel.updateDisplayedItems(from: items, predicate: predicate)
-            }
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
         }
         .onChange(of: viewModel.selectedSortType) {
-            isLoading = true
-            DispatchQueue.main.async {
-                viewModel.updateDisplayedItems(from: items, predicate: predicate)
-            }
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
         }
         .onChange(of: viewModel.selectedCategory) {
-            isLoading = true
-            DispatchQueue.main.async {
-                viewModel.updateDisplayedItems(from: items, predicate: predicate)
-            }
+            viewModel.updateDisplayedItems(from: items, predicate: predicate)
         }
     }
     
     private var inventoryGrid: some View {
         VStack {
             LazyVGrid(columns: itemColumns) {
-                ForEach(viewModel.displayedItems, id: \.id) { item in
+                ForEach(viewModel.filteredItems(from: viewModel.displayedItems), id: \.id) { item in
                     DraggableItemCard(
                         item: item,
                         colorScheme: colorScheme,
@@ -173,7 +164,7 @@ struct InventoryGridView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: viewModel.displayedItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                            handleDrop(items, filteredItems: viewModel.filteredItems(from: viewModel.displayedItems), draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
                         isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)

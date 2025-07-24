@@ -54,15 +54,6 @@ class InventoryViewModel: ObservableObject {
                         }
                     }
                 }
-                // Sort
-                switch sortType {
-                case .order:
-                    filtered = filtered.sorted(by: { $0.sortOrder < $1.sortOrder })
-                case .alphabetical:
-                    filtered = filtered.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
-                case .dateModified:
-                    filtered = filtered.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
-                }
                 return filtered
             }
             .receive(on: DispatchQueue.main)
@@ -73,13 +64,17 @@ class InventoryViewModel: ObservableObject {
     
     // Provide sorting for any provided item array
     func filteredItems(from items: [Item]) -> [Item] {
+        let filteredItems = items.filter { item in
+            selectedCategory == "All Items" || item.category?.name == selectedCategory
+        }
+        
         switch selectedSortType {
         case .order:
-            return items.sorted(by: { $0.sortOrder < $1.sortOrder })
+            return filteredItems.sorted(by: { $0.sortOrder < $1.sortOrder })
         case .alphabetical:
-            return items.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
+            return filteredItems.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
         case .dateModified:
-            return items.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
+            return filteredItems.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
         }
     }
     
