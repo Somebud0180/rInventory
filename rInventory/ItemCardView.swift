@@ -171,7 +171,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                 }
             }
             Spacer()
-            if !name.isEmpty && !location.name.isEmpty {
+            if !name.isEmpty || !location.name.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     if !name.isEmpty {
                         Text(name)
@@ -186,7 +186,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                             .lineLimit(2)
                     }
                 }
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle((location.color.luminance() > 0.5) ? .black.opacity(0.95) : .white.opacity(0.95))
                 .padding(4)
                 .padding(.horizontal, 4)
                 .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color, shape: RoundedRectangle(cornerRadius: 15.0))
@@ -353,6 +353,29 @@ struct DraggableItemCard: View {
             .foregroundColor(isSelected ? Color.blue : Color.white.opacity(0.8))
             .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
             .padding(12)
+    }
+}
+
+extension Color {
+    /// Returns the relative luminance of this color, from 0 (black) to 1 (white).
+    func luminance() -> Double {
+        // Convert the color to UIColor/NSColor and extract components
+#if canImport(UIKit)
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+#else
+        let nsColor = NSColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        nsColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+#endif
+        
+        // Calculate luminance (perceptual brightness)
+        func channel(_ c: CGFloat) -> Double {
+            let c = Double(c)
+            return (c <= 0.03928) ? (c/12.92) : pow((c+0.055)/1.055, 2.4)
+        }
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
     }
 }
 

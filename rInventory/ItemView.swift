@@ -158,16 +158,7 @@ struct ItemView: View {
     }
     
     private var backgroundLinearGradient: LinearGradient {
-        switch background {
-        case .image:
-            return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .symbol:
-            if colorScheme == .dark {
-                return LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            } else {
-                return LinearGradient(colors: [.black.opacity(0.5), .gray.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-        }
+        return LinearGradient(colors: [.accentDark.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
     private func initializeDisplayVariables() {
@@ -432,13 +423,12 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.secondary)
                         
                         TextField("Category", text: $editCategoryName)
-                            .font(.system(.callout, design: .rounded))
-                            .bold()
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.semibold)
                             .minimumScaleFactor(0.5)
-                            .foregroundStyle(.white.opacity(0.95))
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
                             .frame(minHeight: 22)
@@ -455,10 +445,9 @@ struct ItemView: View {
                 if !category.name.isEmpty {
                     Text(category.name)
                         .font(.system(.callout, design: .rounded))
-                        .bold()
+                        .fontWeight(.semibold)
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
-                        .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .frame(minHeight: 32)
                         .adaptiveGlassBackground(tintStrength: 0.5)
@@ -482,7 +471,6 @@ struct ItemView: View {
                             .bold()
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-                            .foregroundStyle(.white.opacity(0.95))
                             .padding(8)
                             .padding(.horizontal, 6)
                             .frame(minHeight: 32)
@@ -497,7 +485,6 @@ struct ItemView: View {
                             .font(.title3)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-                            .foregroundStyle(.white.opacity(0.95))
                             .padding(7) // to match padding of Text
                             .frame(minWidth: 32, minHeight: 32)
                             .adaptiveGlassButton(tintStrength: 0.5)
@@ -512,7 +499,6 @@ struct ItemView: View {
                         .bold()
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                        .foregroundStyle(.white.opacity(0.95))
                         .padding(8)
                         .padding(.horizontal, 6)
                         .frame(minHeight: 32)
@@ -527,14 +513,13 @@ struct ItemView: View {
             if isEditing {
                 HStack(alignment: .center, spacing: 8) {
                     Image(systemName: "pencil")
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                     
                     TextField("Name", text: $editName)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                        .foregroundStyle(.white.opacity(0.95))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -547,7 +532,6 @@ struct ItemView: View {
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .foregroundStyle(.white.opacity(0.95))
             }
         }
     }
@@ -558,12 +542,11 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.secondary)
                         
                         TextField("Location", text: $editLocationName)
                             .font(.system(.headline, design: .rounded))
-                            .fontWeight(.bold)
-                            .foregroundStyle(editLocationColor)
+                            .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
@@ -590,14 +573,13 @@ struct ItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
-                    .font(.system(.headline, design: .rounded))
-                    .fontWeight(.bold)
-                    .foregroundStyle(location.color)
+                    .font(.system(.callout, design: .rounded))
+                    .fontWeight(.semibold)
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 12)
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+                    .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color)
             }
         }
     }
@@ -610,10 +592,8 @@ struct ItemView: View {
                         Text("Quantity: \(editQuantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
-                            .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.75)
                     }
-                    .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.75)
                     .padding(.leading, 8)
                     .padding(8)
@@ -625,13 +605,11 @@ struct ItemView: View {
                         Text("Quantity: \(quantity)")
                             .font(.system(.body, design: .rounded))
                             .bold()
-                            .foregroundStyle(.white.opacity(0.95))
                             .minimumScaleFactor(0.75)
                     }
                     .onChange(of: quantity) {
                         updateQuantity(quantity)
                     }
-                    .foregroundStyle(.white.opacity(0.95))
                     .minimumScaleFactor(0.75)
                     .padding(.leading, 8)
                     .padding(8)
@@ -655,11 +633,12 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(.blue)
+                .foregroundStyle(.accent)
             } else {
                 Button(action: saveItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.titleAndIcon)
+                        .foregroundStyle(.accentDark)
                         .frame(maxWidth: .infinity, minHeight: 24)
                         .bold()
                         .minimumScaleFactor(0.5)
@@ -696,7 +675,6 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(.white)
             } else {
                 Button(action: {
                     dismiss()
@@ -709,7 +687,6 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(.white)
             }
         }
         .padding(.horizontal, 10)

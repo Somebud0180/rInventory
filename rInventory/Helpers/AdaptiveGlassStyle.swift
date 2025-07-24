@@ -18,12 +18,12 @@ struct AdaptiveGlassEditButtonModifier: ViewModifier {
             content
                 .glassEffect(
                     .regular
-                    .tint(isEditing ? Color.blue.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9))
+                    .tint(isEditing ? .accentLight.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9))
                     .interactive()
                 )
         } else {
             content
-                .background(isEditing ? Color.blue.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9), in: Capsule())
+                .background(isEditing ? .accentLight.opacity(0.9) : colorScheme == .dark ? .gray.opacity(0.9) : .white.opacity(0.9), in: Capsule())
         }
     }
 }

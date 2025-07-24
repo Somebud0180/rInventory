@@ -32,10 +32,10 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
     let getColor: (String) -> Color = {
         if let locations = items as? [Location] {
             return { name in
-                locations.first(where: { $0.name == name })?.color ?? .white
+                locations.first(where: { $0.name == name })?.color ?? .gray
             }
         } else {
-            return { _ in .white }
+            return { _ in .gray }
         }
     }()
     
@@ -48,8 +48,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
                     }
                     .padding(4)
                     .padding(.horizontal, 4)
-                    .foregroundStyle(getColor(suggestion))
-                    .adaptiveGlassBackground(tintStrength: 0.5)
+                    .adaptiveGlassBackground(tintStrength: 0.5, tintColor: getColor(suggestion))
                 }
             }
         }
