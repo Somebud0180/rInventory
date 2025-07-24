@@ -57,9 +57,14 @@ struct ItemView: View {
     @State private var editBackground: ItemCardBackground = .symbol("questionmark")
     @State private var editSymbolColor: Color? = nil
     
-    // Helper to determine if the device is in landscape mode
+    /// Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
         return horizontalSizeClass == .regular
+    }
+    
+    /// Helper to determine if the device is an iPad
+    private var isPad: Bool {
+        return UIDevice.current.userInterfaceIdiom == .pad
     }
     
     var body: some View {
@@ -75,25 +80,9 @@ struct ItemView: View {
                                 .blur(radius: 44)
                         }
                         
-                        if UIDevice.current.userInterfaceIdiom == .pad {
-                            ItemBackgroundView(
-                                background: isEditing ? editBackground : background,
-                                symbolColor: isEditing ? editSymbolColor : symbolColor,
-                                mask: AnyView(
-                                    LinearGradient(
-                                        gradient: Gradient(stops: [
-                                            .init(color: .white, location: 0.0),
-                                            .init(color: .white, location: 0.8),
-                                            .init(color: .clear, location: 1.0)
-                                        ]),
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                    .blur(radius: 12)
-                                    .frame(width: geometry.size.width, height: geometry.size.height * 0.8)
-                                )
-                            )
-                            .frame(width: geometry.size.width, height: geometry.size.height * 0.8)
+                        if isPad{
+                            iPadBackground(geometry)
+                                .ignoresSafeArea(.keyboard)
                         } else if isLandscape {
                                 landscapeLayout(geometry)
                                     .ignoresSafeArea(.keyboard)
@@ -109,7 +98,7 @@ struct ItemView: View {
                 .ignoresSafeArea(.keyboard)
                 .background(backgroundGradient)
                 
-                if UIDevice.current.userInterfaceIdiom == .pad {
+                if isPad {
                     GeometryReader { geometry in
                         iPadLayout(geometry)
                     }
@@ -384,6 +373,33 @@ struct ItemView: View {
         .frame(width: geometry.size.width, height: geometry.size.height)
     }
     
+    private func iPadBackground(_ geometry: GeometryProxy) -> some View {
+        VStack {
+            ItemBackgroundView(
+                background: isEditing ? editBackground : background,
+                symbolColor: isEditing ? editSymbolColor : symbolColor,
+                mask: AnyView(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.8),
+                            .init(color: .clear, location: 1.0)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .blur(radius: 12)
+                    .frame(width: geometry.size.width, height: geometry.size.height * 0.75)
+                )
+            )
+            .frame(width: geometry.size.width, height: geometry.size.height * 0.75)
+            
+            Spacer()
+        }
+        .frame(maxHeight: geometry.size.height)
+        .padding(.trailing, -geometry.safeAreaInsets.bottom)
+    }
+    
     /// View for displaying either an image or a symbol background with a mask.
     private struct ItemBackgroundView: View {
         let background: ItemCardBackground
@@ -403,10 +419,10 @@ struct ItemView: View {
                     .resizable()
                     .scaledToFit()
                     .ignoresSafeArea(.all)
-                    .padding(.top, 64)
+                    .padding(.top, UIDevice.current.userInterfaceIdiom == .pad ? 16 : 64)
                     .padding(.horizontal, 22)
-                    .foregroundStyle(symbolColor ?? .accentColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .foregroundStyle(symbolColor ?? .white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .mask(mask)
             }
         }
