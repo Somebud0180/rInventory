@@ -23,8 +23,17 @@ struct ItemView: View {
     
     @Binding var item: Item
     
-    // State variables for UI
+    // State variables for Editing UI
+    private enum ItemField: Hashable {
+        case name, category, location
+    }
+    
     @State var isEditing: Bool = false
+    @State private var isCollapsed: Bool = false
+    @FocusState private var focusedField: ItemField?
+    @State private var animateFocused: ItemField? = nil
+    
+    // State variables for UI
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
@@ -55,32 +64,57 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
-                ZStack {
-                    if case let .image(data) = background {
-                        AsyncItemImage(imageData: data)
-                            .scaledToFill()
-                            .ignoresSafeArea(.all)
-                            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                            .blur(radius: 44)
+            ZStack {
+                GeometryReader { geometry in
+                    ZStack(alignment: .top) {
+                        if case let .image(data) = background {
+                            AsyncItemImage(imageData: data)
+                                .scaledToFill()
+                                .ignoresSafeArea(.all)
+                                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                                .blur(radius: 44)
+                        }
+                        
+                        if UIDevice.current.userInterfaceIdiom == .pad {
+                            ItemBackgroundView(
+                                background: isEditing ? editBackground : background,
+                                symbolColor: isEditing ? editSymbolColor : symbolColor,
+                                mask: AnyView(
+                                    LinearGradient(
+                                        gradient: Gradient(stops: [
+                                            .init(color: .white, location: 0.0),
+                                            .init(color: .white, location: 0.8),
+                                            .init(color: .clear, location: 1.0)
+                                        ]),
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                    .blur(radius: 12)
+                                    .frame(width: geometry.size.width, height: geometry.size.height * 0.8)
+                                )
+                            )
+                            .frame(width: geometry.size.width, height: geometry.size.height * 0.8)
+                        } else if isLandscape {
+                                landscapeLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                                    .preferredColorScheme(.dark)
+                        } else {
+                            portraitLayout(geometry)
+                                .ignoresSafeArea(.keyboard)
+                                .preferredColorScheme(.dark)
+                        }
                     }
-                    
-                    if UIDevice.current.userInterfaceIdiom == .pad {
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                }
+                .ignoresSafeArea(.keyboard)
+                .background(backgroundGradient)
+                
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    GeometryReader { geometry in
                         iPadLayout(geometry)
-                    } else if isLandscape {
-                        landscapeLayout(geometry)
-                            .ignoresSafeArea(.keyboard)
-                            .preferredColorScheme(.dark)
-                    } else {
-                        portraitLayout(geometry)
-                            .ignoresSafeArea(.keyboard)
-                            .preferredColorScheme(.dark)
                     }
                 }
-                .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .ignoresSafeArea(.keyboard)
-            .background(backgroundGradient)
         }
         .onAppear {
             initializeDisplayVariables()
@@ -134,6 +168,11 @@ struct ItemView: View {
                     }
                 )
                 .interactiveDismissDisabled()
+            }
+        }
+        .onChange(of: focusedField) {
+            withAnimation() {
+                animateFocused = focusedField
             }
         }
     }
@@ -289,57 +328,59 @@ struct ItemView: View {
     }
     
     private func iPadLayout(_ geometry: GeometryProxy) -> some View {
-        return ZStack(alignment: .bottom) {
-            // Background - either image or symbol, with a gradient mask
-            ZStack(alignment: .bottomLeading) {
-                ItemBackgroundView(
-                    background: isEditing ? editBackground : background,
-                    symbolColor: isEditing ? editSymbolColor : symbolColor,
-                    mask: AnyView(
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: .clear, location: 0.0),
-                                .init(color: .white, location: 0.2),
-                                .init(color: .white, location: 0.8),
-                                .init(color: .clear, location: 1.0)
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .blur(radius: 12)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                    )
-                )
-            }
-            .frame(width: geometry.size.width, height: geometry.size.height)
+        return VStack() {
+            Spacer()
             
             // Card - contains all the item details and controls
             ZStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .center) {
-                        categorySection
-                        Spacer()
-                        quantitySection
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(action: { withAnimation { isCollapsed.toggle() }}) {
+                        Image(systemName: "chevron.up")
+                            .rotationEffect(.degrees(isCollapsed ? 0 : 180))
+                            .frame(maxWidth: geometry.size.width, alignment: .center)
                     }
-                    
-                    HStack() {
+                    if isCollapsed {
                         nameSection
-                        if isEditing {
-                            toolbarView
+                        buttonSection
+                            .padding(.vertical, 6)
+                    } else {
+                        if animateFocused == nil || animateFocused == .category {
+                            HStack(alignment: .center) {
+                                categorySection
+                                Spacer()
+                                quantitySection
+                            }
                         }
+                        
+                        if animateFocused == nil || animateFocused == .name {
+                            HStack() {
+                                nameSection
+                                if isEditing {
+                                    toolbarView
+                                }
+                            }
+                        }
+                        
+                        if animateFocused == nil || animateFocused == .location {
+                            locationSection
+                        }
+                        
+                        if animateFocused == nil {
+                            quantityStepperSection
+                        }
+
+                        buttonSection
+                            .padding(.vertical, 6)
                     }
-                    locationSection
-                    quantityStepperSection
-                    buttonSection
-                        .padding(.vertical, 6)
                 }
-                .padding(12)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32))
             }
-            .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 25))
-            .frame(maxWidth: geometry.size.width * 0.65, maxHeight: geometry.size.height * 0.45, alignment: .bottom)
-            .padding(.bottom, 12 - geometry.safeAreaInsets.bottom * 0.26)
+            .background(.black.opacity(0.25), in: RoundedRectangle(cornerRadius: 32))
+            .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height * 0.45, alignment: .bottom)
         }
+        .padding(4)
+        .padding(.bottom, -(geometry.safeAreaInsets.bottom * 0.2))
         .frame(width: geometry.size.width, height: geometry.size.height)
     }
     
@@ -362,7 +403,7 @@ struct ItemView: View {
                     .resizable()
                     .scaledToFit()
                     .ignoresSafeArea(.all)
-                    .padding(.top, 88)
+                    .padding(.top, 64)
                     .padding(.horizontal, 22)
                     .foregroundStyle(symbolColor ?? .accentColor)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -423,6 +464,7 @@ struct ItemView: View {
                             .foregroundStyle(.secondary)
                         
                         TextField("Category", text: $editCategoryName)
+                            .focused($focusedField, equals: .category)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.5)
@@ -513,6 +555,7 @@ struct ItemView: View {
                         .foregroundStyle(.secondary)
                     
                     TextField("Name", text: $editName)
+                        .focused($focusedField, equals: .name)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .lineLimit(1)
@@ -542,6 +585,7 @@ struct ItemView: View {
                             .foregroundStyle(.secondary)
                         
                         TextField("Location", text: $editLocationName)
+                            .focused($focusedField, equals: .location)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
@@ -637,6 +681,7 @@ struct ItemView: View {
                 Button(action: editItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.iconOnly)
+                        .foregroundStyle(.accentLight)
                         .frame(minWidth: 25, minHeight: 24)
                         .bold()
                         .minimumScaleFactor(0.5)
@@ -648,13 +693,13 @@ struct ItemView: View {
                 Button(action: saveItem) {
                     Label("Save Edits", systemImage: "pencil")
                         .labelStyle(.titleAndIcon)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity, minHeight: 24)
                         .bold()
                         .minimumScaleFactor(0.5)
                         .padding()
                 }
                 .adaptiveGlassEditButton(isEditing)
-                .foregroundStyle(.accentDark)
             }
             
             Button(action: {
@@ -783,3 +828,4 @@ extension View {
     
     return ItemView(item: $item)
 }
+
