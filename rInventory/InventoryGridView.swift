@@ -18,7 +18,9 @@ struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.editMode) private var editMode
     
-    @Query private var items: [Item]
+    @Query private var modelItems: [Item]
+    @Query private var modelCategories: [Category]
+    @Query private var modelLocations: [Location]
     
     // Grab Categories from displayedItems (efficient, deduplicated by id)
     private var categories: [Category] {
@@ -44,16 +46,26 @@ struct InventoryGridView: View {
     @Binding var isInventoryActive: Bool
     @Binding var isInventoryGridActive: Bool
     
-    @StateObject private var viewModel = InventoryViewModel()
+    @StateObject private var viewModel: InventoryViewModel
     
     // State variable for UI
-    @State private var isLoading: Bool = true
     @State private var draggedItem: Item? = nil
     @State private var categoryMenuPresented = false
     @State private var sortMenuPresented = false
     
     // Clean up viewModel on disappear
     @State private var hasAppeared = false
+    
+    init(title: String, predicate: String? = nil, showCategoryPicker: Bool = false, showSortPicker: Bool = false, showHiddenCategoriesInGrid: Bool = false, showHiddenLocationsInGrid: Bool = false,  selectedItem: Binding<Item?>, isInventoryActive: Binding<Bool>, isInventoryGridActive: Binding<Bool>) {
+        self.title = title
+        self.predicate = predicate
+        self.showCategoryPicker = showCategoryPicker
+        self.showSortPicker = showSortPicker
+        self._selectedItem = selectedItem
+        self._isInventoryActive = isInventoryActive
+        self._isInventoryGridActive = isInventoryGridActive
+        _viewModel = StateObject(wrappedValue: InventoryViewModel(showHiddenCategories: showHiddenCategoriesInGrid, showHiddenLocations: showHiddenLocationsInGrid))
+    }
     
     var body: some View {
         NavigationStack {
@@ -68,7 +80,7 @@ struct InventoryGridView: View {
                     }
                 }
                 
-                if isLoading {
+                if viewModel.isLoading {
                     ProgressView("Loading items...")
                         .padding(10)
                 } else if viewModel.filteredItems(from: viewModel.displayedItems).isEmpty {
@@ -96,11 +108,11 @@ struct InventoryGridView: View {
                     EditButton()
                 }
             }
-            .onChange(of: viewModel.displayedItems) {
-                isLoading = false
-            }
         }
         .padding(.horizontal, 16)
+        .refreshable {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+        }
         .onAppear {
             if !hasAppeared {
                 hasAppeared = true
@@ -108,9 +120,9 @@ struct InventoryGridView: View {
                 let sortTypeIndex = AppDefaults.shared.defaultInventorySort
                 viewModel.selectedSortType =
                 ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
-                isLoading = true
+                viewModel.isLoading = true
                 DispatchQueue.main.async {
-                    viewModel.updateDisplayedItems(from: items, predicate: predicate)
+                    viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
                 }
             }
         }
@@ -129,14 +141,14 @@ struct InventoryGridView: View {
                 isInventoryGridActive = false
             }
         }
-        .onChange(of: items) {
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: modelLocations.filter { $0.displayInRow == true }) {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
-        .onChange(of: viewModel.selectedSortType) {
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: modelCategories.filter { $0.displayInRow == true }) {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
-        .onChange(of: viewModel.selectedCategory) {
-            viewModel.updateDisplayedItems(from: items, predicate: predicate)
+        .onChange(of: "\(viewModel.filteredItems(from: modelItems))-\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
     }
     
@@ -164,7 +176,7 @@ struct InventoryGridView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(items, filteredItems: viewModel.filteredItems(from: viewModel.displayedItems), draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                            handleDrop(modelItems, filteredItems: viewModel.filteredItems(from: viewModel.displayedItems), draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
                         isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
@@ -201,7 +213,7 @@ struct InventoryGridView: View {
     }
     
     private func deleteSelectedItems() {
-        viewModel.deleteSelectedItems(allItems: items)
+        viewModel.deleteSelectedItems(allItems: modelItems)
     }
     
     private func updateUserActivity(_ activity: NSUserActivity) {

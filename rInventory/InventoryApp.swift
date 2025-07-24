@@ -20,6 +20,8 @@ class AppDefaults: ObservableObject {
     @Published var showCounterForSingleItems: Bool
     @Published var defaultInventorySort: Int
     @Published var showInventoryAsRows: Bool
+    @Published var showHiddenCategoriesInGrid: Bool
+    @Published var showHiddenLocationsInGrid: Bool
     @Published var showRecentlyAdded: Bool
     @Published var showCategories: Bool
     @Published var showLocations: Bool
@@ -29,6 +31,8 @@ class AppDefaults: ObservableObject {
         static let showCounterForSingleItems = "showCounterForSingleItems"
         static let defaultInventorySort = "defaultInventorySort"
         static let showInventoryAsRows = "showInventoryAsRows"
+        static let showHiddenCategoriesInGrid = "showHiddenCategoriesInGrid"
+        static let showHiddenLocationsInGrid = "showHiddenLocationsInGrid"
         static let showRecentlyAdded = "showRecentlyAdded"
         static let showCategories = "showCategories"
         static let showLocations = "showLocations"
@@ -39,6 +43,8 @@ class AppDefaults: ObservableObject {
         showCounterForSingleItems = defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true
         defaultInventorySort = defaults.integer(forKey: Keys.defaultInventorySort)
         showInventoryAsRows = defaults.object(forKey: Keys.showInventoryAsRows) as? Bool ?? true
+        showHiddenCategoriesInGrid = defaults.object(forKey: Keys.showHiddenCategoriesInGrid) as? Bool ?? true
+        showHiddenLocationsInGrid = defaults.object(forKey: Keys.showHiddenLocationsInGrid) as? Bool ?? true
         showRecentlyAdded = defaults.object(forKey: Keys.showRecentlyAdded) as? Bool ?? true
         showCategories = defaults.object(forKey: Keys.showCategories) as? Bool ?? true
         showLocations = defaults.object(forKey: Keys.showLocations) as? Bool ?? true
@@ -48,6 +54,8 @@ class AppDefaults: ObservableObject {
         $showCounterForSingleItems.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCounterForSingleItems) }.store(in: &cancellables)
         $defaultInventorySort.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.defaultInventorySort) }.store(in: &cancellables)
         $showInventoryAsRows.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showInventoryAsRows) }.store(in: &cancellables)
+        $showHiddenCategoriesInGrid.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showHiddenCategoriesInGrid) }.store(in: &cancellables)
+        $showHiddenLocationsInGrid.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showHiddenLocationsInGrid) }.store(in: &cancellables)
         $showRecentlyAdded.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showRecentlyAdded) }.store(in: &cancellables)
         $showCategories.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCategories) }.store(in: &cancellables)
         $showLocations.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showLocations) }.store(in: &cancellables)

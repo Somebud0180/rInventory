@@ -25,8 +25,16 @@ class InventoryViewModel: ObservableObject {
     @Published var selectedSortType: SortType = .order
     @Published var selectedCategory: String = "All Items"
     @Published var selectedItemIDs: Set<UUID> = []
+    @Published var isLoading: Bool = true
     @Published var displayedItems: [Item] = []
+    @Published var showHiddenCategories: Bool = false
+    @Published var showHiddenLocations: Bool = false
     private var filterCancellable: AnyCancellable?
+    
+    init(showHiddenCategories: Bool = false, showHiddenLocations: Bool = false) {
+        self.showHiddenCategories = showHiddenCategories
+        self.showHiddenLocations = showHiddenLocations
+    }
     
     // Call this to filter and sort items asynchronously
     func updateDisplayedItems(from items: [Item], predicate: String?) {
@@ -36,7 +44,14 @@ class InventoryViewModel: ObservableObject {
             .map { (items, predicate, sortType, selectedCategory) -> [Item] in
                 var filtered = items
                 if let predicate = predicate {
-                    if predicate == "RecentlyAdded" {
+                    if predicate == "InventoryView" {
+                        if !self.showHiddenCategories {
+                            filtered = filtered.filter { $0.category == nil || $0.category?.displayInRow == true }
+                        }
+                        if !self.showHiddenLocations {
+                            filtered = filtered.filter { $0.location == nil || $0.location?.displayInRow == true }
+                        }
+                    } else if predicate == "RecentlyAdded" {
                         filtered = filtered.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
                     } else if predicate.contains("Category: ") {
                         filtered = filtered.filter {
@@ -60,6 +75,7 @@ class InventoryViewModel: ObservableObject {
             .sink { [weak self] filtered in
                 self?.displayedItems = filtered
             }
+        isLoading = false
     }
     
     // Provide sorting for any provided item array

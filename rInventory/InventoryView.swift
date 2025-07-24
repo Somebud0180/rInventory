@@ -52,7 +52,6 @@ struct InventoryView: View {
     
     @StateObject private var viewModel = InventoryViewModel()
     @State private var showInventoryOptionsView: Bool = false
-    @State private var showInventoryGridView: Bool = false
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
@@ -79,7 +78,7 @@ struct InventoryView: View {
                                     inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
                                     inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                         .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                }
+                                }.id(isInventoryGridActive)
                             } else {
                                 inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                     .transition(.opacity)
@@ -117,7 +116,7 @@ struct InventoryView: View {
                                         ForEach(locations, id: \ .id) { location in
                                             inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                         }
-                                    }
+                                    }.id(isInventoryGridActive)
                                 }
                             }
                         }
@@ -127,13 +126,13 @@ struct InventoryView: View {
                         }
                         
                         // Grid view for items
-                        InventoryGridView(title: "All Items", predicate: nil, showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
-                            .transition(.opacity)
-                            .padding(.horizontal, -16) // Cancel InventoryGridView's horizontal padding
+                        InventoryGridView(title: "All Items", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, showHiddenCategoriesInGrid: appDefaults.showHiddenCategoriesInGrid, showHiddenLocationsInGrid: appDefaults.showHiddenLocationsInGrid, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                            .padding(.horizontal, -16)
+                            .id("\(appDefaults.showHiddenCategoriesInGrid)-\(appDefaults.showHiddenLocationsInGrid)") // Trigger re-render on settings change
                     }
                 }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
@@ -263,7 +262,7 @@ struct InventoryView: View {
     /// - showSortPicker: Whether to show the sort picker.
     private func inventoryRow(predicate: String? = nil, itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         let filteredItems = filteredItems(for: predicate)
-            
+        
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {

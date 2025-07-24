@@ -111,6 +111,26 @@ struct InventoryOptionsView: View {
                             })
                         )
                     }.transition(.opacity)
+                } else {
+                    Group {
+                        Divider()
+                        
+                        Toggle("Show Hidden Categories", isOn: Binding(
+                            get: { appDefaults.showHiddenCategoriesInGrid },
+                            set: { newValue in
+                                withAnimation(.smooth) { appDefaults.showHiddenCategoriesInGrid = newValue }
+                            })
+                        )
+                        
+                        Divider()
+                        
+                        Toggle("Show Hidden Locations", isOn: Binding(
+                            get: { appDefaults.showHiddenLocationsInGrid },
+                            set: { newValue in
+                                withAnimation(.smooth) { appDefaults.showHiddenLocationsInGrid = newValue }
+                            })
+                        )
+                    }.transition(.opacity)
                 }
             }
         }
