@@ -230,6 +230,7 @@ extension Item {
         for otherItem in itemsToUpdate {
             otherItem.sortOrder -= 1
         }
+        
         try? context.save()
     }
 }

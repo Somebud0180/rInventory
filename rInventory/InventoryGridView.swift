@@ -15,6 +15,7 @@ let inventoryGridCategoryKey = "category"
 let inventoryGridSortKey = "sort"
 
 struct InventoryGridView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.editMode) private var editMode
     
@@ -97,7 +98,9 @@ struct InventoryGridView: View {
                 if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
-                            deleteSelectedItems()
+                            Task {
+                                await viewModel.deleteSelectedItems(modelContext: modelContext, allItems: modelItems)
+                            }
                         } label: {
                             Image(systemName: "trash")
                                 .foregroundStyle(.red)
@@ -121,7 +124,7 @@ struct InventoryGridView: View {
                 viewModel.selectedSortType =
                 ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
                 viewModel.isLoading = true
-                DispatchQueue.main.async {
+                Task {
                     viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
                 }
             }
@@ -210,10 +213,6 @@ struct InventoryGridView: View {
                 viewModel.selectedSortType = selected
             }
         }
-    }
-    
-    private func deleteSelectedItems() {
-        viewModel.deleteSelectedItems(allItems: modelItems)
     }
     
     private func updateUserActivity(_ activity: NSUserActivity) {

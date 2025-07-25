@@ -21,7 +21,6 @@ let itemColumns = [
 ]
 
 class InventoryViewModel: ObservableObject {
-    @Environment(\.modelContext) private var modelContext
     @Published var selectedSortType: SortType = .order
     @Published var selectedCategory: String = "All Items"
     @Published var selectedItemIDs: Set<UUID> = []
@@ -94,13 +93,12 @@ class InventoryViewModel: ObservableObject {
         }
     }
     
-    func deleteSelectedItems(allItems: [Item]) {
+    func deleteSelectedItems(modelContext: ModelContext, allItems: [Item]) async {
         let itemsToDelete = allItems.filter { selectedItemIDs.contains($0.id) }
         for item in itemsToDelete {
-            Task {
-                await item.deleteItem(context: modelContext)
-            }
+            await item.deleteItem(context: modelContext)
         }
+        
         do {
             try modelContext.save()
         } catch {
