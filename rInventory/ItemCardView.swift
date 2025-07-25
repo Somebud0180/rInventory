@@ -70,6 +70,7 @@ struct ItemCardButton<Content: View>: View {
     let content: Content
     let onTap: () -> Void
     @State private var isPressed = false
+    @State private var isHovered = false
     
     init(@ViewBuilder content: () -> Content, onTap: @escaping () -> Void) {
         self.content = content()
@@ -81,20 +82,26 @@ struct ItemCardButton<Content: View>: View {
             content
         }
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 1.0 : 0.96)
-        .animation(.interactiveSpring(), value: isPressed)
+        .modifier(ItemCardAnimationModifier(
+            isPressed: isPressed,
+            isHovered: isHovered,
+            isDragged: false
+        ))
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
+                isHovered = hovering
+            }
+        }
     }
     
     private func handleTap() {
-        withAnimation(.interactiveSpring()) {
+        withAnimation(.spring()) {
             isPressed = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            withAnimation(.interactiveSpring()) {
-                isPressed = false
-            }
-            onTap()
+        withAnimation(.spring().delay(0.1)) {
+            isPressed = false
         }
+        onTap()
     }
 }
 
@@ -113,91 +120,100 @@ struct ItemCardButton<Content: View>: View {
 ///   - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
-    let isLargeFont = largeFont ?? false
-    let fontConfig = FontConfig(isLarge: isLargeFont)
+func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+    let fontConfig = FontConfig(isLarge: largeFont ?? false)
     
-    return ZStack {
-        RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-            .aspectRatio(contentMode: .fill)
-            .foregroundStyle(ItemCardConstants.backgroundGradient)
-        
-        GeometryReader { geometry in
-            switch background {
-            case .symbol(let symbol):
-                Image(systemName: symbol)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(symbolColor ?? .accentColor)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .padding(25)
-                
-            case .image(let data):
-                AsyncItemImage(imageData: data)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
-        
-        ItemCardConstants.overlayGradient
-            .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                .aspectRatio(contentMode: .fill))
-        
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                if !category.name.isEmpty {
-                    Text(category.name)
-                        .font(fontConfig.bodyFont)
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .foregroundStyle(.white.opacity(0.95))
-                        .padding(8)
-                        .adaptiveGlassBackground(tintStrength: 0.5)
+    var content: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                .aspectRatio(contentMode: .fill)
+                .foregroundStyle(ItemCardConstants.backgroundGradient)
+            
+            GeometryReader { geometry in
+                switch background {
+                case .symbol(let symbol):
+                    Image(systemName: symbol)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(symbolColor ?? .accentColor)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .padding(25)
+                    
+                case .image(let data):
+                    AsyncItemImage(imageData: data)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-                if hideQuantity {
-                    Spacer(minLength: 32)
-                } else {
-                    if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
-                        Spacer()
-                        Text("\(quantity)")
+            }
+            .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
+            
+            ItemCardConstants.overlayGradient
+                .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                    .aspectRatio(contentMode: .fill))
+            
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    if !category.name.isEmpty {
+                        Text(category.name)
                             .font(fontConfig.bodyFont)
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .foregroundStyle(.white.opacity(0.95))
                             .padding(8)
-                            .padding(.horizontal, 4)
-                            .adaptiveGlassBackground(tintStrength: 0.5)
+                            .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
+                    }
+                    if hideQuantity {
+                        Spacer(minLength: 32)
+                    } else {
+                        if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
+                            Spacer()
+                            Text("\(quantity)")
+                                .font(fontConfig.bodyFont)
+                                .fontWeight(.bold)
+                                .lineLimit(1)
+                                .foregroundStyle(.white.opacity(0.95))
+                                .padding(8)
+                                .padding(.horizontal, 4)
+                                .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified, shape: quantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
+                        }
                     }
                 }
-            }
-            Spacer()
-            if !name.isEmpty || !location.name.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    if !name.isEmpty {
-                        Text(name)
-                            .font(fontConfig.titleFont)
-                            .fontWeight(.bold)
-                            .lineLimit(1)
+                Spacer()
+                if !name.isEmpty || !location.name.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if !name.isEmpty {
+                            Text(name)
+                                .font(fontConfig.titleFont)
+                                .fontWeight(.bold)
+                                .lineLimit(1)
+                        }
+                        if !location.name.isEmpty {
+                            Text(location.name)
+                                .font(fontConfig.captionFont)
+                                .fontWeight(.medium)
+                                .lineLimit(2)
+                        }
                     }
-                    if !location.name.isEmpty {
-                        Text(location.name)
-                            .font(fontConfig.captionFont)
-                            .fontWeight(.medium)
-                            .lineLimit(2)
-                    }
+                    .foregroundStyle((location.color.luminance() > 0.5)
+                                     ? (colorScheme == .dark) ? .white.opacity(0.95) : .black.opacity(0.95)
+                                     : .white.opacity(0.95))
+                    .padding(4)
+                    .padding(.horizontal, 4)
+                    .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color, simplified: simplified, shape: RoundedRectangle(cornerRadius: 15.0))
                 }
-                .foregroundStyle((location.color.luminance() > 0.5)
-                                 ? (colorScheme == .dark) ? .white.opacity(0.95) : .black.opacity(0.95)
-                                 : .white.opacity(0.95))
-                .padding(4)
-                .padding(.horizontal, 4)
-                .adaptiveGlassBackground(tintStrength: 0.5, tintColor: location.color, shape: RoundedRectangle(cornerRadius: 15.0))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
     }
-    .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
+    
+    if #available(iOS 26, *) {
+        return GlassEffectContainer {
+            content
+        }
+    } else {
+        return content
+    }
 }
 
 /// Creates a item card view for displaying the item information in a layout.
@@ -208,7 +224,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
 ///  - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///  - Returns: A view representing the item card with the item's properties.
 ///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
     let location = item.location ?? Location(name: "Unknown", color: .white)
     let category = item.category ?? Category(name: "")
     
@@ -230,6 +246,7 @@ func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, 
         symbolColor: item.symbolColor,
         colorScheme: colorScheme,
         hideQuantity: hideQuantity,
+        simplified: simplified,
         showCounterForSingleItems: showCounterForSingleItems
     )
 }
@@ -262,23 +279,11 @@ struct ItemCard: View {
     var showCounterForSingleItems: Bool = true
     var onTap: () -> Void = {}
     
-    @State private var isHovered = false
-    
     var body: some View {
         ItemCardButton {
             itemCard(item: item, colorScheme: colorScheme, showCounterForSingleItems: showCounterForSingleItems)
         } onTap: {
             onTap()
-        }
-        .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme, showCounterForSingleItems: showCounterForSingleItems)
-                .frame(width: 150, height: 150)
-                .opacity(0.8)
-        }
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
-            }
         }
     }
 }
@@ -314,7 +319,7 @@ struct DraggableItemCard: View {
             isDragged: draggedItem?.id == item.id
         ))
         .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, showCounterForSingleItems: showCounterForSingleItems)
+            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, simplified: true, showCounterForSingleItems: showCounterForSingleItems)
                 .frame(width: 150, height: 150)
                 .opacity(0.8)
                 .overlay(alignment: .topTrailing) {
@@ -336,15 +341,13 @@ struct DraggableItemCard: View {
     }
     
     private func handleTap() {
-        withAnimation(.interactiveSpring()) {
+        withAnimation(.spring()) {
             isPressed = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            withAnimation(.interactiveSpring()) {
-                isPressed = false
-            }
-            onTap()
+        withAnimation(.spring().delay(0.1)) {
+            isPressed = false
         }
+        onTap()
     }
     
     private var checkmarkIcon: some View {
