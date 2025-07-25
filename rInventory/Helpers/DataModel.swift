@@ -155,7 +155,7 @@ extension Item {
         background: ItemCardBackground? = nil,
         symbolColor: Color? = nil,
         context: ModelContext
-    ) {
+    ) async {
         // Find or create Location
         var newLocation: Location?
         if let locationName = locationName, !locationName.isEmpty, let locationColor = locationColor {
@@ -213,7 +213,7 @@ extension Item {
     /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
     func deleteItem(
         context: ModelContext
-    ) {
+    ) async {
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
         let oldLocation = self.location
         let oldCategory = self.category

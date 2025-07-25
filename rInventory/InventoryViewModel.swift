@@ -97,7 +97,9 @@ class InventoryViewModel: ObservableObject {
     func deleteSelectedItems(allItems: [Item]) {
         let itemsToDelete = allItems.filter { selectedItemIDs.contains($0.id) }
         for item in itemsToDelete {
-            item.deleteItem(context: modelContext)
+            Task {
+                await item.deleteItem(context: modelContext)
+            }
         }
         do {
             try modelContext.save()

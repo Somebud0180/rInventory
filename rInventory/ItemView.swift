@@ -80,17 +80,37 @@ struct ItemView: View {
                                 .blur(radius: 44)
                         }
                         
-                        if isPad{
+                        if isPad {
                             iPadBackground(geometry)
                                 .ignoresSafeArea(.keyboard)
                         } else if isLandscape {
-                                landscapeLayout(geometry)
-                                    .ignoresSafeArea(.keyboard)
-                                    .preferredColorScheme(.dark)
+                            GeometryReader { geometry in
+                                if #available(iOS 26, *) {
+                                    GlassEffectContainer {
+                                        landscapeLayout(geometry)
+                                            .ignoresSafeArea(.keyboard)
+                                            .preferredColorScheme(.dark)
+                                    }
+                                } else {
+                                    landscapeLayout(geometry)
+                                        .ignoresSafeArea(.keyboard)
+                                        .preferredColorScheme(.dark)
+                                }
+                            }
                         } else {
-                            portraitLayout(geometry)
-                                .ignoresSafeArea(.keyboard)
-                                .preferredColorScheme(.dark)
+                            GeometryReader { geometry in
+                                if #available(iOS 26, *) {
+                                    GlassEffectContainer {
+                                        portraitLayout(geometry)
+                                            .ignoresSafeArea(.keyboard)
+                                            .preferredColorScheme(.dark)
+                                    }
+                                } else {
+                                    portraitLayout(geometry)
+                                        .ignoresSafeArea(.keyboard)
+                                        .preferredColorScheme(.dark)
+                                }
+                            }
                         }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
@@ -100,7 +120,13 @@ struct ItemView: View {
                 
                 if isPad {
                     GeometryReader { geometry in
-                        iPadLayout(geometry)
+                        if #available(iOS 26, *) {
+                            GlassEffectContainer {
+                                iPadLayout(geometry)
+                            }
+                        } else {
+                            iPadLayout(geometry)
+                        }
                     }
                 }
             }
@@ -331,43 +357,33 @@ struct ItemView: View {
                         }
                     }
                     
-                    if isCollapsed {
+                    if (animateFocused == nil || animateFocused == .category) && !isCollapsed {
                         HStack(alignment: .center) {
-                            nameSection
+                            categorySection
                             Spacer()
                             quantitySection
                         }
-                        buttonSection
-                            .padding(.vertical, 6)
-                    } else {
-                        if animateFocused == nil || animateFocused == .category {
-                            HStack(alignment: .center) {
-                                categorySection
-                                Spacer()
-                                quantitySection
-                            }
-                        }
-                        
-                        if animateFocused == nil || animateFocused == .name {
-                            HStack() {
-                                nameSection
-                                if isEditing {
-                                    toolbarView
-                                }
-                            }
-                        }
-                        
-                        if animateFocused == nil || animateFocused == .location {
-                            locationSection
-                        }
-                        
-                        if animateFocused == nil {
-                            quantityStepperSection
-                        }
-
-                        buttonSection
-                            .padding(.vertical, 6)
                     }
+                    
+                    if animateFocused == nil || animateFocused == .name {
+                        HStack() {
+                            nameSection
+                            if isEditing {
+                                toolbarView
+                            }
+                        }
+                    }
+                    
+                    if (animateFocused == nil || animateFocused == .location) && !isCollapsed {
+                        locationSection
+                    }
+                    
+                    if animateFocused == nil && !isCollapsed {
+                        quantityStepperSection
+                    }
+                    
+                    buttonSection
+                        .padding(.vertical, 6)
                 }
                 .padding(16)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32))
@@ -676,7 +692,9 @@ struct ItemView: View {
                             .minimumScaleFactor(0.75)
                     }
                     .onChange(of: quantity) {
-                        updateQuantity(quantity)
+                        Task {
+                            await updateQuantity(quantity)
+                        }
                     }
                     .minimumScaleFactor(0.75)
                     .padding(.leading, 8)
@@ -690,78 +708,40 @@ struct ItemView: View {
     
     private var buttonSection: some View {
         Group {
-            if #available(iOS 26, *) {
-                GlassEffectContainer {
-                    buttonContent
+            HStack {
+                if !isEditing {
+                    Button(action: editItem) {
+                        Label("Save Edits", systemImage: "pencil")
+                            .labelStyle(.iconOnly)
+                            .foregroundStyle(.accentLight)
+                            .frame(minWidth: 25, minHeight: 24)
+                            .bold()
+                            .minimumScaleFactor(0.5)
+                            .padding()
+                    }
+                    .adaptiveGlassButton()
+                    .foregroundStyle(.accent)
+                } else {
+                    Button(action: { Task { await saveItem() }}) {
+                        Label("Save Edits", systemImage: "pencil")
+                            .labelStyle(.titleAndIcon)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 24)
+                            .bold()
+                            .minimumScaleFactor(0.5)
+                            .padding()
+                    }
+                    .adaptiveGlassEditButton(isEditing)
                 }
-            } else {
-                buttonContent
-            }
-        }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, maxHeight: 50)
-    }
-    
-    private var buttonContent: some View {
-        HStack {
-            if !isEditing {
-                Button(action: editItem) {
-                    Label("Save Edits", systemImage: "pencil")
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(.accentLight)
-                        .frame(minWidth: 25, minHeight: 24)
-                        .bold()
-                        .minimumScaleFactor(0.5)
-                        .padding()
-                }
-                .adaptiveGlassButton()
-                .foregroundStyle(.accent)
-            } else {
-                Button(action: saveItem) {
-                    Label("Save Edits", systemImage: "pencil")
-                        .labelStyle(.titleAndIcon)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 24)
-                        .bold()
-                        .minimumScaleFactor(0.5)
-                        .padding()
-                }
-                .adaptiveGlassEditButton(isEditing)
-            }
-            
-            Button(action: {
-                // Delete action using Item instance method
-                item.deleteItem(context: modelContext)
-                dismiss()
-            }) {
-                Label("Delete", systemImage: "trash")
-                    .labelStyle(.iconOnly)
-                    .frame(maxWidth: 24, minHeight: 24)
-                    .bold()
-                    .minimumScaleFactor(0.5)
-                    .padding()
-            }
-            .adaptiveGlassButton()
-            .foregroundStyle(.red)
-            
-            if !isEditing {
+                
                 Button(action: {
+                    Task {
+                        // Delete action using Item instance method
+                        await item.deleteItem(context: modelContext)
+                    }
                     dismiss()
                 }) {
-                    Label("Dismiss", systemImage: "xmark")
-                        .labelStyle(.titleOnly)
-                        .frame(maxWidth: .infinity, minHeight: 24)
-                        .bold()
-                        .minimumScaleFactor(0.5)
-                        .padding()
-                }
-                .adaptiveGlassButton()
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
-            } else {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Label("Dismiss", systemImage: "xmark")
+                    Label("Delete", systemImage: "trash")
                         .labelStyle(.iconOnly)
                         .frame(maxWidth: 24, minHeight: 24)
                         .bold()
@@ -769,9 +749,39 @@ struct ItemView: View {
                         .padding()
                 }
                 .adaptiveGlassButton()
-                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .foregroundStyle(.red)
+                
+                if !isEditing {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Label("Dismiss", systemImage: "xmark")
+                            .labelStyle(.titleOnly)
+                            .frame(maxWidth: .infinity, minHeight: 24)
+                            .bold()
+                            .minimumScaleFactor(0.5)
+                            .padding()
+                    }
+                    .adaptiveGlassButton()
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                } else {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Label("Dismiss", systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                            .frame(maxWidth: 24, minHeight: 24)
+                            .bold()
+                            .minimumScaleFactor(0.5)
+                            .padding()
+                    }
+                    .adaptiveGlassButton()
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                }
             }
         }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: 50)
     }
     
     private func editItem() {
@@ -795,38 +805,36 @@ struct ItemView: View {
         }
     }
     
-    private func saveItem() {
-        DispatchQueue.main.async {
-            // Save item with updated details using Item instance method
-            item.updateItem(
-                name: editName,
-                quantity: editQuantity,
-                locationName: editLocationName,
-                locationColor: editLocationColor,
-                categoryName: editCategoryName,
-                background: editBackground,
-                symbolColor: editSymbolColor,
-                context: modelContext
-            )
-        }
+    private func saveItem() async {
+        // Save item with updated details using Item instance method
+        await item.updateItem(
+            name: editName,
+            quantity: editQuantity,
+            locationName: editLocationName,
+            locationColor: editLocationColor,
+            categoryName: editCategoryName,
+            background: editBackground,
+            symbolColor: editSymbolColor,
+            context: modelContext
+        )
         
         withAnimation() {
             isEditing = false
-            
-            // Update display variables from saved data
-            name = editName
-            quantity = max(editQuantity, 0) // Ensure quantity is non-negative
-            location = Location(name: editLocationName, color: editLocationColor)
-            category = Category(name: editCategoryName)
-            background = editBackground
-            symbolColor = editSymbolColor
         }
+        
+        // Update display variables from saved data
+        name = editName
+        quantity = max(editQuantity, 0) // Ensure quantity is non-negative
+        location = Location(name: editLocationName, color: editLocationColor)
+        category = Category(name: editCategoryName)
+        background = editBackground
+        symbolColor = editSymbolColor
     }
     
-    private func updateQuantity(_ newValue: Int) {
+    private func updateQuantity(_ newValue: Int) async {
         if newValue >= 0 {
             quantity = newValue
-            item.updateItem(quantity: newValue, context: modelContext)
+            await item.updateItem(quantity: newValue, context: modelContext)
         }
     }
 }
