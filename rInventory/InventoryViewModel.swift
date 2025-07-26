@@ -51,6 +51,7 @@ class InventoryViewModel: ObservableObject {
                             filtered = filtered.filter { $0.location == nil || $0.location?.displayInRow == true }
                         }
                     } else if predicate == "RecentlyAdded" {
+                        filtered = filtered.sorted { $0.itemCreationDate > $1.itemCreationDate }
                         filtered = filtered.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
                     } else if predicate.contains("Category: ") {
                         filtered = filtered.filter {

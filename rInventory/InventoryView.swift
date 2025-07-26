@@ -339,7 +339,8 @@ struct InventoryView: View {
     private func filteredItems(for predicate: String?) -> [Item] {
         if let predicate = predicate {
             if predicate == "RecentlyAdded" {
-                return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+                let sortedItems = items.sorted { $0.itemCreationDate > $1.itemCreationDate }
+                return sortedItems.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
             } else if predicate.contains("Category: ") {
                 return items.filter {
                     if let catID = $0.category?.id.uuidString {
