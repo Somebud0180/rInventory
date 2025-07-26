@@ -68,9 +68,13 @@ struct ItemCreationView: View {
                             .padding(.bottom, 4)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .disabled(name.count >= 32)
                             .onSubmit {
                                 name = name.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            .onChange(of: name) { oldValue, newValue in
+                                if newValue.count >= 32 {
+                                    name = String(newValue.prefix(40))
+                                }
                             }
                         
                         HStack(alignment: .center, spacing: 12) {
@@ -78,11 +82,14 @@ struct ItemCreationView: View {
                                 .font(.body)
                                 .autocapitalization(.words)
                                 .disableAutocorrection(true)
-                                .disabled(locationName.count >= 40)
                                 .onSubmit {
                                     locationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
                                 }
                                 .onChange(of: locationName) { oldValue, newValue in
+                                    if newValue.count >= 40 {
+                                        locationName = String(newValue.prefix(40))
+                                    }
+                                    
                                     if let found = locations.first(where: { $0.name == newValue }) {
                                         locationColor = found.color
                                     } else {
@@ -106,9 +113,13 @@ struct ItemCreationView: View {
                             .font(.body)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .disabled(categoryName.count >= 40)
                             .onSubmit {
                                 categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            .onChange(of: categoryName) { oldValue, newValue in
+                                if newValue.count >= 40 {
+                                    categoryName = String(newValue.prefix(40))
+                                }
                             }
                         
                         filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
@@ -117,7 +128,7 @@ struct ItemCreationView: View {
                 
                 Section(header: Text("Quantity")) {
                     Toggle(isOn: $isQuantityEnabled) {
-                        Text("Enable Quantity")
+                        Text("Store Quantity")
                     }
                     Stepper(value: $quantity, in: 1...100, step: 1) {
                         Text("Quantity: \(quantity)")

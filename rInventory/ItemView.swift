@@ -347,15 +347,7 @@ struct ItemView: View {
             
             // Card - contains all the item details and controls
             ZStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 8) {
-                    if animateFocused == nil && !isCollapsed {
-                        HStack {
-                            toolbarView
-                            Spacer()
-                            quantitySection
-                        }
-                    }
-                    
+                VStack(alignment: .leading, spacing: 6) {
                     if !isEditing {
                         Button(action: { withAnimation { isCollapsed.toggle() }}) {
                             Image(systemName: "chevron.up")
@@ -364,8 +356,22 @@ struct ItemView: View {
                         }
                     }
                     
+                    if animateFocused == nil && !isCollapsed && !isEditing {
+                        HStack {
+                            Spacer()
+                            quantitySection
+                        }
+                    }
+                    
                     if (animateFocused == nil || animateFocused == .category) && !isCollapsed {
-                        categorySection
+                        HStack {
+                            categorySection
+                            if isEditing {
+                                Spacer()
+                                toolbarView
+                            }
+                        }
+                        
                     }
                     
                     if animateFocused == nil || animateFocused == .name {
@@ -379,7 +385,13 @@ struct ItemView: View {
                     }
                     
                     if animateFocused == nil && !isCollapsed {
-                        quantityStepperSection
+                        HStack {
+                            quantityStepperSection
+                            if isEditing{
+                                Spacer()
+                                quantitySection
+                            }
+                        }
                     }
                     
                     buttonSection
@@ -508,7 +520,6 @@ struct ItemView: View {
                         
                         TextField("Category", text: $editCategoryName)
                             .focused($focusedField, equals: .category)
-                            .disabled(editCategoryName.count >= 40)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
@@ -516,6 +527,11 @@ struct ItemView: View {
                             .disableAutocorrection(true)
                             .onSubmit {
                                 editCategoryName = editCategoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            .onChange(of: editCategoryName) { oldValue, newValue in
+                                if newValue.count >= 40 {
+                                    editCategoryName = String(newValue.prefix(40))
+                                }
                             }
                         
                         Button(action: { editCategoryName = "" }, label: {
@@ -544,39 +560,23 @@ struct ItemView: View {
     private var quantitySection: some View {
         Group {
             if isEditing {
-                if editQuantity > 0 {
-                    Menu {
-                        Button("Disable Quantity") {
-                            // MARK: - Identify best save behavior for editQuantity (save immediately or on save button press)
+                Menu {
+                    Button(editQuantity == 0 ? "Store Quantity" : "Don't Store Quantity") {
+                        if editQuantity == 0 {
+                            editQuantity = max(1, quantity)
+                        } else {
                             editQuantity = 0
                         }
-                    } label: {
-                        Text(String(editQuantity))
-                            .font(.system(.body, design: .rounded))
-                            .bold()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .padding(8)
-                            .padding(.horizontal, 4)
-                            .frame(minHeight: 32)
-                            .adaptiveGlassBackground(tintStrength: 0.5, shape: editQuantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
                     }
-                    .menuStyle(.borderlessButton)
-                } else {
-                    Menu {
-                        Button("Enable Quantity") { editQuantity = max(1, quantity) }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .padding(7) // to match padding of Text
-                            .frame(minWidth: 32, minHeight: 32)
-                            .adaptiveGlassButton(tintStrength: 0.5)
-                        
-                    }
-                    .menuStyle(.borderlessButton)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .minimumScaleFactor(0.5)
+                        .padding(8)
+                        .frame(minWidth: 32, minHeight: 32)
+                        .adaptiveGlassButton(tintStrength: 0.5)
                 }
+                .menuStyle(.borderlessButton)
             } else {
                 if quantity > 0 {
                     Text(String(quantity))
@@ -602,18 +602,18 @@ struct ItemView: View {
                     
                     TextField("Name", text: $editName)
                         .focused($focusedField, equals: .name)
-                        .disabled(editName.count >= 32)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
-                        .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.clear, lineWidth: 0)
-                        )
+                        .autocapitalization(.words)
+                        .disableAutocorrection(true)
                         .onSubmit {
                             editName = editName.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
+                        .onChange(of: editName) { oldValue, newValue in
+                            if newValue.count >= 32 {
+                                editName = String(newValue.prefix(32))
+                            }
                         }
                 }
             } else {
@@ -636,7 +636,6 @@ struct ItemView: View {
                         
                         TextField("Location", text: $editLocationName)
                             .focused($focusedField, equals: .location)
-                            .disabled(editLocationName.count >= 40)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
@@ -644,6 +643,11 @@ struct ItemView: View {
                             .disableAutocorrection(true)
                             .onSubmit {
                                 editLocationName = editLocationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            .onChange(of: editLocationName) { oldValue, newValue in
+                                if newValue.count >= 40 {
+                                    editLocationName = String(newValue.prefix(40))
+                                }
                             }
                         
                         Button(action: { editLocationName = "" }, label: {
