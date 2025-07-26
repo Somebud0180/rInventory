@@ -78,7 +78,7 @@ struct InventoryView: View {
                                     inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
                                     inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                         .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                }.id(isInventoryGridActive)
+                                }
                             } else {
                                 inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
                                     .transition(.opacity)
@@ -116,7 +116,7 @@ struct InventoryView: View {
                                         ForEach(locations, id: \ .id) { location in
                                             inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                         }
-                                    }.id(isInventoryGridActive)
+                                    }
                                 }
                             }
                         }
@@ -126,7 +126,7 @@ struct InventoryView: View {
                         }
                         
                         // Grid view for items
-                        InventoryGridView(title: "All Items", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, showHiddenCategoriesInGrid: appDefaults.showHiddenCategoriesInGrid, showHiddenLocationsInGrid: appDefaults.showHiddenLocationsInGrid, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                        InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, showHiddenCategoriesInGrid: appDefaults.showHiddenCategoriesInGrid, showHiddenLocationsInGrid: appDefaults.showHiddenLocationsInGrid, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             .padding(.horizontal, -16)
                             .id("\(appDefaults.showHiddenCategoriesInGrid)-\(appDefaults.showHiddenLocationsInGrid)") // Trigger re-render on settings change
                     }
@@ -266,7 +266,7 @@ struct InventoryView: View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                    InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                 } label: {
                     HStack {
                         Text(title)
@@ -299,7 +299,7 @@ struct InventoryView: View {
                             Spacer()
                         } else if filteredItems.count > itemAmount {
                             NavigationLink {
-                                InventoryGridView(title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                                InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 25.0)
@@ -396,16 +396,6 @@ struct InventoryView: View {
             return "Good Afternoon ⛅️"
         default:
             return "Good Evening 🌙"
-        }
-    }
-    
-    /// Handles the deletion of items from the inventory.
-    /// - Parameter offsets: The offsets of the items to delete.
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
         }
     }
     

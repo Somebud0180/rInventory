@@ -17,6 +17,7 @@ struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     @Query private var items: [Item]
@@ -737,7 +738,7 @@ struct ItemView: View {
                 Button(action: {
                     Task {
                         // Delete action using Item instance method
-                        await item.deleteItem(context: modelContext)
+                        await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
                     }
                     dismiss()
                 }) {
@@ -815,7 +816,8 @@ struct ItemView: View {
             categoryName: editCategoryName,
             background: editBackground,
             symbolColor: editSymbolColor,
-            context: modelContext
+            context: modelContext,
+            cloudKitSyncEngine: syncEngine
         )
         
         withAnimation() {
@@ -834,7 +836,7 @@ struct ItemView: View {
     private func updateQuantity(_ newValue: Int) async {
         if newValue >= 0 {
             quantity = newValue
-            await item.updateItem(quantity: newValue, context: modelContext)
+            await item.updateItem(quantity: newValue, context: modelContext, cloudKitSyncEngine: syncEngine)
         }
     }
 }
@@ -854,6 +856,7 @@ extension View {
 }
 
 #Preview {
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext)
     @Previewable @State var item = Item(
         name: "Sample Item",
         quantity: 1,
@@ -864,6 +867,6 @@ extension View {
         symbolColor: .yellow
     )
     
-    return ItemView(item: $item)
+    return ItemView(syncEngine:syncEngine, item: $item)
 }
 

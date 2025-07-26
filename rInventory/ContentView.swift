@@ -59,7 +59,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if !(selectedItem == nil), let selectedItem = selectedItem {
-                    ItemView(item: bindingForItem(selectedItem))
+                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem))
                         .transition(.blurReplace)
                 } else {
                     ProgressView("Loading item...")
@@ -68,6 +68,7 @@ struct ContentView: View {
             .fullScreenCover(isPresented: $showInventoryGridView, onDismiss: { continuedActivity = nil }) {
                 if let activity = continuedActivity {
                     InventoryGridView(
+                        syncEngine: syncEngine,
                         title: activity.userInfo?[inventoryGridTitleKey] as? String ?? "Inventory",
                         predicate: activity.userInfo?[inventoryGridPredicateKey] as? String,
                         showCategoryPicker: activity.userInfo?[inventoryGridCategoryKey] as? Bool ?? false,

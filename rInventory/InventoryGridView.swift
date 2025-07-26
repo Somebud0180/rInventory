@@ -19,6 +19,7 @@ struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.editMode) private var editMode
     
+    @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var modelItems: [Item]
     @Query private var modelCategories: [Category]
     @Query private var modelLocations: [Location]
@@ -57,7 +58,8 @@ struct InventoryGridView: View {
     // Clean up viewModel on disappear
     @State private var hasAppeared = false
     
-    init(title: String, predicate: String? = nil, showCategoryPicker: Bool = false, showSortPicker: Bool = false, showHiddenCategoriesInGrid: Bool = false, showHiddenLocationsInGrid: Bool = false,  selectedItem: Binding<Item?>, isInventoryActive: Binding<Bool>, isInventoryGridActive: Binding<Bool>) {
+    init(syncEngine: CloudKitSyncEngine, title: String, predicate: String? = nil, showCategoryPicker: Bool = false, showSortPicker: Bool = false, showHiddenCategoriesInGrid: Bool = false, showHiddenLocationsInGrid: Bool = false,  selectedItem: Binding<Item?>, isInventoryActive: Binding<Bool>, isInventoryGridActive: Binding<Bool>) {
+        _syncEngine = StateObject(wrappedValue: syncEngine)
         self.title = title
         self.predicate = predicate
         self.showCategoryPicker = showCategoryPicker
@@ -99,7 +101,7 @@ struct InventoryGridView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
                             Task {
-                                await viewModel.deleteSelectedItems(modelContext: modelContext, allItems: modelItems)
+                                await viewModel.deleteSelectedItems(modelContext: modelContext, cloudKitSyncEngine: syncEngine, allItems: modelItems)
                             }
                         } label: {
                             Image(systemName: "trash")
@@ -237,10 +239,11 @@ struct InventoryGridView: View {
 }
 
 #Preview {
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext)
     @Previewable @State var title: String = "All Items"
     @Previewable @State var selectedItem: Item? = nil
     @Previewable @State var isInventoryActive: Bool = true
     @Previewable @State var isInventoryGridActive: Bool = true
     
-    InventoryGridView(title: title, selectedItem: $selectedItem, isInventoryActive: $isInventoryActive, isInventoryGridActive: $isInventoryGridActive)
+    InventoryGridView(syncEngine: syncEngine, title: title, selectedItem: $selectedItem, isInventoryActive: $isInventoryActive, isInventoryGridActive: $isInventoryGridActive)
 }

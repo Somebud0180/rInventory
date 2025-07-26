@@ -55,6 +55,11 @@ public class CloudKitSyncEngine: ObservableObject {
     // Logger for debug information
     private let logger = Logger(subsystem: "com.lagera.Inventory", category: "CloudKitSync")
     
+    // Tombstone management
+    private var tombstones: [String: Date] = [:]
+    private let tombstoneKey = "CloudKitTombstones"
+    private let tombstoneRetentionDays = 30
+    
     // MARK: - Initialization
     public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.lagera.Inventory") {
         self.modelContext = modelContext
@@ -66,6 +71,7 @@ public class CloudKitSyncEngine: ObservableObject {
             try? await createZonesIfNeeded()
             setupSyncEngine()
             startAutoSync()
+            loadTombstones()
         }
     }
     
@@ -92,6 +98,16 @@ public class CloudKitSyncEngine: ObservableObject {
     /// Update the model context (useful when environment changes)
     public func updateModelContext(_ newContext: ModelContext) {
         self.modelContext = newContext
+    }
+    
+    /// Add a record ID to the tombstone list (public for DataModel)
+    public func addTombstone(_ recordID: String) {
+        addToTombstones(recordID)
+        
+        // Run a quick cleanup to immediately handle any inconsistencies
+        Task {
+            await cleanupOrphanedData()
+        }
     }
     
     // MARK: - Private Methods
@@ -484,6 +500,85 @@ public class CloudKitSyncEngine: ObservableObject {
         try? modelContext.save()
     }
     
+    // MARK: - Tombstone Management
+    
+    /// Load deleted record IDs from UserDefaults
+    private func loadTombstones() {
+        if let savedData = UserDefaults.standard.data(forKey: tombstoneKey),
+           let savedTombstones = try? JSONDecoder().decode([String: Date].self, from: savedData) {
+            self.tombstones = savedTombstones
+            // Purge old tombstones
+            self.purgeTombstones()
+        }
+    }
+    
+    /// Save deleted record IDs to UserDefaults
+    private func saveTombstones() {
+        if let encodedData = try? JSONEncoder().encode(tombstones) {
+            UserDefaults.standard.set(encodedData, forKey: tombstoneKey)
+        }
+    }
+    
+    /// Add a record ID to the tombstone list
+    private func addToTombstones(_ recordID: String) {
+        tombstones[recordID] = Date()
+        saveTombstones()
+    }
+    
+    /// Check if a record ID is in the tombstone list
+    private func isInTombstones(_ recordID: String) -> Bool {
+        return tombstones[recordID] != nil
+    }
+    
+    /// Remove expired tombstones (older than retention period)
+    private func purgeTombstones() {
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -tombstoneRetentionDays, to: Date())!
+        tombstones = tombstones.filter { $0.value > cutoffDate }
+        saveTombstones()
+    }
+    
+    /// Comprehensive cleanup of orphaned relationships and invalid data
+    private func cleanupOrphanedData() async {
+        logger.info("Performing safe orphaned data cleanup")
+        
+        // IMPORTANT: Don't clean up when not synced properly
+        guard isAccountAvailable else {
+            logger.info("Skipping cleanup - CloudKit account not available")
+            return
+        }
+        
+        // Only clean up if we've had at least one successful sync
+        guard lastSyncDate != nil else {
+            logger.info("Skipping cleanup - No successful sync yet")
+            return
+        }
+        
+        // Clean up items that are in the tombstone list (these are definitively deleted)
+        let itemDescriptor = FetchDescriptor<Item>()
+        if let items = try? modelContext.fetch(itemDescriptor) {
+            for item in items {
+                // Only delete items that are in the tombstone list
+                if isInTombstones(item.id.uuidString) {
+                    logger.info("Removing tombstoned item: \(item.id)")
+                    modelContext.delete(item)
+                }
+            }
+        }
+        
+        // Instead of automatically deleting empty categories/locations,
+        // only do so if they've been empty for multiple sync cycles
+        // This requires tracking empty categories/locations over time,
+        // which would need to be implemented as a separate feature.
+        
+        // Save changes
+        try? modelContext.save()
+        
+        // Clean up duplicates as a final step - this is still safe to do
+        cleanupDuplicateItems()
+        cleanupDuplicateCategories()
+        cleanupDuplicateLocations()
+    }
+    
     deinit {
         syncTimer?.invalidate()
     }
@@ -535,6 +630,9 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
             for deletion in changes.deletions {
                 let recordID = deletion.recordID
                 let recordName = recordID.recordName
+                
+                // Add to tombstones to prevent reappearing
+                addToTombstones(recordName)
                 
                 if let uuid = UUID(uuidString: recordName) {
                     if recordID.zoneID == itemsZoneID {

@@ -93,10 +93,10 @@ class InventoryViewModel: ObservableObject {
         }
     }
     
-    func deleteSelectedItems(modelContext: ModelContext, allItems: [Item]) async {
+    func deleteSelectedItems(modelContext: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine, allItems: [Item]) async {
         let itemsToDelete = allItems.filter { selectedItemIDs.contains($0.id) }
         for item in itemsToDelete {
-            await item.deleteItem(context: modelContext)
+            await item.deleteItem(context: modelContext, cloudKitSyncEngine: cloudKitSyncEngine)
         }
         
         do {
