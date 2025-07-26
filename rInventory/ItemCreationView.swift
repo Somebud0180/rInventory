@@ -68,12 +68,20 @@ struct ItemCreationView: View {
                             .padding(.bottom, 4)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                            .disabled(name.count >= 32)
+                            .onSubmit {
+                                name = name.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
                         
                         HStack(alignment: .center, spacing: 12) {
                             TextField("Location", text: $locationName)
                                 .font(.body)
                                 .autocapitalization(.words)
                                 .disableAutocorrection(true)
+                                .disabled(locationName.count >= 40)
+                                .onSubmit {
+                                    locationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                                }
                                 .onChange(of: locationName) { oldValue, newValue in
                                     if let found = locations.first(where: { $0.name == newValue }) {
                                         locationColor = found.color
@@ -98,6 +106,10 @@ struct ItemCreationView: View {
                             .font(.body)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                            .disabled(categoryName.count >= 40)
+                            .onSubmit {
+                                categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
                         
                         filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
                     }

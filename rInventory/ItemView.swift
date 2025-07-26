@@ -309,10 +309,8 @@ struct ItemView: View {
                     )
                 )
                 
-                if isEditing {
-                    toolbarView
-                        .padding(.bottom, 8)
-                }
+                toolbarView
+                    .padding(.bottom, 8)
             }
             .frame(width: geometry.size.width * 0.48, height: geometry.size.height)
             
@@ -350,6 +348,14 @@ struct ItemView: View {
             // Card - contains all the item details and controls
             ZStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 8) {
+                    if animateFocused == nil && !isCollapsed {
+                        HStack {
+                            toolbarView
+                            Spacer()
+                            quantitySection
+                        }
+                    }
+                    
                     if !isEditing {
                         Button(action: { withAnimation { isCollapsed.toggle() }}) {
                             Image(systemName: "chevron.up")
@@ -359,19 +365,12 @@ struct ItemView: View {
                     }
                     
                     if (animateFocused == nil || animateFocused == .category) && !isCollapsed {
-                        HStack(alignment: .center) {
-                            categorySection
-                            Spacer()
-                            quantitySection
-                        }
+                        categorySection
                     }
                     
                     if animateFocused == nil || animateFocused == .name {
                         HStack() {
                             nameSection
-                            if isEditing {
-                                toolbarView
-                            }
                         }
                     }
                     
@@ -502,19 +501,22 @@ struct ItemView: View {
     private var categorySection: some View {
         Group {
             if isEditing {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
                             .foregroundStyle(.secondary)
                         
                         TextField("Category", text: $editCategoryName)
                             .focused($focusedField, equals: .category)
+                            .disabled(editCategoryName.count >= 40)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
-                            .minimumScaleFactor(0.5)
+                            .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
-                            .frame(minHeight: 22)
+                            .onSubmit {
+                                editCategoryName = editCategoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
                         
                         Button(action: { editCategoryName = "" }, label: {
                             Image(systemName: "xmark")
@@ -600,15 +602,19 @@ struct ItemView: View {
                     
                     TextField("Name", text: $editName)
                         .focused($focusedField, equals: .name)
+                        .disabled(editName.count >= 32)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(0.75)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.clear, lineWidth: 0)
                         )
+                        .onSubmit {
+                            editName = editName.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
                 }
             } else {
                 Text(name)
@@ -623,18 +629,22 @@ struct ItemView: View {
     private var locationSection: some View {
         Group {
             if isEditing {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .center, spacing: 8) {
                         Image(systemName: "pencil")
                             .foregroundStyle(.secondary)
                         
                         TextField("Location", text: $editLocationName)
                             .focused($focusedField, equals: .location)
+                            .disabled(editLocationName.count >= 40)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                            .onSubmit {
+                                editLocationName = editLocationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
                         
                         Button(action: { editLocationName = "" }, label: {
                             Image(systemName: "xmark")

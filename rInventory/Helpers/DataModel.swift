@@ -112,9 +112,14 @@ extension Item {
         // Fetch existing items
         let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
         
+        // Trim and validate names
+        let trimmedName = name.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        
         // Find or create location and category
-        let location = !locationName.isEmpty ? Location.findOrCreate(name: locationName, color: locationColor, context: context) : nil
-        let category = !categoryName.isEmpty ? Category.findOrCreate(name: categoryName, context: context) : nil
+        let trimmedLocationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCategoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        let location = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, context: context) : nil
+        let category = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : nil
         
         // Extract background
         let (imageData, symbol, usedSymbolColor): (Data?, String?, Color?) = {
@@ -130,7 +135,7 @@ extension Item {
         let sortOrder = (items.map { $0.sortOrder }.max() ?? -1) + 1
         
         let item = Item(
-            name: name,
+            name: trimmedName,
             quantity: max(quantity, 0),
             location: location,
             category: category,
@@ -157,21 +162,24 @@ extension Item {
         context: ModelContext,
         cloudKitSyncEngine: CloudKitSyncEngine? = nil
     ) async {
+        // Trim and validate name
+        let trimmedName = name?.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        
         // Find or create Location
         var newLocation: Location?
         if let locationName = locationName, !locationName.isEmpty, let locationColor = locationColor {
-            let trimmedLocationName = locationName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedLocationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
             newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, context: context) : nil
         }
         
         // Find or create Category
         var newCategory: Category?
         if let categoryName = categoryName, !categoryName.isEmpty {
-            let trimmedCategoryName = categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedCategoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
             newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : nil
         }
         
-        if let name = name {
+        if let name = trimmedName {
             self.name = name
         }
         if let quantity = quantity {

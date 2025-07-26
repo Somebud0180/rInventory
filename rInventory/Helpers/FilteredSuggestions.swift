@@ -9,6 +9,10 @@ import Foundation
 import SwiftUI
 import SwiftData
 
+private func isColorWhite(_ color: Color) -> Bool {
+    color.luminance() >= 0.95
+}
+
 private func filteredSuggestions<T>(_ items: [T], keyPath: KeyPath<T, String>, filter: String) -> [String] {
     let names = Set(items.map { $0[keyPath: keyPath] })
     let sorted = names.sorted()
@@ -39,17 +43,32 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
         }
     }()
     
+    var content: some View {
+        HStack {
+            ForEach(suggestions, id: \.self) { suggestion in
+                let color = getColor(suggestion)
+                Button(suggestion) {
+                    filter.wrappedValue = suggestion
+                }
+                .padding(4)
+                .padding(.horizontal, 4)
+                .foregroundColor(isColorWhite(color) ? .black : .primary)
+                .overlay(Capsule().stroke(isColorWhite(color) ? Color.gray : Color.clear, lineWidth: isColorWhite(color) ? 1 : 0))
+                .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
+            }
+        }
+    }
+    
     return AnyView(
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                ForEach(suggestions, id: \.self) { suggestion in
-                    Button(suggestion) {
-                        filter.wrappedValue = suggestion
-                    }
-                    .padding(4)
-                    .padding(.horizontal, 4)
-                    .adaptiveGlassBackground(tintStrength: 0.5, tintColor: getColor(suggestion))
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer {
+                    content
+                        .padding(1)
                 }
+            } else {
+                content
+                    .padding(1)
             }
         }
             .clipShape(Capsule())
