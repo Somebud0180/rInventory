@@ -174,9 +174,9 @@ extension Item {
         
         // Find or create Category
         var newCategory: Category?
-        if let categoryName = categoryName, !categoryName.isEmpty {
+        if let categoryName = categoryName {
             let trimmedCategoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : nil
+            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : Category(name: "nil")
         }
         
         if let name = trimmedName {
@@ -192,10 +192,13 @@ extension Item {
         }
         if let category = newCategory {
             let oldCategory = self.category
-            self.category = category
+            if category.name == "nil" {
+                self.category = nil
+            } else {
+                self.category = category
+            }
             oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         }
-        
         if let background = background {
             switch background {
             case let .symbol(symbol):
