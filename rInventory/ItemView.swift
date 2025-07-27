@@ -11,6 +11,39 @@ import SwiftData
 import SwiftyCrop
 import PhotosUI
 
+/// View for displaying either an image or a symbol background with a mask.
+struct ItemBackgroundView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.colorScheme) private var colorScheme
+    let background: ItemCardBackground
+    let symbolColor: Color?
+    let mask: AnyView
+    
+    var body: some View {
+        switch background {
+        case .image(let data):
+            AsyncItemImage(imageData: data)
+                .scaledToFill()
+                .ignoresSafeArea(.all)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .mask(mask)
+        case .symbol(let symbol):
+            Image(systemName: symbol)
+                .resizable()
+                .scaledToFit()
+                .ignoresSafeArea(.all)
+                .padding(.top,
+                         (UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular)
+                         ? 16
+                         : 64)
+                .padding(.horizontal, 22)
+                .foregroundStyle(symbolColor ?? .white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .mask(mask)
+        }
+    }
+}
+
 struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -193,30 +226,6 @@ struct ItemView: View {
         }
     }
     
-    private var backgroundGradient: AnyView {
-        return AnyView(
-            ZStack {
-                if case let .image(data) = background, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .blur(radius: 44)
-                }
-                
-                Rectangle()
-                    .foregroundStyle(backgroundLinearGradient)
-                    .ignoresSafeArea()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            })
-    }
-    
-    private var backgroundLinearGradient: LinearGradient {
-        let secondaryColor = (colorScheme == .dark) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
-        return LinearGradient(colors: [.accentDark.opacity(0.9), secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-    
     private func initializeDisplayVariables() {
         name = item.name
         quantity = item.quantity
@@ -347,7 +356,7 @@ struct ItemView: View {
             
             // Card - contains all the item details and controls
             ZStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     if !isEditing {
                         Button(action: { withAnimation { isCollapsed.toggle() }}) {
                             Image(systemName: "chevron.up")
@@ -432,39 +441,31 @@ struct ItemView: View {
             Spacer()
         }
         .frame(maxHeight: geometry.size.height)
-        .padding(.trailing, -geometry.safeAreaInsets.bottom)
     }
     
-    /// View for displaying either an image or a symbol background with a mask.
-    private struct ItemBackgroundView: View {
-        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-        let background: ItemCardBackground
-        let symbolColor: Color?
-        let mask: AnyView
-        
-        var body: some View {
-            switch background {
-            case .image(let data):
-                AsyncItemImage(imageData: data)
-                    .scaledToFill()
-                    .ignoresSafeArea(.all)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .mask(mask)
-            case .symbol(let symbol):
-                Image(systemName: symbol)
-                    .resizable()
-                    .scaledToFit()
-                    .ignoresSafeArea(.all)
-                    .padding(.top,
-                             (UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular)
-                             ? 16
-                             : 64)
-                    .padding(.horizontal, 22)
-                    .foregroundStyle(symbolColor ?? .white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .mask(mask)
+    private var backgroundGradient: AnyView {
+        return AnyView(
+            ZStack {
+                if case let .image(data) = background, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .blur(radius: 44)
+                }
+                
+                Rectangle()
+                    .foregroundStyle(backgroundLinearGradient)
+                    .ignoresSafeArea()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }
+        )
+    }
+    
+    private var backgroundLinearGradient: LinearGradient {
+        let secondaryColor = (colorScheme == .dark) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
+        return LinearGradient(colors: [.accentDark.opacity(0.9), secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
     private var toolbarView: some View {
@@ -573,7 +574,7 @@ struct ItemView: View {
                         .font(.title3)
                         .minimumScaleFactor(0.5)
                         .padding(8)
-                        .frame(minWidth: 32, minHeight: 32)
+                        .frame(minWidth: isPad ? 44 : 32, minHeight: isPad ? 44 : 32)
                         .adaptiveGlassButton(tintStrength: 0.5)
                 }
                 .menuStyle(.borderlessButton)
@@ -684,139 +685,125 @@ struct ItemView: View {
     }
     
     private var quantityStepperSection: some View {
-        Group {
-            if isEditing {
-                if editQuantity > 0 {
-                    Stepper(value: $editQuantity, in: 1...1000, step: 1) {
-                        Text("Quantity: \(editQuantity)")
-                            .font(.system(.body, design: .rounded))
-                            .bold()
-                            .minimumScaleFactor(0.75)
-                    }
-                    .minimumScaleFactor(0.75)
-                    .padding(.leading, 8)
-                    .padding(8)
-                    .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
+        let quantityVar = isEditing ? editQuantity : quantity
+        let quantityBind = isEditing ? $editQuantity : $quantity
+        return Group {
+            if quantityVar > 0 {
+                Stepper(value: quantityBind, in: 1...1000, step: 1) {
+                    Text("Quantity: \(quantityVar)")
+                        .font(.system(.body, design: .rounded))
+                        .bold()
+                        .minimumScaleFactor(0.75)
                 }
-            } else {
-                if quantity > 0 {
-                    Stepper(value: $quantity, in: 1...1000, step: 1) {
-                        Text("Quantity: \(quantity)")
-                            .font(.system(.body, design: .rounded))
-                            .bold()
-                            .minimumScaleFactor(0.75)
+                .onChange(of: quantity) {
+                    // Only run updateQuantity for real quantity
+                    Task {
+                        await updateQuantity(quantity)
                     }
-                    .onChange(of: quantity) {
-                        Task {
-                            await updateQuantity(quantity)
-                        }
-                    }
-                    .minimumScaleFactor(0.75)
-                    .padding(.leading, 8)
-                    .padding(8)
-                    .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 }
+                .minimumScaleFactor(0.75)
+                .padding(.leading, 8)
+                .padding(8)
+                .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
             }
         }
         .padding(.vertical, 4)
     }
     
     private var buttonSection: some View {
-        Group {
-            HStack {
-                if !isEditing {
-                    Button(action: editItem) {
-                        Label("Save Edits", systemImage: "pencil")
-                            .labelStyle(.iconOnly)
-                            .foregroundStyle(.accentLight)
-                            .frame(minWidth: 25, minHeight: 24)
-                            .bold()
-                            .minimumScaleFactor(0.5)
-                            .padding()
-                    }
-                    .adaptiveGlassButton()
-                    .foregroundStyle(.accent)
-                } else {
-                    Button(action: { Task { await saveItem() }}) {
-                        Label("Save Edits", systemImage: "pencil")
-                            .labelStyle(.titleAndIcon)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 24)
-                            .bold()
-                            .minimumScaleFactor(0.5)
-                            .padding()
-                    }
-                    .adaptiveGlassEditButton(isEditing)
-                }
-                
-                Button(action: {
-                    Task {
-                        // Delete action using Item instance method
-                        await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
-                    }
-                    dismiss()
-                }) {
-                    Label("Delete", systemImage: "trash")
-                        .labelStyle(.iconOnly)
-                        .frame(maxWidth: 24, minHeight: 24)
-                        .bold()
-                        .minimumScaleFactor(0.5)
-                        .padding()
-                }
-                .adaptiveGlassButton()
-                .foregroundStyle(.red)
-                
-                if !isEditing {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Label("Dismiss", systemImage: "xmark")
-                            .labelStyle(.titleOnly)
-                            .frame(maxWidth: .infinity, minHeight: 24)
-                            .bold()
-                            .minimumScaleFactor(0.5)
-                            .padding()
-                    }
-                    .adaptiveGlassButton()
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                } else {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Label("Dismiss", systemImage: "xmark")
-                            .labelStyle(.iconOnly)
-                            .frame(maxWidth: 24, minHeight: 24)
-                            .bold()
-                            .minimumScaleFactor(0.5)
-                            .padding()
-                    }
-                    .adaptiveGlassButton()
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                }
+        HStack {
+            if !isEditing {
+                editButton
+            } else {
+                saveButton
             }
+
+            deleteButton
+
+            dismissButton
         }
-        .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
+
+    // MARK: - Button Helpers
+    private var editButton: some View {
+        Button(action: editItem) {
+            Label("Save Edits", systemImage: "pencil")
+                .labelStyle(.iconOnly)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.accentLight)
+                .bold()
+                .frame(maxWidth: 24, minHeight: 24)
+                .padding()
+        }
+        .adaptiveGlassButton()
+    }
+
+    private var saveButton: some View {
+        Button(action: { Task { await saveItem() }}) {
+            Label("Save Edits", systemImage: "pencil")
+                .labelStyle(.titleAndIcon)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.white)
+                .bold()
+                .frame(maxWidth: .infinity, minHeight: 24)
+                .padding()
+        }
+        .adaptiveGlassEditButton(isEditing)
+    }
+
+    private var deleteButton: some View {
+        Button(action: {
+            Task {
+                await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
+            }
+            dismiss()
+        }) {
+            Label("Delete", systemImage: "trash")
+                .labelStyle(.iconOnly)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.red)
+                .bold()
+                .frame(maxWidth: 24, minHeight: 24)
+                .padding()
+        }
+        .adaptiveGlassButton()
+    }
+
+    private var dismissButton: some View {
+        Button(action: { dismiss() }) {
+            Label("Dismiss", systemImage: "xmark")
+                .if(isEditing) { $0.labelStyle(.iconOnly) }
+                .if(!isEditing) { $0.labelStyle(.titleOnly) }
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+                .minimumScaleFactor(0.5)
+                .bold()
+                .frame(maxWidth: isEditing ? 24 : .infinity, minHeight: 24)
+                .padding()
+        }
+        .adaptiveGlassButton()
+    }
     
+    // MARK: - Functional Helpers
     private func editItem() {
+        // Load current item values into edit variables
+        editName = item.name
+        editQuantity = item.quantity
+        editLocationName = item.location?.name ?? "The Void"
+        editLocationColor = item.location?.color ?? .gray
+        editCategoryName = item.category?.name ?? ""
+        switch background {
+        case .symbol(let symbol):
+            editBackground = .symbol(symbol)
+            editSymbolColor = symbolColor ?? .accentColor
+        case .image(let data):
+            editBackground = .image(data)
+            editSymbolColor = nil
+        }
+        
         withAnimation() {
             isEditing = true
             isCollapsed = false
-            // Load current item values into edit variables
-            editName = item.name
-            editQuantity = item.quantity
-            editLocationName = item.location?.name ?? "The Void"
-            editLocationColor = item.location?.color ?? .gray
-            editCategoryName = item.category?.name ?? ""
-            switch background {
-            case .symbol(let symbol):
-                editBackground = .symbol(symbol)
-                editSymbolColor = symbolColor ?? .accentColor
-            case .image(let data):
-                editBackground = .image(data)
-                editSymbolColor = nil
-            }
         }
     }
     
@@ -834,10 +821,6 @@ struct ItemView: View {
             cloudKitSyncEngine: syncEngine
         )
         
-        withAnimation() {
-            isEditing = false
-        }
-        
         // Update display variables from saved data
         name = editName
         quantity = max(editQuantity, 0) // Ensure quantity is non-negative
@@ -845,6 +828,10 @@ struct ItemView: View {
         category = Category(name: editCategoryName)
         background = editBackground
         symbolColor = editSymbolColor
+        
+        withAnimation() {
+            isEditing = false
+        }
     }
     
     private func updateQuantity(_ newValue: Int) async {
