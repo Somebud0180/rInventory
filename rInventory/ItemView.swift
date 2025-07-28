@@ -22,24 +22,29 @@ struct ItemBackgroundView: View {
     var body: some View {
         switch background {
         case .image(let data):
-            AsyncItemImage(imageData: data)
-                .scaledToFill()
-                .ignoresSafeArea(.all)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .mask(mask)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                AsyncItemImage(imageData: data)
+                    .scaledToFit()
+                    .ignoresSafeArea(.all)
+                    .mask(mask)
+            } else {
+                AsyncItemImage(imageData: data)
+                    .scaledToFill()
+                    .ignoresSafeArea(.all)
+                    .mask(mask)
+            }
         case .symbol(let symbol):
             Image(systemName: symbol)
                 .resizable()
                 .scaledToFit()
+                .foregroundStyle(symbolColor ?? .white)
+                .mask(mask)
                 .ignoresSafeArea(.all)
                 .padding(.top,
                          (UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular)
                          ? 16
                          : 64)
                 .padding(.horizontal, 22)
-                .foregroundStyle(symbolColor ?? .white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .mask(mask)
         }
     }
 }
@@ -118,32 +123,28 @@ struct ItemView: View {
                             iPadBackground(geometry)
                                 .ignoresSafeArea(.keyboard)
                         } else if isLandscape {
-                            GeometryReader { geometry in
-                                if #available(iOS 26, *) {
-                                    GlassEffectContainer {
-                                        landscapeLayout(geometry)
-                                            .ignoresSafeArea(.keyboard)
-                                            .preferredColorScheme(.dark)
-                                    }
-                                } else {
+                            if #available(iOS 26, *) {
+                                GlassEffectContainer {
                                     landscapeLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
                                         .preferredColorScheme(.dark)
                                 }
+                            } else {
+                                landscapeLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                                    .preferredColorScheme(.dark)
                             }
                         } else {
-                            GeometryReader { geometry in
-                                if #available(iOS 26, *) {
-                                    GlassEffectContainer {
-                                        portraitLayout(geometry)
-                                            .ignoresSafeArea(.keyboard)
-                                            .preferredColorScheme(.dark)
-                                    }
-                                } else {
+                            if #available(iOS 26, *) {
+                                GlassEffectContainer {
                                     portraitLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
                                         .preferredColorScheme(.dark)
                                 }
+                            } else {
+                                portraitLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                                    .preferredColorScheme(.dark)
                             }
                         }
                     }
@@ -433,10 +434,21 @@ struct ItemView: View {
                         endPoint: .bottom
                     )
                     .blur(radius: 12)
-                    .frame(width: geometry.size.width, height: geometry.size.height * 0.75)
+                    .mask(
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .white, location: 0.2),
+                                .init(color: .white, location: 0.8),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .blur(radius: 12)
+                    )
                 )
             )
-            .frame(width: geometry.size.width, height: geometry.size.height * 0.75)
             
             Spacer()
         }

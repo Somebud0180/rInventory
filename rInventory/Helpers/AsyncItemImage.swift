@@ -19,7 +19,6 @@ struct AsyncItemImage: View {
             if let uiImage = uiImage {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .scaledToFill()
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
