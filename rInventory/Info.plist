@@ -4,16 +4,15 @@
 <dict>
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>com.lagera.Inventory.viewingInventory</string>
+		<string>LocateItemIntent</string>
 		<string>com.lagera.Inventory.managingSettings</string>
 		<string>com.lagera.Inventory.searchingInventory</string>
 		<string>com.lagera.Inventory.viewingGrid</string>
+		<string>com.lagera.Inventory.viewingInventory</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>
