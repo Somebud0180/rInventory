@@ -11,6 +11,14 @@ import CloudKit
 import SwiftyCrop
 import Combine
 
+extension URL {
+    static var applicationGroupContainerURL: URL {
+        FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.com.lagera.Inventory"
+        ) ?? URL(fileURLWithPath: NSTemporaryDirectory())
+    }
+}
+
 // MARK: - AppDefaults for App Configuration
 class AppDefaults: ObservableObject {
     static let shared = AppDefaults()
@@ -107,8 +115,12 @@ struct InventoryApp: App {
         let schema = Schema([
             Item.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        
+        let containerURL = URL.applicationGroupContainerURL
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            url: containerURL.appendingPathComponent("rInventory.store"),
+            cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
+        )
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {

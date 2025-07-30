@@ -10,11 +10,16 @@ import Foundation
 import Intents
 import SwiftData
 
-class rInventoryIntentHandler: NSObject, @MainActor LocateItemIntentHandling {
+class rInventoryIntentHandler: NSObject, LocateItemIntentHandling {
+    let modelContainer: ModelContainer
+    
+    init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+    }
     
     // MARK: - Intent Handling
     
-    @MainActor func handle(intent: LocateItemIntent, completion: @escaping (LocateItemIntentResponse) -> Void) {
+    func handle(intent: LocateItemIntent, completion: @escaping (LocateItemIntentResponse) -> Void) {
         guard let itemName = intent.itemName else {
             let response = LocateItemIntentResponse(code: .failure, userActivity: nil)
             completion(response)
@@ -33,7 +38,7 @@ class rInventoryIntentHandler: NSObject, @MainActor LocateItemIntentHandling {
     
     // MARK: - Resolution Methods
     
-    @MainActor func resolveItemName(for intent: LocateItemIntent, with completion: @escaping (INStringResolutionResult) -> Void) {
+    func resolveItemName(for intent: LocateItemIntent, with completion: @escaping (INStringResolutionResult) -> Void) {
         guard let itemName = intent.itemName, !itemName.isEmpty else {
             completion(INStringResolutionResult.needsValue())
             return
@@ -59,13 +64,13 @@ class rInventoryIntentHandler: NSObject, @MainActor LocateItemIntentHandling {
     /// Find the location of an item with the given name
     /// - Parameter itemName: The name of the item to locate
     /// - Returns: The location name if found, nil otherwise
-    @MainActor private func findItemLocation(named itemName: String) -> String? {
+    private func findItemLocation(named itemName: String) -> String? {
         do {
+            let context = ModelContext(modelContainer)
             let descriptor = FetchDescriptor<Item>(predicate: #Predicate { item in item.name.localizedStandardContains(itemName)
             })
             
-            let container = try getModelContainer()
-            let items = try container.mainContext.fetch(descriptor)
+            let items = try context.fetch(descriptor)
             
             if let item = items.first, let location = item.location {
                 return location.name
@@ -81,13 +86,14 @@ class rInventoryIntentHandler: NSObject, @MainActor LocateItemIntentHandling {
     /// Find items with names matching the given string
     /// - Parameter itemName: The name to search for
     /// - Returns: Array of matching item names
-    @MainActor private func findMatchingItems(named itemName: String) -> [String] {
+    private func findMatchingItems(named itemName: String) -> [String] {
         do {
-            let descriptor = FetchDescriptor<Item>(predicate: #Predicate { item in item.name.localizedStandardContains(itemName)
+            let context = ModelContext(modelContainer)
+            let descriptor = FetchDescriptor<Item>(predicate: #Predicate { item in
+                item.name.localizedStandardContains(itemName)
             })
             
-            let container = try getModelContainer()
-            let items = try container.mainContext.fetch(descriptor)
+            let items = try context.fetch(descriptor)
             
             return items.map { $0.name }
         } catch {
@@ -95,30 +101,10 @@ class rInventoryIntentHandler: NSObject, @MainActor LocateItemIntentHandling {
             return []
         }
     }
-    
-    /// Get the ModelContainer for accessing SwiftData
-    /// - Returns: The ModelContainer for the app
-    private func getModelContainer() throws -> ModelContainer {
-        // Use a shared container URL to access the same data as the main app
-        let containerURL = URL.applicationGroupContainerURL
-        
-        let schema = Schema([
-            Item.self,
-            Location.self,
-            Category.self
-        ])
-        
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
-        )
-        
-        return try ModelContainer(for: schema, configurations: [modelConfiguration])
-    }
 }
 
 // MARK: - URL Extension
+
 extension URL {
     static var applicationGroupContainerURL: URL {
         // Replace with your actual app group identifier
@@ -129,6 +115,7 @@ extension URL {
 }
 
 // MARK: - Model Definitions
+
 @Model
 final class Item {
     var id: UUID = UUID()

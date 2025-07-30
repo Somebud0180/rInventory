@@ -22,7 +22,7 @@
 			<key>INIntentConfigurable</key>
 			<true/>
 			<key>INIntentDescription</key>
-			<string>Find where an item is via its name</string>
+			<string>Find where an item is located via its name</string>
 			<key>INIntentDescriptionID</key>
 			<string>GERmJd</string>
 			<key>INIntentEligibleForWidgets</key>
@@ -42,7 +42,7 @@
 					<key>INIntentParameterCombinationSupportsBackgroundExecution</key>
 					<true/>
 					<key>INIntentParameterCombinationTitle</key>
-					<string>Where is this ${itemName} in my inventory</string>
+					<string>Where is ${itemName} in my inventory</string>
 					<key>INIntentParameterCombinationTitleID</key>
 					<string>WV3gD5</string>
 					<key>INIntentParameterCombinationUpdatesLinked</key>
@@ -155,6 +155,8 @@
 				</array>
 				<key>INIntentResponseLastParameterTag</key>
 				<integer>3</integer>
+				<key>INIntentResponseOutput</key>
+				<string>locationName</string>
 				<key>INIntentResponseParameters</key>
 				<array>
 					<dict>
@@ -188,7 +190,7 @@
 				</array>
 			</dict>
 			<key>INIntentTitle</key>
-			<string>Locate Item</string>
+			<string>Find Item</string>
 			<key>INIntentTitleID</key>
 			<string>qqsbmH</string>
 			<key>INIntentType</key>

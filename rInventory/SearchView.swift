@@ -51,7 +51,7 @@ struct SearchView: View {
         // Apply search text
         if !searchText.isEmpty {
             filtered = filtered.filter { item in
-                item.name.localizedCaseInsensitiveContains(searchText)
+                item.name.localizedStandardContains(searchText)
             }
         }
         
