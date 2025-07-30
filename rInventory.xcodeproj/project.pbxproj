@@ -75,6 +75,13 @@
 			);
 			target = AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */;
 		};
+		AAA4E02D2E3A7B310060DD23 /* Exceptions for "rInventoryIntent" folder in "rInventory" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LocateItem.swift,
+			);
+			target = AAC9D5922E16056A0066997C /* rInventory */;
+		};
 		AAC9D5B62E16056D0066997C /* Exceptions for "rInventory" folder in "rInventory" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -88,6 +95,7 @@
 		AA51D6922E38EC1600D6F5FB /* rInventoryIntent */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				AAA4E02D2E3A7B310060DD23 /* Exceptions for "rInventoryIntent" folder in "rInventory" target */,
 				AA51D69C2E38EC1600D6F5FB /* Exceptions for "rInventoryIntent" folder in "rInventoryIntent" target */,
 			);
 			path = rInventoryIntent;

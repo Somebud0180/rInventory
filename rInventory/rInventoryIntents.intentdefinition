@@ -152,6 +152,18 @@
 						<key>INIntentResponseCodeName</key>
 						<string>failure</string>
 					</dict>
+					<dict>
+						<key>INIntentResponseCodeConciseFormatString</key>
+						<string>An error occured while trying to find that item.</string>
+						<key>INIntentResponseCodeConciseFormatStringID</key>
+						<string>lbNrxC</string>
+						<key>INIntentResponseCodeFormatString</key>
+						<string>There was a problem finding that item.</string>
+						<key>INIntentResponseCodeFormatStringID</key>
+						<string>BMYrF2</string>
+						<key>INIntentResponseCodeName</key>
+						<string>unsupported</string>
+					</dict>
 				</array>
 				<key>INIntentResponseLastParameterTag</key>
 				<integer>3</integer>
