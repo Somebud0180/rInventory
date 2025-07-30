@@ -11,14 +11,6 @@ import CloudKit
 import SwiftyCrop
 import Combine
 
-extension URL {
-    static var applicationGroupContainerURL: URL {
-        FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.com.lagera.Inventory"
-        ) ?? URL(fileURLWithPath: NSTemporaryDirectory())
-    }
-}
-
 // MARK: - AppDefaults for App Configuration
 class AppDefaults: ObservableObject {
     static let shared = AppDefaults()
@@ -145,5 +137,13 @@ struct InventoryApp: App {
                 .preferredColorScheme(appDefaults.resolvedColorScheme())
         }
         .modelContainer(InventoryApp.sharedModelContainer)
+    }
+}
+
+extension URL {
+    static var applicationGroupContainerURL: URL {
+        FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.com.lagera.Inventory"
+        ) ?? URL(fileURLWithPath: NSTemporaryDirectory())
     }
 }

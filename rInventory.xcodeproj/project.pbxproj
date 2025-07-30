@@ -61,26 +61,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA51D69C2E38EC1600D6F5FB /* Exceptions for "rInventoryIntent" folder in "rInventoryIntent" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */;
-		};
 		AA51D6E12E3901B500D6F5FB /* Exceptions for "rInventory" folder in "rInventoryIntent" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				rInventoryIntents.intentdefinition,
 			);
 			target = AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */;
-		};
-		AAA4E02D2E3A7B310060DD23 /* Exceptions for "rInventoryIntent" folder in "rInventory" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				LocateItem.swift,
-			);
-			target = AAC9D5922E16056A0066997C /* rInventory */;
 		};
 		AAC9D5B62E16056D0066997C /* Exceptions for "rInventory" folder in "rInventory" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -94,10 +80,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AA51D6922E38EC1600D6F5FB /* rInventoryIntent */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				AAA4E02D2E3A7B310060DD23 /* Exceptions for "rInventoryIntent" folder in "rInventory" target */,
-				AA51D69C2E38EC1600D6F5FB /* Exceptions for "rInventoryIntent" folder in "rInventoryIntent" target */,
-			);
 			path = rInventoryIntent;
 			sourceTree = "<group>";
 		};
@@ -198,7 +180,6 @@
 			buildPhases = (
 				AA51D68B2E38EC1500D6F5FB /* Sources */,
 				AA51D68C2E38EC1500D6F5FB /* Frameworks */,
-				AA51D68D2E38EC1500D6F5FB /* Resources */,
 			);
 			buildRules = (
 			);
@@ -337,13 +318,6 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		AA51D68D2E38EC1500D6F5FB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AAC9D5912E16056A0066997C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;

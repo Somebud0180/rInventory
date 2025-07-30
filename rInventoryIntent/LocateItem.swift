@@ -9,6 +9,7 @@
 import Foundation
 import AppIntents
 import SwiftData
+import SwiftUI
 
 @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedAppIntent, PredictableIntent {
@@ -65,12 +66,13 @@ struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedApp
         let foundItems = foundModelItems ?? []
         
         if foundItems.isEmpty {
-            return .result(value: "That item could not be found.")
+            return .result(value: "There was an issue finding that item.")
         } else if foundItems.count > 1 {
-            let itemNames = foundItems.map({ $0.name })
-            return .result(value: "There are \(foundItems.count) items named ‘\(itemName)’ in your inventory. Please specify which one.")
-        } else if let itemName = foundItems.first?.name, let locationName = foundItems.first?.location?.name {
-            return .result(value: "\(itemName) is at the \(locationName).")
+            let itemNames = foundItems.map({ $0.name }).joined(separator: ", ")
+            return .result(value: "\(itemNames) are in your inventory. Please specify which one do you want.")
+                
+        } else if let modelItemName = foundItems.first?.name, let locationName = foundItems.first?.location?.name {
+            return .result(value: "\(modelItemName) is at the \(locationName).")
         } else {
             return .result(value: "There was an issue finding that item.")
         }
@@ -82,16 +84,59 @@ fileprivate extension IntentDialog {
     static func itemNameParameterPrompt(itemName: String) -> Self {
         "Where is \(itemName) in my inventory"
     }
-    static func itemNameParameterDisambiguationIntro(count: Int, itemName: String) -> Self {
-        "There are \(count) items named ‘\(itemName)’ in your inventory."
-    }
-    static func itemNameParameterConfirmation(itemName: String) -> Self {
-        "Just to confirm, you wanted ‘\(itemName)’?"
+    static func itemNameParameterDisambiguationIntro(itemNames: String) -> Self {
+        "\(itemNames) are in your inventory. Please specify which one do you want."
     }
     static func responseSuccess(itemName: String, locationName: String) -> Self {
         "\(itemName) is at the \(locationName)."
     }
     static var responseFailure: Self {
         "There was an issue finding that item."
+    }
+}
+
+extension URL {
+    static var applicationGroupContainerURL: URL {
+        FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.com.lagera.Inventory"
+        ) ?? URL(fileURLWithPath: NSTemporaryDirectory())
+    }
+}
+
+// MARK: - Model Definitions
+
+@Model
+final class Item {
+    var id: UUID = UUID()
+    var name: String = ""
+    var quantity: Int = 0
+    var location: Location?
+    var sortOrder: Int = 0
+    var modifiedDate: Date = Date()
+    var itemCreationDate: Date = Date()
+    
+    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, sortOrder: Int = 0, modifiedDate: Date = Date(), itemCreationDate: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.quantity = quantity
+        self.location = location
+        self.sortOrder = sortOrder
+        self.modifiedDate = modifiedDate
+        self.itemCreationDate = itemCreationDate
+    }
+}
+
+@Model
+final class Location {
+    var id: UUID = UUID()
+    var name: String = ""
+    var sortOrder: Int = 0
+    var displayInRow: Bool = true
+    
+    init(_ id: UUID = UUID(), name: String, sortOrder: Int = 0, displayInRow: Bool = true) {
+        self.id = id
+        self.name = name
+        self.sortOrder = sortOrder
+        self.displayInRow = displayInRow
     }
 }
