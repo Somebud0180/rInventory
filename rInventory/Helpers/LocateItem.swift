@@ -11,7 +11,7 @@ import SwiftData
 
 @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedAppIntent, PredictableIntent {
-    static let intentClassName = "LocateItemIntent"
+    static let intentClassName = "INLocateItem"
 
     static var title: LocalizedStringResource = "Find Item"
     static var description = IntentDescription("Find where an item is located via its name")

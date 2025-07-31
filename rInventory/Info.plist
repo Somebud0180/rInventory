@@ -4,15 +4,15 @@
 <dict>
 	<key>INIntentsRestrictedWhileLocked</key>
 	<array>
-		<string>LocateItemIntent</string>
+		<string>INLocateItem</string>
 	</array>
 	<key>INIntentsRestrictedWhileProtectedDataUnavailable</key>
 	<array>
-		<string>LocateItemIntent</string>
+		<string>INLocateItem</string>
 	</array>
 	<key>INIntentsSupported</key>
 	<array>
-		<string>LocateItemIntent</string>
+		<string>INLocateItem</string>
 	</array>
 	<key>NSUserActivityTypes</key>
 	<array>
