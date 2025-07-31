@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>INIntentsRestrictedWhileLocked</key>
+	<array>
+		<string>LocateItemIntent</string>
+	</array>
 	<key>INIntentsRestrictedWhileProtectedDataUnavailable</key>
 	<array>
 		<string>LocateItemIntent</string>
@@ -12,7 +16,6 @@
 	</array>
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>LocateItemIntent</string>
 		<string>com.lagera.Inventory.managingSettings</string>
 		<string>com.lagera.Inventory.searchingInventory</string>
 		<string>com.lagera.Inventory.viewingGrid</string>

@@ -10,22 +10,35 @@ import Foundation
 import AppIntents
 import SwiftData
 import SwiftUI
+import os
+
+// Logger for debugging
+private let logger = Logger(subsystem: "com.lagera.Inventory", category: "LocateItemIntent")
 
 @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedAppIntent, PredictableIntent {
     static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            Location.self
         ])
         let containerURL = URL.applicationGroupContainerURL
+        
+        // Improved logging for debugging
+        logger.debug("Using app group container at: \(containerURL.path)")
+        
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             url: containerURL.appendingPathComponent("rInventory.store"),
             cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
         )
+        
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            logger.debug("Successfully created model container")
+            return container
         } catch {
+            logger.error("Failed to create ModelContainer: \(error.localizedDescription)")
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
@@ -45,36 +58,45 @@ struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedApp
     static var predictionConfiguration: some IntentPredictionConfiguration {
         IntentPrediction(parameters: (\.$itemName)) { itemName in
             DisplayRepresentation(
-                title: "Where is \(itemName!) in my inventory",
+                title: "Where is \(itemName ?? "this item") in my inventory",
                 subtitle: ""
             )
         }
     }
     
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard let itemName else {
-            return .result(value: "There was an issue finding that item.")
+        guard let itemName = itemName, !itemName.isEmpty else {
+            logger.error("No item name provided")
+            return .result(value: "Please provide an item name to search for.")
         }
         
-        let context = ModelContext(LocateItem.sharedModelContainer)
-        let fetchDescriptor = FetchDescriptor<Item>(predicate: #Predicate { item in
-            item.name.localizedStandardContains(itemName)
-        })
+        logger.debug("Searching for item: \(itemName)")
         
-        let foundModelItems = try? context.fetch(fetchDescriptor)
-        // Turn foundModelItems into non-optional
-        let foundItems = foundModelItems ?? []
-        
-        if foundItems.isEmpty {
-            return .result(value: "There was an issue finding that item.")
-        } else if foundItems.count > 1 {
-            let itemNames = foundItems.map({ $0.name }).joined(separator: ", ")
-            return .result(value: "\(itemNames) are in your inventory. Please specify which one do you want.")
+        do {
+            let context = ModelContext(LocateItem.sharedModelContainer)
+            let fetchDescriptor = FetchDescriptor<Item>(predicate: #Predicate { item in
+                item.name.localizedStandardContains(itemName)
+            })
+            
+            let foundItems = try context.fetch(fetchDescriptor)
+            logger.debug("Found \(foundItems.count) items matching '\(itemName)'")
+            
+            if foundItems.isEmpty {
+                return .result(value: "I couldn't find '\(itemName)' in your inventory.")
+            } else if foundItems.count > 1 {
+                let itemNames = foundItems.map({ $0.name }).joined(separator: ", ")
+                return .result(value: "\(itemNames) are in your inventory. Please specify which one you want.")
                 
-        } else if let modelItemName = foundItems.first?.name, let locationName = foundItems.first?.location?.name {
-            return .result(value: "\(modelItemName) is at the \(locationName).")
-        } else {
-            return .result(value: "There was an issue finding that item.")
+            } else if let modelItemName = foundItems.first?.name, let location = foundItems.first?.location {
+                return .result(value: "\(modelItemName) is at the \(location.name).")
+            } else if let modelItemName = foundItems.first?.name {
+                return .result(value: "\(modelItemName) is in your inventory but has no specified location.")
+            } else {
+                return .result(value: "There was an issue finding that item.")
+            }
+        } catch {
+            logger.error("Error fetching items: \(error.localizedDescription)")
+            return .result(value: "Sorry, I encountered an error while searching for that item.")
         }
     }
 }
@@ -97,9 +119,13 @@ fileprivate extension IntentDialog {
 
 extension URL {
     static var applicationGroupContainerURL: URL {
-        FileManager.default.containerURL(
+        guard let url = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: "group.com.lagera.Inventory"
-        ) ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        ) else {
+            logger.error("Failed to get app group container URL, falling back to temporary directory")
+            return URL(fileURLWithPath: NSTemporaryDirectory())
+        }
+        return url
     }
 }
 

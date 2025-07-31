@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		AA51D6912E38EC1600D6F5FB /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA51D6902E38EC1600D6F5FB /* Intents.framework */; };
 		AA51D6982E38EC1600D6F5FB /* rInventoryIntent.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA9B20D42E3B8F2A00F5F250 /* LocateItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
@@ -54,6 +55,7 @@
 /* Begin PBXFileReference section */
 		AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = rInventoryIntent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA51D6902E38EC1600D6F5FB /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
+		AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LocateItem.swift; path = rInventory/Helpers/LocateItem.swift; sourceTree = "<group>"; };
 		AAC9D5932E16056A0066997C /* rInventory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rInventory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -142,6 +144,7 @@
 		AAC9D58A2E16056A0066997C = {
 			isa = PBXGroup;
 			children = (
+				AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */,
 				AAC9D5952E16056A0066997C /* rInventory */,
 				AAC9D5A72E16056D0066997C /* rInventoryTests */,
 				AAC9D5B12E16056D0066997C /* rInventoryUITests */,
@@ -353,6 +356,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA9B20D42E3B8F2A00F5F250 /* LocateItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,6 +398,7 @@
 		AA51D69A2E38EC1600D6F5FB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = rInventoryIntent/rInventoryIntent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
@@ -408,7 +413,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.rInventoryIntent;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.InventoryIntent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -423,6 +428,7 @@
 		AA51D69B2E38EC1600D6F5FB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = rInventoryIntent/rInventoryIntent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
@@ -437,7 +443,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.rInventoryIntent;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.InventoryIntent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -455,7 +461,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = rInventory/rInventoryDebug.entitlements;
+				CODE_SIGN_ENTITLEMENTS = rInventory/rInventory.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
