@@ -7,21 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA51D6912E38EC1600D6F5FB /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA51D6902E38EC1600D6F5FB /* Intents.framework */; };
-		AA51D6982E38EC1600D6F5FB /* rInventoryIntent.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		AA9B20D42E3B8F2A00F5F250 /* LocateItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		AA51D6962E38EC1600D6F5FB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = AA51D68E2E38EC1500D6F5FB;
-			remoteInfo = rInventoryIntent;
-		};
 		AAC9D5A52E16056C0066997C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
@@ -45,7 +35,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				AA51D6982E38EC1600D6F5FB /* rInventoryIntent.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -53,9 +42,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = rInventoryIntent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA51D6902E38EC1600D6F5FB /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
-		AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LocateItem.swift; path = rInventory/Helpers/LocateItem.swift; sourceTree = "<group>"; };
 		AAC9D5932E16056A0066997C /* rInventory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rInventory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,13 +50,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA51D6E12E3901B500D6F5FB /* Exceptions for "rInventory" folder in "rInventoryIntent" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				rInventoryIntents.intentdefinition,
-			);
-			target = AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */;
-		};
 		AAC9D5B62E16056D0066997C /* Exceptions for "rInventory" folder in "rInventory" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -80,16 +60,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AA51D6922E38EC1600D6F5FB /* rInventoryIntent */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = rInventoryIntent;
-			sourceTree = "<group>";
-		};
 		AAC9D5952E16056A0066997C /* rInventory */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AAC9D5B62E16056D0066997C /* Exceptions for "rInventory" folder in "rInventory" target */,
-				AA51D6E12E3901B500D6F5FB /* Exceptions for "rInventory" folder in "rInventoryIntent" target */,
 			);
 			path = rInventory;
 			sourceTree = "<group>";
@@ -107,14 +81,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		AA51D68C2E38EC1500D6F5FB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AA51D6912E38EC1600D6F5FB /* Intents.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AAC9D5902E16056A0066997C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -144,11 +110,9 @@
 		AAC9D58A2E16056A0066997C = {
 			isa = PBXGroup;
 			children = (
-				AA9B20D32E3B8F2A00F5F250 /* LocateItem.swift */,
 				AAC9D5952E16056A0066997C /* rInventory */,
 				AAC9D5A72E16056D0066997C /* rInventoryTests */,
 				AAC9D5B12E16056D0066997C /* rInventoryUITests */,
-				AA51D6922E38EC1600D6F5FB /* rInventoryIntent */,
 				AAFA444A2E18E51100AD6351 /* Frameworks */,
 				AAC9D5942E16056A0066997C /* Products */,
 			);
@@ -160,7 +124,6 @@
 				AAC9D5932E16056A0066997C /* rInventory.app */,
 				AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */,
 				AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */,
-				AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -177,27 +140,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AA51D6992E38EC1600D6F5FB /* Build configuration list for PBXNativeTarget "rInventoryIntent" */;
-			buildPhases = (
-				AA51D68B2E38EC1500D6F5FB /* Sources */,
-				AA51D68C2E38EC1500D6F5FB /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AA51D6922E38EC1600D6F5FB /* rInventoryIntent */,
-			);
-			name = rInventoryIntent;
-			packageProductDependencies = (
-			);
-			productName = rInventoryIntent;
-			productReference = AA51D68F2E38EC1500D6F5FB /* rInventoryIntent.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		AAC9D5922E16056A0066997C /* rInventory */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AAC9D5B72E16056D0066997C /* Build configuration list for PBXNativeTarget "rInventory" */;
@@ -210,7 +152,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				AA51D6972E38EC1600D6F5FB /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AAC9D5952E16056A0066997C /* rInventory */,
@@ -279,9 +220,6 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					AA51D68E2E38EC1500D6F5FB = {
-						CreatedOnToolsVersion = 26.0;
-					};
 					AAC9D5922E16056A0066997C = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -315,7 +253,6 @@
 				AAC9D5922E16056A0066997C /* rInventory */,
 				AAC9D5A32E16056C0066997C /* rInventoryTests */,
 				AAC9D5AD2E16056D0066997C /* rInventoryUITests */,
-				AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */,
 			);
 		};
 /* End PBXProject section */
@@ -345,18 +282,10 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		AA51D68B2E38EC1500D6F5FB /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AAC9D58F2E16056A0066997C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA9B20D42E3B8F2A00F5F250 /* LocateItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,11 +306,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		AA51D6972E38EC1600D6F5FB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = AA51D68E2E38EC1500D6F5FB /* rInventoryIntent */;
-			targetProxy = AA51D6962E38EC1600D6F5FB /* PBXContainerItemProxy */;
-		};
 		AAC9D5A62E16056C0066997C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AAC9D5922E16056A0066997C /* rInventory */;
@@ -395,66 +319,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		AA51D69A2E38EC1600D6F5FB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = rInventoryIntent/rInventoryIntent.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = L5KZFNA2X4;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = rInventoryIntent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = rInventoryIntent;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.InventoryIntent;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		AA51D69B2E38EC1600D6F5FB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = rInventoryIntent/rInventoryIntent.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = L5KZFNA2X4;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = rInventoryIntent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = rInventoryIntent;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.InventoryIntent;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		AAC9D5B82E16056D0066997C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -737,15 +601,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AA51D6992E38EC1600D6F5FB /* Build configuration list for PBXNativeTarget "rInventoryIntent" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AA51D69A2E38EC1600D6F5FB /* Debug */,
-				AA51D69B2E38EC1600D6F5FB /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		AAC9D58E2E16056A0066997C /* Build configuration list for PBXProject "rInventory" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

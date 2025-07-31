@@ -65,7 +65,7 @@ struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedApp
             return .result(value: "I couldn't find '\(itemName)' in your inventory.")
         } else if foundItems.count > 1 {
             let itemNames = foundItems.map({ $0.name }).joined(separator: ", ")
-            return .result(value: "\(itemNames) are in your inventory. Please specify which one you want.")
+            return .result(value: "\(itemNames) are in your inventory. Please specify which one you would like to locate.")
             
         } else if let modelItemName = foundItems.first?.name, let location = foundItems.first?.location {
             return .result(value: "\(modelItemName) is at the \(location.name).")
