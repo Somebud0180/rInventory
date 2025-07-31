@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IntentPhrases</key>
+	<array>
+		<dict>
+			<key>IntentName</key>
+			<string>LocateItem</string>
+			<key>IntentExamples</key>
+			<array>
+				<string>Where is my laptop in my inventory</string>
+				<string>Find my headphones in my inventory</string>
+				<string>Locate my charger in my inventory</string>
+				<string>Where are my car keys in my inventory</string>
+				<string>Where is my laptop in inventory</string>
+				<string>Find my headphones in inventory</string>
+				<string>Locate my charger in inventory</string>
+				<string>Where are my car keys in inventory</string>
+			</array>
+			<key>ParameterCombinations</key>
+			<dict>
+				<key>itemName</key>
+				<dict>
+					<key>ParameterNames</key>
+					<array>
+						<string>itemName</string>
+					</array>
+					<key>ParameterValues</key>
+					<array>
+						<dict>
+							<key>itemName</key>
+							<string>${itemName}</string>
+						</dict>
+					</array>
+					<key>VocabularyItemSources</key>
+					<array>
+						<dict>
+							<key>VocabularyItemIdentifier</key>
+							<string>inventoryItems</string>
+						</dict>
+					</array>
+				</dict>
+			</dict>
+		</dict>
+	</array>
+	<key>ParameterVocabularies</key>
+	<array>
+		<dict>
+			<key>ParameterNames</key>
+			<array>
+				<string>itemName</string>
+			</array>
+			<key>ParameterVocabulary</key>
+			<array>
+				<dict>
+					<key>VocabularyItemIdentifier</key>
+					<string>inventoryItems</string>
+					<key>VocabularyItemSynonyms</key>
+					<array>
+						<dict>
+							<key>VocabularyItemPhrase</key>
+							<string>Find my ${itemName} in inventory</string>
+							<key>VocabularyItemExamples</key>
+							<array>
+								<string>Find my laptop in inventory</string>
+								<string>Find my headphones in my inventory</string>
+							</array>
+						</dict>
+						<dict>
+							<key>VocabularyItemPhrase</key>
+							<string>Locate ${itemName} in inventory</string>
+							<key>VocabularyItemExamples</key>
+							<array>
+								<string>Locate my charger in inventory</string>
+								<string>Locate my charger in my inventory</string>
+							</array>
+						</dict>
+						<dict>
+							<key>VocabularyItemPhrase</key>
+							<string>Where is my ${itemName} in inventory</string>
+							<key>VocabularyItemExamples</key>
+							<array>
+								<string>Where is my laptop in inventory</string>
+								<string>Where is my laptop in my inventory</string>
+							</array>
+						</dict>
+						<dict>
+							<key>VocabularyItemPhrase</key>
+							<string>Where are my ${itemName} in inventory</string>
+							<key>VocabularyItemExamples</key>
+							<array>
+								<string>Where are my car keys in inventory</string>
+								<string>Where are my car keys in my inventory</string>
+							</array>
+						</dict>
+					</array>
+				</dict>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

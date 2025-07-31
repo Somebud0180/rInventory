@@ -248,7 +248,12 @@ struct SearchView: View {
     
     private func updateUserActivity(_ activity: NSUserActivity) {
         activity.addUserInfoEntries(from: [searchCategoryKey: selectedCategoryName, searchLocationKey: selectedLocationName])
-        activity.title = "Search \(selectedCategoryName)"
+        if selectedCategoryName.isEmpty && selectedLocationName.isEmpty {
+            activity.title = "Search rInventory"
+        } else {
+            let titleString = "\(selectedLocationName) \(selectedCategoryName)".trimmingCharacters(in: .whitespaces)
+            activity.title = "Search rInventory: \(titleString)"
+        }
         activity.userInfo = ["tabSelection": 2]
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true

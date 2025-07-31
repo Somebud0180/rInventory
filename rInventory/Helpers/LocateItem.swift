@@ -11,23 +11,6 @@ import SwiftData
 
 @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedAppIntent, PredictableIntent {
-    static let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let containerURL = URL.applicationGroupContainerURL
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
-        )
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-    
     static let intentClassName = "LocateItemIntent"
 
     static var title: LocalizedStringResource = "Find Item"
@@ -54,7 +37,7 @@ struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedApp
             return .result(value: "Please provide an item name to search for.")
         }
         
-        let modelContext = ModelContext(LocateItem.sharedModelContainer)
+        let modelContext = ModelContext(InventoryApp.sharedModelContainer)
         let fetchDescriptor = FetchDescriptor<Item>(predicate: #Predicate { item in
             item.name.localizedStandardContains(itemName)
         })
@@ -98,4 +81,3 @@ fileprivate extension IntentDialog {
         "There was a problem finding that item."
     }
 }
-
