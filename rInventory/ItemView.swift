@@ -370,19 +370,14 @@ struct ItemView: View {
                         }
                     }
                     
-                    if animateFocused == nil && !isCollapsed && !isEditing {
-                        HStack {
-                            Spacer()
-                            quantitySection
-                        }
-                    }
-                    
                     if (animateFocused == nil || animateFocused == .category) && !isCollapsed {
                         HStack {
                             categorySection
+                            Spacer()
                             if isEditing {
-                                Spacer()
                                 toolbarView
+                            } else {
+                                quantitySection
                             }
                         }
                         

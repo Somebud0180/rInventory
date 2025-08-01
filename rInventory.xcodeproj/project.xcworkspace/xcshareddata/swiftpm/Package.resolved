@@ -1,22 +1,13 @@
 {
-  "originHash" : "2fbc69d562e35aaa33adc69cc3d9ff2f6213bd1d3cfde2aeb1e51ece059c573d",
+  "originHash" : "32fe54d83e94dfe1424a9a9e615eadb9a298799e0cb17d59e9f18400cced14fb",
   "pins" : [
-    {
-      "identity" : "camera",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Mijick/Camera",
-      "state" : {
-        "revision" : "3cb2b56003910f765d7a5d39d2c2cb49717519cf",
-        "version" : "3.0.2"
-      }
-    },
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/benedom/SwiftyCrop",
       "state" : {
         "branch" : "master",
-        "revision" : "ddf6ad7231187134ce132be87c8220a230c51838"
+        "revision" : "07311350f3f9eea3b2254da37341681f504cc01f"
       }
     },
     {

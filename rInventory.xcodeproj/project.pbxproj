@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA6108932E3D0EF400295F7B /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA6108922E3D0EF400295F7B /* MijickCamera */; };
+		AA6108D22E3D1B3100295F7B /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA6108922E3D0EF400295F7B /* MijickCamera */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
@@ -44,6 +44,7 @@
 
 /* Begin PBXFileReference section */
 		AA51D6902E38EC1600D6F5FB /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
+		AA6108D02E3D1B0F00295F7B /* Camera */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = Camera; path = "/Users/ethanlagera/Library/Developer/Xcode/DerivedData/rInventory-fjbvvswzgjdjqedalnnriqjzyoxh/SourcePackages/checkouts/Camera"; sourceTree = "<absolute>"; };
 		AAC9D5932E16056A0066997C /* rInventory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rInventory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,7 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA6108932E3D0EF400295F7B /* MijickCamera in Frameworks */,
+				AA6108D22E3D1B3100295F7B /* MijickCamera in Frameworks */,
 				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 			);
@@ -135,6 +136,7 @@
 			children = (
 				AAFA444B2E18E51100AD6351 /* CloudKit.framework */,
 				AA51D6902E38EC1600D6F5FB /* Intents.framework */,
+				AA6108D02E3D1B0F00295F7B /* Camera */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -646,10 +648,10 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		AA6108912E3D0EF400295F7B /* XCRemoteSwiftPackageReference "Camera" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Mijick/Camera";
+			repositoryURL = "https://github.com/veraposeidon/Camera";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.2;
+				branch = "fix/sendable-protocol";
+				kind = branch;
 			};
 		};
 		AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {

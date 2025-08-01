@@ -27,8 +27,6 @@
 			<string>GERmJd</string>
 			<key>INIntentEligibleForWidgets</key>
 			<true/>
-			<key>INIntentIneligibleForSuggestions</key>
-			<true/>
 			<key>INIntentInput</key>
 			<string>itemName</string>
 			<key>INIntentKeyParameter</key>
@@ -51,6 +49,22 @@
 			</dict>
 			<key>INIntentName</key>
 			<string>LocateItem</string>
+			<key>INIntentParameterCombinations</key>
+			<dict>
+				<key>itemName</key>
+				<dict>
+					<key>INIntentParameterCombinationIsLinked</key>
+					<true/>
+					<key>INIntentParameterCombinationIsPrimary</key>
+					<true/>
+					<key>INIntentParameterCombinationSupportsBackgroundExecution</key>
+					<true/>
+					<key>INIntentParameterCombinationTitle</key>
+					<string>Where is ${itemName} in my inventory</string>
+					<key>INIntentParameterCombinationTitleID</key>
+					<string>KoQ5b3</string>
+				</dict>
+			</dict>
 			<key>INIntentParameters</key>
 			<array>
 				<dict>

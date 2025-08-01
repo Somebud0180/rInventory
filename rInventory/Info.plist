@@ -16,6 +16,7 @@
 	</array>
 	<key>NSUserActivityTypes</key>
 	<array>
+		<string>INLocateItem</string>
 		<string>com.lagera.Inventory.managingSettings</string>
 		<string>com.lagera.Inventory.searchingInventory</string>
 		<string>com.lagera.Inventory.viewingGrid</string>
