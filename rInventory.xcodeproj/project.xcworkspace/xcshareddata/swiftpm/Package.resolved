@@ -1,6 +1,15 @@
 {
-  "originHash" : "32fe54d83e94dfe1424a9a9e615eadb9a298799e0cb17d59e9f18400cced14fb",
+  "originHash" : "b06bbcfc03e2ab52bdb1df5f837ca41505f219ac012ebf0068b5e4564f45b459",
   "pins" : [
+    {
+      "identity" : "camera",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/veraposeidon/Camera/",
+      "state" : {
+        "branch" : "fix/sendable-protocol",
+        "revision" : "1ba0a2ed7314ee03b79c86c9fcba02af8d0b04a1"
+      }
+    },
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",

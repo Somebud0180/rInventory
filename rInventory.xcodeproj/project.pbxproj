@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA6108D22E3D1B3100295F7B /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA6108922E3D0EF400295F7B /* MijickCamera */; };
+		AA6109142E3D1CAD00295F7B /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA6109132E3D1CAD00295F7B /* MijickCamera */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
@@ -87,7 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA6108D22E3D1B3100295F7B /* MijickCamera in Frameworks */,
+				AA6109142E3D1CAD00295F7B /* MijickCamera in Frameworks */,
 				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 			);
@@ -163,7 +163,7 @@
 			name = rInventory;
 			packageProductDependencies = (
 				AAFA44752E19690600AD6351 /* SwiftyCrop */,
-				AA6108922E3D0EF400295F7B /* MijickCamera */,
+				AA6109132E3D1CAD00295F7B /* MijickCamera */,
 			);
 			productName = Inventory;
 			productReference = AAC9D5932E16056A0066997C /* rInventory.app */;
@@ -249,7 +249,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
-				AA6108912E3D0EF400295F7B /* XCRemoteSwiftPackageReference "Camera" */,
+				AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAC9D5942E16056A0066997C /* Products */;
@@ -646,9 +646,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AA6108912E3D0EF400295F7B /* XCRemoteSwiftPackageReference "Camera" */ = {
+		AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/veraposeidon/Camera";
+			repositoryURL = "https://github.com/veraposeidon/Camera/";
 			requirement = {
 				branch = "fix/sendable-protocol";
 				kind = branch;
@@ -665,9 +665,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		AA6108922E3D0EF400295F7B /* MijickCamera */ = {
+		AA6109132E3D1CAD00295F7B /* MijickCamera */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA6108912E3D0EF400295F7B /* XCRemoteSwiftPackageReference "Camera" */;
+			package = AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */;
 			productName = MijickCamera;
 		};
 		AAFA44752E19690600AD6351 /* SwiftyCrop */ = {
