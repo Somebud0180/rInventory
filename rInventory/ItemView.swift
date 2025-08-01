@@ -556,9 +556,8 @@ struct ItemView: View {
                         .font(.system(.callout, design: .rounded))
                         .fontWeight(.semibold)
                         .lineLimit(2)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(0.75)
                         .padding(8)
-                        .frame(minHeight: 32)
                         .adaptiveGlassBackground(tintStrength: 0.5)
                 }
             }
@@ -579,7 +578,7 @@ struct ItemView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(0.75)
                         .padding(8)
                         .frame(minWidth: isPad ? 44 : 32, minHeight: isPad ? 44 : 32)
                         .adaptiveGlassButton(tintStrength: 0.5)
@@ -591,7 +590,7 @@ struct ItemView: View {
                         .font(.system(.body, design: .rounded))
                         .bold()
                         .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(0.75)
                         .padding(8)
                         .padding(.horizontal, 4)
                         .frame(minHeight: 32)
@@ -629,7 +628,7 @@ struct ItemView: View {
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.75)
             }
         }
     }
@@ -700,7 +699,6 @@ struct ItemView: View {
                     Text("Quantity: \(quantityVar)")
                         .font(.system(.body, design: .rounded))
                         .bold()
-                        .minimumScaleFactor(0.75)
                 }
                 .onChange(of: quantity) {
                     // Only run updateQuantity for real quantity
@@ -712,9 +710,9 @@ struct ItemView: View {
                 .padding(.leading, 8)
                 .padding(8)
                 .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
+                .padding(.vertical, 4)
             }
         }
-        .padding(.vertical, 4)
     }
     
     private var buttonSection: some View {
