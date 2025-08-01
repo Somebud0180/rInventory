@@ -69,15 +69,14 @@ struct ItemView: View {
     
     @State var isEditing: Bool = false
     @State private var isCollapsed: Bool = false
-    @FocusState private var focusedField: ItemField?
     @State private var animateFocused: ItemField? = nil
+    @FocusState private var focusedField: ItemField?
     
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
     @State private var imageToCrop: UIImage? = nil
-    @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -187,14 +186,21 @@ struct ItemView: View {
                 }
             ))
         }
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let item = newItem else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    imageToCrop = uiImage
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(selection: Binding(
+                get: {
+                    if case let .image(data) = editBackground {
+                        return UIImage(data: data)
+                    } else {
+                        return nil
+                    }
+                },
+                set: { newImage in
+                    if let newImage {
+                        imageToCrop = newImage
+                    }
                 }
-            }
+            ))
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {
@@ -213,9 +219,7 @@ struct ItemView: View {
                             editBackground = .image(data)
                         }
                         showCropper = false
-                        imageToCrop = nil
-                        selectedPhotoItem = nil
-                    }
+                        imageToCrop = nil                    }
                 )
                 .interactiveDismissDisabled()
             }
@@ -493,11 +497,7 @@ struct ItemView: View {
                             .padding(.horizontal, 4)
                     }
                     .accessibilityLabel("Change Symbol")
-                    PhotosPicker(
-                        selection: $selectedPhotoItem,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
+                    Button(action: {showImagePicker = true}) {
                         Image(systemName: "photo.circle")
                             .font(.title2)
                             .adaptiveGlassButton()

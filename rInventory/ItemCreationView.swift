@@ -24,7 +24,6 @@ struct ItemCreationView: View {
     @State private var showImagePicker: Bool = false
     @State private var showCropper: Bool = false
     @State private var imageToCrop: UIImage? = nil
-    @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
     // Item creation variables
     @State private var name: String = "New Item"
@@ -145,11 +144,7 @@ struct ItemCreationView: View {
                                 .frame(width: 60, height: 60)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
-                        PhotosPicker(
-                            selection: $selectedPhotoItem,
-                            matching: .images,
-                            photoLibrary: .shared()
-                        ) {
+                        Button(action: {showImagePicker = true}) {
                             Text(imageButtonTitle)
                         }
                     }
@@ -204,14 +199,26 @@ struct ItemCreationView: View {
                 }
             ))
         }
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let item = newItem else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    imageToCrop = uiImage
-                    showCropper = true
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(selection: Binding(
+                get: {
+                    if case let .image(data) = background {
+                        return UIImage(data: data)
+                    } else {
+                        return nil
+                    }
+                },
+                set: { newImage in
+                    if let newImage {
+                        imageToCrop = newImage
+                    }
                 }
+            ))
+        }
+        .onChange(of: imageToCrop) { _, newValue in
+            if newValue != nil {
+                // Show cropper after image is loaded
+                showCropper = true
             }
         }
         .sheet(isPresented: $showCropper) {
@@ -226,7 +233,6 @@ struct ItemCreationView: View {
                         }
                         showCropper = false
                         imageToCrop = nil
-                        selectedPhotoItem = nil
                     }
                 )
                 .interactiveDismissDisabled()
