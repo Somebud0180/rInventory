@@ -10,6 +10,7 @@ import SwiftUI
 import SwiftData
 import SwiftyCrop
 import PhotosUI
+import MijickCamera
 
 /// View for displaying either an image or a symbol background with a mask.
 struct ItemBackgroundView: View {
@@ -75,8 +76,9 @@ struct ItemView: View {
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
-    @State private var showCropper: Bool = false
+    @State private var showCamera: Bool = false
     @State private var imageToCrop: UIImage? = nil
+    @State private var showCropper: Bool = false
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -202,6 +204,21 @@ struct ItemView: View {
                 }
             ))
         }
+        .fullScreenCover(isPresented: $showCamera) {
+            MCamera()
+                .setCameraOutputType(.photo)
+                .setAudioAvailability(false)
+                .setCameraScreen(CustomCameraScreen.init)
+                .onImageCaptured { image, controller in
+                    imageToCrop = image
+                    controller.reopenCameraScreen()
+                    showCamera = false
+                }
+                .setCloseMCameraAction {
+                    showCamera = false
+                }
+                .startSession()
+        }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {
                 // Show cropper after image is loaded
@@ -278,7 +295,7 @@ struct ItemView: View {
                 
                 // Wrap in ZStack to overlay toolbar on top of content
                 ZStack(alignment: .topLeading) {
-                    toolbarView
+                    toolbarSection
                     
                     VStack(alignment: .leading) {
                         Spacer()
@@ -323,7 +340,7 @@ struct ItemView: View {
                     )
                 )
                 
-                toolbarView
+                toolbarSection
                     .padding(.bottom, 8)
             }
             .frame(width: geometry.size.width * 0.48, height: geometry.size.height)
@@ -375,7 +392,7 @@ struct ItemView: View {
                             categorySection
                             Spacer()
                             if isEditing {
-                                toolbarView
+                                toolbarSection
                             } else {
                                 quantitySection
                             }
@@ -479,7 +496,19 @@ struct ItemView: View {
         return LinearGradient(colors: [.accentDark.opacity(0.9), secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
-    private var toolbarView: some View {
+    private var toolbarSection: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer {
+                    toolbarContent
+                }
+            } else {
+                toolbarContent
+            }
+        }
+    }
+    
+    private var toolbarContent: some View {
         Group {
             if isEditing {
                 HStack(spacing: 0) {
@@ -487,20 +516,29 @@ struct ItemView: View {
                         Image(systemName: "square.grid.2x2")
                             .font(.title2)
                             .adaptiveGlassButton()
-                            .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
                     }
                     .accessibilityLabel("Change Symbol")
-                    Button(action: {showImagePicker = true}) {
-                        Image(systemName: "photo.circle")
+                    
+                    Menu {
+                        Button(action: {showImagePicker = true}) {
+                            Label("Photo Library", systemImage: "photo.on.rectangle")
+                        }
+                        
+                        Button(action: {showCamera = true}) {
+                            Label("Take Photo", systemImage: "camera")
+                        }
+                    } label: {
+                        Image(systemName: "photo")
                             .font(.title2)
                             .adaptiveGlassButton()
-                            .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
                     }
+                    .menuStyle(.borderlessButton)
                     .accessibilityLabel("Change Image")
+                    
                     if case .symbol = editBackground {
                         ColorPicker("Symbol Color", selection: Binding(
                             get: { editSymbolColor ?? .accentColor },
@@ -512,6 +550,7 @@ struct ItemView: View {
                     }
                 }
                 .frame(height: 44, alignment: .leading)
+                .foregroundStyle(colorScheme == .light ? .black : .white)
                 .adaptiveGlassBackground()
             }
         }

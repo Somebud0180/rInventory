@@ -10,6 +10,7 @@ import SwiftUI
 import SwiftData
 import SwiftyCrop
 import PhotosUI
+import MijickCamera
 
 struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
@@ -22,8 +23,9 @@ struct ItemCreationView: View {
     // State variables for UI
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
-    @State private var showCropper: Bool = false
+    @State private var showCamera: Bool = false
     @State private var imageToCrop: UIImage? = nil
+    @State private var showCropper: Bool = false
     
     // Item creation variables
     @State private var name: String = "New Item"
@@ -137,15 +139,26 @@ struct ItemCreationView: View {
                 
                 Section(header: Text("Select an icon")) {
                     HStack {
+                        Menu {
+                            Button(action: {showImagePicker = true}) {
+                                Label("Photo Library", systemImage: "photo.on.rectangle")
+                            }
+                            
+                            Button(action: {showCamera = true}) {
+                                Label("Take Photo", systemImage: "camera")
+                            }
+                        } label: {
+                            Text(imageButtonTitle)
+                        }
+                        
+                        Spacer()
+                        
                         if case .image(let data) = background, let uiImage = UIImage(data: data) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 60, height: 60)
+                                .frame(width: 48, height: 48)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        Button(action: {showImagePicker = true}) {
-                            Text(imageButtonTitle)
                         }
                     }
                     
@@ -163,6 +176,7 @@ struct ItemCreationView: View {
                                 Text("Select a Symbol")
                             }
                         }
+                        
                         if case .symbol = background {
                             ColorPicker("Symbol Color", selection: $symbolColor, supportsOpacity: false)
                                 .labelsHidden()
@@ -214,6 +228,21 @@ struct ItemCreationView: View {
                     }
                 }
             ))
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            MCamera()
+                .setCameraOutputType(.photo)
+                .setAudioAvailability(false)
+                .setCameraScreen(CustomCameraScreen.init)
+                .onImageCaptured { image, controller in
+                    imageToCrop = image
+                    controller.reopenCameraScreen()
+                    showCamera = false
+                }
+                .setCloseMCameraAction {
+                    showCamera = false
+                }
+                .startSession()
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {

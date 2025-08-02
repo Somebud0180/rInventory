@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA6109142E3D1CAD00295F7B /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA6109132E3D1CAD00295F7B /* MijickCamera */; };
+		AA552EF32E3E286C0097B3BA /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA552EF22E3E286C0097B3BA /* MijickCamera */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
@@ -87,7 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA6109142E3D1CAD00295F7B /* MijickCamera in Frameworks */,
+				AA552EF32E3E286C0097B3BA /* MijickCamera in Frameworks */,
 				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 			);
@@ -163,7 +163,7 @@
 			name = rInventory;
 			packageProductDependencies = (
 				AAFA44752E19690600AD6351 /* SwiftyCrop */,
-				AA6109132E3D1CAD00295F7B /* MijickCamera */,
+				AA552EF22E3E286C0097B3BA /* MijickCamera */,
 			);
 			productName = Inventory;
 			productReference = AAC9D5932E16056A0066997C /* rInventory.app */;
@@ -249,7 +249,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
-				AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */,
+				AA552EF12E3E286C0097B3BA /* XCRemoteSwiftPackageReference "Camera" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAC9D5942E16056A0066997C /* Products */;
@@ -341,6 +341,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = rInventory;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Access to the camera is required to take pictures of your items inside the app. ";
 				INFOPLIST_KEY_NSSiriUsageDescription = "Ask Siri to help access your inventory and find where your items are without opening the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -380,6 +381,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = rInventory;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Access to the camera is required to take pictures of your items inside the app. ";
 				INFOPLIST_KEY_NSSiriUsageDescription = "Ask Siri to help access your inventory and find where your items are without opening the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -646,9 +648,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */ = {
+		AA552EF12E3E286C0097B3BA /* XCRemoteSwiftPackageReference "Camera" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/veraposeidon/Camera/";
+			repositoryURL = "https://github.com/veraposeidon/Camera";
 			requirement = {
 				branch = "fix/sendable-protocol";
 				kind = branch;
@@ -665,9 +667,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		AA6109132E3D1CAD00295F7B /* MijickCamera */ = {
+		AA552EF22E3E286C0097B3BA /* MijickCamera */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA6109122E3D1CAD00295F7B /* XCRemoteSwiftPackageReference "Camera" */;
+			package = AA552EF12E3E286C0097B3BA /* XCRemoteSwiftPackageReference "Camera" */;
 			productName = MijickCamera;
 		};
 		AAFA44752E19690600AD6351 /* SwiftyCrop */ = {
