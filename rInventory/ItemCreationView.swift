@@ -232,8 +232,8 @@ struct ItemCreationView: View {
         .fullScreenCover(isPresented: $showCamera) {
             MCamera()
                 .setCameraOutputType(.photo)
+                .setCameraOutputTypeSwitchVisibility(false)
                 .setAudioAvailability(false)
-                .setCameraScreen(CustomCameraScreen.init)
                 .onImageCaptured { image, controller in
                     imageToCrop = image
                     controller.reopenCameraScreen()

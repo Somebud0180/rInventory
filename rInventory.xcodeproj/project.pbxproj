@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA942A852E4100F100731E54 /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
+		AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
@@ -87,7 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA942A852E4100F100731E54 /* MijickCamera in Frameworks */,
+				AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */,
 				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 			);
