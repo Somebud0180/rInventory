@@ -74,6 +74,8 @@ struct ItemView: View {
     @FocusState private var focusedField: ItemField?
     
     // State variables for UI
+    @State private var showDeleteAlert: Bool = false
+    @State private var showDeleteAnimation: Bool = false
     @State private var showSymbolPicker: Bool = false
     @State private var showImagePicker: Bool = false
     @State private var showCamera: Bool = false
@@ -165,10 +167,37 @@ struct ItemView: View {
                         }
                     }
                 }
+                
+                if showDeleteAnimation {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.red)
+                        .ignoresSafeArea()
+                        .transition(.blurReplace.combined(with: .opacity))
+                }
             }
         }
         .onAppear {
             initializeDisplayVariables()
+        }
+        .alert("Delete Item", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+            }
+            
+            Button("Delete", role: .destructive) {
+                Task {
+                    await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
+                    
+                    withAnimation(.smooth(duration: 1.0)) {
+                        showDeleteAnimation = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this item? This action cannot be undone.")
         }
         .sheet(isPresented: $showSymbolPicker) {
             // Extract the current symbol from editBackground
@@ -236,7 +265,8 @@ struct ItemView: View {
                             editBackground = .image(data)
                         }
                         showCropper = false
-                        imageToCrop = nil                    }
+                        imageToCrop = nil
+                    }
                 )
                 .interactiveDismissDisabled()
             }
@@ -532,9 +562,9 @@ struct ItemView: View {
                     } label: {
                         Image(systemName: "photo")
                             .font(.title2)
-                            .adaptiveGlassButton()
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
+                            .adaptiveGlassButton()
                     }
                     .menuStyle(.borderlessButton)
                     .accessibilityLabel("Change Image")
@@ -718,6 +748,7 @@ struct ItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
+                    .foregroundColor(isColorWhite(location.color) ? .black : .white)
                     .font(.system(.callout, design: .rounded))
                     .fontWeight(.semibold)
                     .lineLimit(2)
@@ -798,12 +829,9 @@ struct ItemView: View {
 
     private var deleteButton: some View {
         Button(action: {
-            Task {
-                await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
-            }
-            dismiss()
+            showDeleteAlert = true
         }) {
-            Label("Delete", systemImage: "trash")
+            Label("Delete Item", systemImage: "trash")
                 .labelStyle(.iconOnly)
                 .minimumScaleFactor(0.5)
                 .foregroundStyle(.red)

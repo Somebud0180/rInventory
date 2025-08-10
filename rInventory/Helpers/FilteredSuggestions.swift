@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-private func isColorWhite(_ color: Color) -> Bool {
+func isColorWhite(_ color: Color) -> Bool {
     color.luminance() >= 0.95
 }
 
@@ -52,7 +52,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
                 }
                 .padding(4)
                 .padding(.horizontal, 4)
-                .foregroundColor(isColorWhite(color) ? .black : .primary)
+                .foregroundColor(isColorWhite(color) ? .black : .white)
                 .overlay(Capsule().stroke(isColorWhite(color) ? Color.gray : Color.clear, lineWidth: isColorWhite(color) ? 1 : 0))
                 .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
             }

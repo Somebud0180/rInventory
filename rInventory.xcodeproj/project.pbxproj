@@ -8,8 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
+		AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */; };
+		AAC73E912E482BC600FD0364 /* MijickTimer in Frameworks */ = {isa = PBXBuildFile; productRef = AAC73E902E482BC600FD0364 /* MijickTimer */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
-		AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AAFA44752E19690600AD6351 /* SwiftyCrop */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,8 +89,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */,
-				AAFA44762E19690600AD6351 /* SwiftyCrop in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
+				AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */,
+				AAC73E912E482BC600FD0364 /* MijickTimer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,8 +164,9 @@
 			);
 			name = rInventory;
 			packageProductDependencies = (
-				AAFA44752E19690600AD6351 /* SwiftyCrop */,
 				AA942A842E4100F100731E54 /* MijickCamera */,
+				AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */,
+				AAC73E902E482BC600FD0364 /* MijickTimer */,
 			);
 			productName = Inventory;
 			productReference = AAC9D5932E16056A0066997C /* rInventory.app */;
@@ -248,8 +251,9 @@
 			mainGroup = AAC9D58A2E16056A0066997C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
 				AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */,
+				AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
+				AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAC9D5942E16056A0066997C /* Products */;
@@ -648,34 +652,47 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */ = {
+		AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/somebud0180/Camera";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/benedom/SwiftyCrop";
+			repositoryURL = "https://github.com/Somebud0180/SwiftyCrop";
 			requirement = {
 				branch = master;
 				kind = branch;
 			};
 		};
+		AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Somebud0180/Camera";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Mijick/Timer";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
+			productName = SwiftyCrop;
+		};
 		AA942A842E4100F100731E54 /* MijickCamera */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */;
 			productName = MijickCamera;
 		};
-		AAFA44752E19690600AD6351 /* SwiftyCrop */ = {
+		AAC73E902E482BC600FD0364 /* MijickTimer */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AAFA44742E19690600AD6351 /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
-			productName = SwiftyCrop;
+			package = AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */;
+			productName = MijickTimer;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
