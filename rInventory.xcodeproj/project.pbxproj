@@ -337,7 +337,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = rInventory/rInventory.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -377,7 +377,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = rInventory/rInventory.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -654,7 +654,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Somebud0180/SwiftyCrop";
+			repositoryURL = "https://github.com/benedom/SwiftyCrop";
 			requirement = {
 				branch = master;
 				kind = branch;

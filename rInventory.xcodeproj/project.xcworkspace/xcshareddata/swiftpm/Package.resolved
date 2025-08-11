@@ -1,5 +1,5 @@
 {
-  "originHash" : "17d74d863c12be6f596da7cd6f9e13da4e3c25d8dc13508f48b4c2a77382fc7a",
+  "originHash" : "1e90a87b032263043d088c83be942e8218f31d49068c7cbfaeee0329eeeaff3f",
   "pins" : [
     {
       "identity" : "camera",
@@ -13,7 +13,7 @@
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Somebud0180/SwiftyCrop",
+      "location" : "https://github.com/benedom/SwiftyCrop",
       "state" : {
         "branch" : "master",
         "revision" : "6ff1c2f62e17211176173aefe0bd2d210768f0c1"

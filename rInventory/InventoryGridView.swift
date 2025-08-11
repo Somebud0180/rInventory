@@ -42,6 +42,7 @@ struct InventoryGridView: View {
     
     @State var title: String
     @State var predicate: String? = nil
+    @State var showDeleteAlert: Bool = false
     @State var showCategoryPicker: Bool = false
     @State var showSortPicker: Bool = false
     @Binding var selectedItem: Item?
@@ -99,11 +100,7 @@ struct InventoryGridView: View {
             .toolbar {
                 if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .destructive) {
-                            Task {
-                                await viewModel.deleteSelectedItems(modelContext: modelContext, cloudKitSyncEngine: syncEngine, allItems: modelItems)
-                            }
-                        } label: {
+                        Button(role: .destructive) { showDeleteAlert = true } label: {
                             Image(systemName: "trash")
                                 .foregroundStyle(.red)
                         }
@@ -117,6 +114,18 @@ struct InventoryGridView: View {
         .padding(.horizontal, 16)
         .refreshable {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+        }
+        .alert("Delete Item", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+            }
+            
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteSelectedItems(modelContext: modelContext, cloudKitSyncEngine: syncEngine, allItems: modelItems)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this item? This action cannot be undone.")
         }
         .onAppear {
             if !hasAppeared {

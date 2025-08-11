@@ -169,10 +169,17 @@ struct ItemView: View {
                 }
                 
                 if showDeleteAnimation {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.red)
-                        .ignoresSafeArea()
-                        .transition(.blurReplace.combined(with: .opacity))
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.red)
+                            .ignoresSafeArea()
+                            .transition(.blurReplace.combined(with: .opacity))
+                        
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
         }
@@ -187,11 +194,11 @@ struct ItemView: View {
                 Task {
                     await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
                     
-                    withAnimation(.smooth(duration: 1.0)) {
+                    withAnimation(.smooth(duration: 0.75)) {
                         showDeleteAnimation = true
                     }
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                         dismiss()
                     }
                 }
@@ -545,9 +552,9 @@ struct ItemView: View {
                     Button(action: { showSymbolPicker = true }) {
                         Image(systemName: "square.grid.2x2")
                             .font(.title2)
-                            .adaptiveGlassButton()
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
+                            .adaptiveGlassButton()
                     }
                     .accessibilityLabel("Change Symbol")
                     
@@ -647,7 +654,6 @@ struct ItemView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3)
-                        .minimumScaleFactor(0.75)
                         .padding(8)
                         .frame(minWidth: isPad ? 44 : 32, minHeight: isPad ? 44 : 32)
                         .adaptiveGlassButton(tintStrength: 0.5)
@@ -659,7 +665,6 @@ struct ItemView: View {
                         .font(.system(.body, design: .rounded))
                         .bold()
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
                         .padding(8)
                         .padding(.horizontal, 4)
                         .frame(minHeight: 32)
@@ -667,6 +672,8 @@ struct ItemView: View {
                 }
             }
         }
+        .minimumScaleFactor(0.75)
+        .foregroundStyle(colorScheme == .light ? .black : .white)
     }
     
     private var nameSection: some View {
@@ -680,7 +687,6 @@ struct ItemView: View {
                         .focused($focusedField, equals: .name)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
-                        .minimumScaleFactor(0.75)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
                         .onSubmit {
@@ -697,9 +703,9 @@ struct ItemView: View {
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
             }
         }
+        .minimumScaleFactor(0.75)
     }
     
     private var locationSection: some View {
@@ -776,13 +782,13 @@ struct ItemView: View {
                         await updateQuantity(quantity)
                     }
                 }
-                .minimumScaleFactor(0.75)
                 .padding(.leading, 8)
                 .padding(8)
                 .adaptiveGlassBackground(tintStrength: 0.5, shape: usesLiquidGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: 12.0)))
                 .padding(.vertical, 4)
             }
         }
+        .minimumScaleFactor(0.75)
     }
     
     private var buttonSection: some View {
