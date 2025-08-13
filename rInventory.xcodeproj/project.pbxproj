@@ -9,11 +9,33 @@
 /* Begin PBXBuildFile section */
 		AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
 		AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */; };
+		AABFF4E42E4A3260000B491E /* rInventory Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AABFF4C42E4A325E000B491E /* rInventory Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AAC73E912E482BC600FD0364 /* MijickTimer in Frameworks */ = {isa = PBXBuildFile; productRef = AAC73E902E482BC600FD0364 /* MijickTimer */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AABFF4D12E4A3260000B491E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AABFF4C32E4A325E000B491E;
+			remoteInfo = "inventoryBuddy Watch App";
+		};
+		AABFF4DB2E4A3260000B491E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AABFF4C32E4A325E000B491E;
+			remoteInfo = "inventoryBuddy Watch App";
+		};
+		AABFF4E22E4A3260000B491E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AABFF4C32E4A325E000B491E;
+			remoteInfo = "inventoryBuddy Watch App";
+		};
 		AAC9D5A52E16056C0066997C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AAC9D58B2E16056A0066997C /* Project object */;
@@ -41,11 +63,25 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AABFF4E52E4A3260000B491E /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				AABFF4E42E4A3260000B491E /* rInventory Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AA51D6902E38EC1600D6F5FB /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		AA6108D02E3D1B0F00295F7B /* Camera */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = Camera; path = "/Users/ethanlagera/Library/Developer/Xcode/DerivedData/rInventory-fjbvvswzgjdjqedalnnriqjzyoxh/SourcePackages/checkouts/Camera"; sourceTree = "<absolute>"; };
+		AABFF4C42E4A325E000B491E /* rInventory Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "rInventory Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AABFF4D02E4A325F000B491E /* rInventory Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "rInventory Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AABFF4DA2E4A3260000B491E /* rInventory Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "rInventory Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5932E16056A0066997C /* rInventory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rInventory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rInventoryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,6 +99,21 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AABFF4C52E4A325E000B491E /* rInventory Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rInventory Watch App";
+			sourceTree = "<group>";
+		};
+		AABFF4D32E4A3260000B491E /* rInventory Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rInventory Watch AppTests";
+			sourceTree = "<group>";
+		};
+		AABFF4DD2E4A3260000B491E /* rInventory Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rInventory Watch AppUITests";
+			sourceTree = "<group>";
+		};
 		AAC9D5952E16056A0066997C /* rInventory */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -84,6 +135,27 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AABFF4C12E4A325E000B491E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4CD2E4A325F000B491E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4D72E4A3260000B491E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AAC9D5902E16056A0066997C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -118,6 +190,9 @@
 				AAC9D5952E16056A0066997C /* rInventory */,
 				AAC9D5A72E16056D0066997C /* rInventoryTests */,
 				AAC9D5B12E16056D0066997C /* rInventoryUITests */,
+				AABFF4C52E4A325E000B491E /* rInventory Watch App */,
+				AABFF4D32E4A3260000B491E /* rInventory Watch AppTests */,
+				AABFF4DD2E4A3260000B491E /* rInventory Watch AppUITests */,
 				AAFA444A2E18E51100AD6351 /* Frameworks */,
 				AAC9D5942E16056A0066997C /* Products */,
 			);
@@ -129,6 +204,9 @@
 				AAC9D5932E16056A0066997C /* rInventory.app */,
 				AAC9D5A42E16056C0066997C /* rInventoryTests.xctest */,
 				AAC9D5AE2E16056D0066997C /* rInventoryUITests.xctest */,
+				AABFF4C42E4A325E000B491E /* rInventory Watch App.app */,
+				AABFF4D02E4A325F000B491E /* rInventory Watch AppTests.xctest */,
+				AABFF4DA2E4A3260000B491E /* rInventory Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -146,6 +224,74 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AABFF4C32E4A325E000B491E /* rInventory Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AABFF4EC2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch App" */;
+			buildPhases = (
+				AABFF4C02E4A325E000B491E /* Sources */,
+				AABFF4C12E4A325E000B491E /* Frameworks */,
+				AABFF4C22E4A325E000B491E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AABFF4C52E4A325E000B491E /* rInventory Watch App */,
+			);
+			name = "rInventory Watch App";
+			packageProductDependencies = (
+			);
+			productName = "inventoryBuddy Watch App";
+			productReference = AABFF4C42E4A325E000B491E /* rInventory Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AABFF4CF2E4A325F000B491E /* rInventory Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AABFF4ED2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch AppTests" */;
+			buildPhases = (
+				AABFF4CC2E4A325F000B491E /* Sources */,
+				AABFF4CD2E4A325F000B491E /* Frameworks */,
+				AABFF4CE2E4A325F000B491E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AABFF4D22E4A3260000B491E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AABFF4D32E4A3260000B491E /* rInventory Watch AppTests */,
+			);
+			name = "rInventory Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "inventoryBuddy Watch AppTests";
+			productReference = AABFF4D02E4A325F000B491E /* rInventory Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AABFF4D92E4A3260000B491E /* rInventory Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AABFF4EE2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch AppUITests" */;
+			buildPhases = (
+				AABFF4D62E4A3260000B491E /* Sources */,
+				AABFF4D72E4A3260000B491E /* Frameworks */,
+				AABFF4D82E4A3260000B491E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AABFF4DC2E4A3260000B491E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AABFF4DD2E4A3260000B491E /* rInventory Watch AppUITests */,
+			);
+			name = "rInventory Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "inventoryBuddy Watch AppUITests";
+			productReference = AABFF4DA2E4A3260000B491E /* rInventory Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		AAC9D5922E16056A0066997C /* rInventory */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AAC9D5B72E16056D0066997C /* Build configuration list for PBXNativeTarget "rInventory" */;
@@ -154,10 +300,12 @@
 				AAC9D5902E16056A0066997C /* Frameworks */,
 				AAC9D5912E16056A0066997C /* Resources */,
 				AA51D69D2E38EC1600D6F5FB /* Embed Foundation Extensions */,
+				AABFF4E52E4A3260000B491E /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AABFF4E32E4A3260000B491E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AAC9D5952E16056A0066997C /* rInventory */,
@@ -228,6 +376,17 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					AABFF4C32E4A325E000B491E = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					AABFF4CF2E4A325F000B491E = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = AABFF4C32E4A325E000B491E;
+					};
+					AABFF4D92E4A3260000B491E = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = AABFF4C32E4A325E000B491E;
+					};
 					AAC9D5922E16056A0066997C = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -263,11 +422,35 @@
 				AAC9D5922E16056A0066997C /* rInventory */,
 				AAC9D5A32E16056C0066997C /* rInventoryTests */,
 				AAC9D5AD2E16056D0066997C /* rInventoryUITests */,
+				AABFF4C32E4A325E000B491E /* rInventory Watch App */,
+				AABFF4CF2E4A325F000B491E /* rInventory Watch AppTests */,
+				AABFF4D92E4A3260000B491E /* rInventory Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		AABFF4C22E4A325E000B491E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4CE2E4A325F000B491E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4D82E4A3260000B491E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AAC9D5912E16056A0066997C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -292,6 +475,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AABFF4C02E4A325E000B491E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4CC2E4A325F000B491E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AABFF4D62E4A3260000B491E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AAC9D58F2E16056A0066997C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -316,6 +520,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AABFF4D22E4A3260000B491E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AABFF4C32E4A325E000B491E /* rInventory Watch App */;
+			targetProxy = AABFF4D12E4A3260000B491E /* PBXContainerItemProxy */;
+		};
+		AABFF4DC2E4A3260000B491E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AABFF4C32E4A325E000B491E /* rInventory Watch App */;
+			targetProxy = AABFF4DB2E4A3260000B491E /* PBXContainerItemProxy */;
+		};
+		AABFF4E32E4A3260000B491E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AABFF4C32E4A325E000B491E /* rInventory Watch App */;
+			targetProxy = AABFF4E22E4A3260000B491E /* PBXContainerItemProxy */;
+		};
 		AAC9D5A62E16056C0066997C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AAC9D5922E16056A0066997C /* rInventory */;
@@ -329,6 +548,162 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		AABFF4E62E4A3260000B491E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = rInventory;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.lagera.Inventory;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		AABFF4E72E4A3260000B491E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = rInventory;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.lagera.Inventory;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		AABFF4E82E4A3260000B491E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lagera.inventory-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inventoryBuddy Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inventoryBuddy Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		AABFF4E92E4A3260000B491E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lagera.inventory-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inventoryBuddy Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inventoryBuddy Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		AABFF4EA2E4A3260000B491E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lagera.inventory-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "inventoryBuddy Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		AABFF4EB2E4A3260000B491E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L5KZFNA2X4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.lagera.inventory-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "inventoryBuddy Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 		AAC9D5B82E16056D0066997C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -613,6 +988,33 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AABFF4EC2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AABFF4E62E4A3260000B491E /* Debug */,
+				AABFF4E72E4A3260000B491E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AABFF4ED2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AABFF4E82E4A3260000B491E /* Debug */,
+				AABFF4E92E4A3260000B491E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AABFF4EE2E4A3260000B491E /* Build configuration list for PBXNativeTarget "rInventory Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AABFF4EA2E4A3260000B491E /* Debug */,
+				AABFF4EB2E4A3260000B491E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AAC9D58E2E16056A0066997C /* Build configuration list for PBXProject "rInventory" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

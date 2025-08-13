@@ -1,15 +1,6 @@
 {
-  "originHash" : "1e90a87b032263043d088c83be942e8218f31d49068c7cbfaeee0329eeeaff3f",
+  "originHash" : "39df136e5243a28852524a8e793438d5c4f74295ef14739d263c30ceae0eae73",
   "pins" : [
-    {
-      "identity" : "camera",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Somebud0180/Camera",
-      "state" : {
-        "branch" : "main",
-        "revision" : "6ec52f6b67f7314f8f411c9831cca766fd8ef6a4"
-      }
-    },
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",

@@ -1,5 +1,5 @@
 //
-//  rInventory_Watch_AppUITestsLaunchTests.swift
+//  Inventory_Watch_AppUITestsLaunchTests.swift
 //  rInventory Watch AppUITests
 //
 //  Created by Ethan John Lagera on 8/11/25.

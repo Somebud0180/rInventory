@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  inventoryBuddy Watch App
+//  rInventory Watch App
 //
 //  Created by Ethan John Lagera on 8/11/25.
 //
