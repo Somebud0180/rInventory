@@ -1,0 +1,24 @@
+//
+//  ContentView.swift
+//  inventoryBuddy Watch App
+//
+//  Created by Ethan John Lagera on 8/11/25.
+//
+
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "globe")
+                .imageScale(.large)
+                .foregroundStyle(.tint)
+            Text("Hello, world!")
+        }
+        .padding()
+    }
+}
+
+#Preview {
+    ContentView()
+}
