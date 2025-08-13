@@ -62,6 +62,10 @@ struct InventoryView: View {
         return ""
     }
     
+    private var isRecentlyAddedVisible: Bool {
+        appDefaults.showRecentlyAdded && filteredItems(for: "RecentlyAdded").count > 0
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -73,15 +77,15 @@ struct InventoryView: View {
                         emptyItemsView
                     } else if appDefaults.showInventoryAsRows {
                         VStack(spacing: 16) {
-                            if appDefaults.showRecentlyAdded {
+                            if isRecentlyAddedVisible {
                                 LazyVGrid(columns: rowColumns, spacing: 16) {
                                     inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
                                     inventoryRow(title: "All Items", showCategoryPicker: true, showSortPicker: true)
-                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
                                 }
+                                .transition(.opacity.combined(with: .move(edge: .leading)))
                             } else {
                                 inventoryRow(itemAmount: 7, title: "All Items", showCategoryPicker: true, showSortPicker: true)
-                                    .transition(.opacity)
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
                             }
                             
                             // Categories section
@@ -121,14 +125,13 @@ struct InventoryView: View {
                             }
                         }
                     } else {
-                        if appDefaults.showRecentlyAdded {
+                        if isRecentlyAddedVisible {
                             inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
                         }
                         
                         // Grid view for items
                         InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, showHiddenCategoriesInGrid: appDefaults.showHiddenCategoriesInGrid, showHiddenLocationsInGrid: appDefaults.showHiddenLocationsInGrid, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             .padding(.horizontal, -16)
-                            .id("\(appDefaults.showHiddenCategoriesInGrid)-\(appDefaults.showHiddenLocationsInGrid)") // Trigger re-render on settings change
                     }
                 }
                 .padding(.horizontal, 16)
@@ -260,7 +263,8 @@ struct InventoryView: View {
     /// - color: The color theme for the row.
     /// - showCategoryPicker: Whether to show the category picker.
     /// - showSortPicker: Whether to show the sort picker.
-    private func inventoryRow(predicate: String? = nil, itemAmount: Int = 4, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+    private func inventoryRow(predicate: String? = nil, itemAmount: Int? = nil, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
+        let itemAmount = itemAmount ?? 4
         let filteredItems = filteredItems(for: predicate)
         
         return AnyView(

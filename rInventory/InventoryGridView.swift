@@ -161,7 +161,10 @@ struct InventoryGridView: View {
         .onChange(of: modelCategories.filter { $0.displayInRow == true }) {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
-        .onChange(of: "\(viewModel.filteredItems(from: modelItems))-\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {
+        .onChange(of: viewModel.filteredItems(from: modelItems)) {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+        }
+        .onChange(of: "\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
     }
