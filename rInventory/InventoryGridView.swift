@@ -19,6 +19,7 @@ struct InventoryGridView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.editMode) private var editMode
     
+    @EnvironmentObject var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var modelItems: [Item]
     @Query private var modelCategories: [Category]
@@ -49,7 +50,7 @@ struct InventoryGridView: View {
     @Binding var isInventoryActive: Bool
     @Binding var isInventoryGridActive: Bool
     
-    @StateObject private var viewModel: InventoryViewModel
+    @StateObject private var viewModel = InventoryViewModel(appDefaults: AppDefaults.shared)
     
     // State variable for UI
     @State private var draggedItem: Item? = nil
@@ -58,18 +59,6 @@ struct InventoryGridView: View {
     
     // Clean up viewModel on disappear
     @State private var hasAppeared = false
-    
-    init(syncEngine: CloudKitSyncEngine, title: String, predicate: String? = nil, showCategoryPicker: Bool = false, showSortPicker: Bool = false, showHiddenCategoriesInGrid: Bool = false, showHiddenLocationsInGrid: Bool = false,  selectedItem: Binding<Item?>, isInventoryActive: Binding<Bool>, isInventoryGridActive: Binding<Bool>) {
-        _syncEngine = StateObject(wrappedValue: syncEngine)
-        self.title = title
-        self.predicate = predicate
-        self.showCategoryPicker = showCategoryPicker
-        self.showSortPicker = showSortPicker
-        self._selectedItem = selectedItem
-        self._isInventoryActive = isInventoryActive
-        self._isInventoryGridActive = isInventoryGridActive
-        _viewModel = StateObject(wrappedValue: InventoryViewModel(showHiddenCategories: showHiddenCategoriesInGrid, showHiddenLocations: showHiddenLocationsInGrid))
-    }
     
     var body: some View {
         NavigationStack {
@@ -162,6 +151,9 @@ struct InventoryGridView: View {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
         .onChange(of: viewModel.filteredItems(from: modelItems)) {
+            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+        }
+        .onChange(of: "\(viewModel.appDefaults.showHiddenLocationsInGrid)-\(viewModel.appDefaults.showHiddenCategoriesInGrid)") {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
         .onChange(of: "\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {

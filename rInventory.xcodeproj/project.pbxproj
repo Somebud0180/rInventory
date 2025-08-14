@@ -10,7 +10,6 @@
 		AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
 		AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */; };
 		AABFF4E42E4A3260000B491E /* rInventory Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AABFF4C42E4A325E000B491E /* rInventory Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		AAC73E912E482BC600FD0364 /* MijickTimer in Frameworks */ = {isa = PBXBuildFile; productRef = AAC73E902E482BC600FD0364 /* MijickTimer */; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -163,7 +162,6 @@
 				AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 				AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */,
-				AAC73E912E482BC600FD0364 /* MijickTimer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,7 +312,6 @@
 			packageProductDependencies = (
 				AA942A842E4100F100731E54 /* MijickCamera */,
 				AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */,
-				AAC73E902E482BC600FD0364 /* MijickTimer */,
 			);
 			productName = Inventory;
 			productReference = AAC9D5932E16056A0066997C /* rInventory.app */;
@@ -412,7 +409,6 @@
 			packageReferences = (
 				AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */,
 				AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
-				AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAC9D5942E16056A0066997C /* Products */;
@@ -1070,14 +1066,6 @@
 				kind = branch;
 			};
 		};
-		AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Mijick/Timer";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1090,11 +1078,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */;
 			productName = MijickCamera;
-		};
-		AAC73E902E482BC600FD0364 /* MijickTimer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AAC73E8F2E482BC600FD0364 /* XCRemoteSwiftPackageReference "Timer" */;
-			productName = MijickTimer;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

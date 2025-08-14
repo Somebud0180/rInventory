@@ -35,7 +35,6 @@ struct ItemIdentifier: Transferable {
 }
 
 struct InventoryView: View {
-    @EnvironmentObject private var appDefaults: AppDefaults
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -43,6 +42,7 @@ struct InventoryView: View {
     @Query(filter: #Predicate<Location> { $0.displayInRow == true }, sort: \Location.sortOrder, order: .forward) private var locations: [Location]
     @Query(filter: #Predicate<Category> { $0.displayInRow == true }, sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
+    @EnvironmentObject private var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
     @Binding var showItemView: Bool
@@ -50,10 +50,19 @@ struct InventoryView: View {
     @State var isActive: Bool
     @State var isInventoryGridActive: Bool = false
     
-    @StateObject private var viewModel = InventoryViewModel()
+    @StateObject private var viewModel: InventoryViewModel
     @State private var showInventoryOptionsView: Bool = false
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
+    
+    init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showItemView: Binding<Bool>, selectedItem: Binding<Item?>, isActive: Bool) {
+        self._syncEngine = StateObject(wrappedValue: syncEngine)
+        self._showItemCreationView = showItemCreationView
+        self._showItemView = showItemView
+        self._selectedItem = selectedItem
+        self._isActive = State(initialValue: isActive)
+        self._viewModel = StateObject(wrappedValue: InventoryViewModel(appDefaults: AppDefaults.shared))
+    }
     
     private var errorMessage: String {
         if case .error(let error) = syncEngine.syncState {
@@ -130,7 +139,7 @@ struct InventoryView: View {
                         }
                         
                         // Grid view for items
-                        InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, showHiddenCategoriesInGrid: appDefaults.showHiddenCategoriesInGrid, showHiddenLocationsInGrid: appDefaults.showHiddenLocationsInGrid, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                        InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             .padding(.horizontal, -16)
                     }
                 }

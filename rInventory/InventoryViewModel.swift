@@ -26,13 +26,11 @@ class InventoryViewModel: ObservableObject {
     @Published var selectedItemIDs: Set<UUID> = []
     @Published var isLoading: Bool = true
     @Published var displayedItems: [Item] = []
-    @Published var showHiddenCategories: Bool = false
-    @Published var showHiddenLocations: Bool = false
     private var filterCancellable: AnyCancellable?
+    let appDefaults: AppDefaults
     
-    init(showHiddenCategories: Bool = false, showHiddenLocations: Bool = false) {
-        self.showHiddenCategories = showHiddenCategories
-        self.showHiddenLocations = showHiddenLocations
+    init(appDefaults: AppDefaults) {
+        self.appDefaults = appDefaults
     }
     
     // Call this to filter and sort items asynchronously
@@ -44,10 +42,10 @@ class InventoryViewModel: ObservableObject {
                 var filtered = items
                 if let predicate = predicate {
                     if predicate == "InventoryView" {
-                        if !self.showHiddenCategories {
+                        if !self.appDefaults.showHiddenCategoriesInGrid {
                             filtered = filtered.filter { $0.category == nil || $0.category?.displayInRow == true }
                         }
-                        if !self.showHiddenLocations {
+                        if !self.appDefaults.showHiddenLocationsInGrid {
                             filtered = filtered.filter { $0.location == nil || $0.location?.displayInRow == true }
                         }
                     } else if predicate == "RecentlyAdded" {
