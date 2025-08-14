@@ -133,14 +133,18 @@ struct InventoryView: View {
                                 }
                             }
                         }
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                     } else {
-                        if isRecentlyAddedVisible {
-                            inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
+                        VStack(spacing: 16) {
+                            if isRecentlyAddedVisible {
+                                inventoryRow(predicate: "RecentlyAdded", itemAmount: items.count, title: "Recently Added", showCategoryPicker: false, showSortPicker: false)
+                            }
+                            
+                            // Grid view for items
+                            InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                                .padding(.horizontal, -16)
                         }
-                        
-                        // Grid view for items
-                        InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
-                            .padding(.horizontal, -16)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .padding(.horizontal, 16)
