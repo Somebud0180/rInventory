@@ -71,7 +71,9 @@ class InventoryViewModel: ObservableObject {
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] filtered in
-                self?.displayedItems = filtered
+                withAnimation {
+                    self?.displayedItems = filtered
+                }
             }
         isLoading = false
     }
