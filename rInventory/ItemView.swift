@@ -111,74 +111,108 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                GeometryReader { geometry in
-                    ZStack(alignment: .top) {
-                        if case let .image(data) = background {
-                            AsyncItemImage(imageData: data)
-                                .scaledToFill()
-                                .ignoresSafeArea(.all)
-                                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                                .blur(radius: 44)
-                        }
-                        
-                        if isPad {
-                            iPadBackground(geometry)
-                                .ignoresSafeArea(.keyboard)
-                        } else if isLandscape {
-                            if #available(iOS 26, *) {
-                                GlassEffectContainer {
+            if #available(iOS 26, *) {
+                ZStack {
+                    GeometryReader { geometry in
+                        GlassEffectContainer {
+                            ZStack(alignment: .top) {
+                                if case let .image(data) = background {
+                                    AsyncItemImage(imageData: data)
+                                        .scaledToFill()
+                                        .ignoresSafeArea(.all)
+                                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                                        .blur(radius: 44)
+                                }
+                                
+                                if isPad {
+                                    iPadBackground(geometry)
+                                        .ignoresSafeArea(.keyboard)
+                                } else if isLandscape {
                                     landscapeLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
                                         .preferredColorScheme(.dark)
-                                }
-                            } else {
-                                landscapeLayout(geometry)
-                                    .ignoresSafeArea(.keyboard)
-                                    .preferredColorScheme(.dark)
-                            }
-                        } else {
-                            if #available(iOS 26, *) {
-                                GlassEffectContainer {
+                                } else {
                                     portraitLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
                                         .preferredColorScheme(.dark)
                                 }
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                        }
+                    }
+                    .ignoresSafeArea(.keyboard)
+                    .background(backgroundGradient)
+                    
+                    if isPad {
+                        GeometryReader { geometry in
+                            GlassEffectContainer {
+                                iPadLayout(geometry)
+                            }
+                        }
+                    }
+                    
+                    if showDeleteAnimation {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.red)
+                                .ignoresSafeArea()
+                                .transition(.blurReplace.combined(with: .opacity))
+                            
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                }
+            } else {
+                ZStack {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .top) {
+                            if case let .image(data) = background {
+                                AsyncItemImage(imageData: data)
+                                    .scaledToFill()
+                                    .ignoresSafeArea(.all)
+                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                                    .blur(radius: 44)
+                            }
+                            
+                            if isPad {
+                                iPadBackground(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                            } else if isLandscape {
+                                landscapeLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                                    .preferredColorScheme(.dark)
                             } else {
                                 portraitLayout(geometry)
                                     .ignoresSafeArea(.keyboard)
                                     .preferredColorScheme(.dark)
                             }
                         }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                }
-                .ignoresSafeArea(.keyboard)
-                .background(backgroundGradient)
-                
-                if isPad {
-                    GeometryReader { geometry in
-                        if #available(iOS 26, *) {
-                            GlassEffectContainer {
-                                iPadLayout(geometry)
-                            }
-                        } else {
+                    .ignoresSafeArea(.keyboard)
+                    .background(backgroundGradient)
+                    
+                    if isPad {
+                        GeometryReader { geometry in
                             iPadLayout(geometry)
                         }
                     }
-                }
-                
-                if showDeleteAnimation {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.red)
-                            .ignoresSafeArea()
-                            .transition(.blurReplace.combined(with: .opacity))
-                        
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.white.opacity(0.8))
-                            .transition(.scale.combined(with: .opacity))
+                    
+                    if showDeleteAnimation {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.red)
+                                .ignoresSafeArea()
+                                .transition(.blurReplace.combined(with: .opacity))
+                            
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
                 }
             }
@@ -535,18 +569,6 @@ struct ItemView: View {
     
     private var toolbarSection: some View {
         Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer {
-                    toolbarContent
-                }
-            } else {
-                toolbarContent
-            }
-        }
-    }
-    
-    private var toolbarContent: some View {
-        Group {
             if isEditing {
                 HStack(spacing: 0) {
                     Button(action: { showSymbolPicker = true }) {
@@ -554,7 +576,6 @@ struct ItemView: View {
                             .font(.title2)
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
-                            .adaptiveGlassButton()
                     }
                     .accessibilityLabel("Change Symbol")
                     
@@ -571,7 +592,6 @@ struct ItemView: View {
                             .font(.title2)
                             .frame(width: 36, height: 36)
                             .padding(.horizontal, 4)
-                            .adaptiveGlassButton()
                     }
                     .menuStyle(.borderlessButton)
                     .accessibilityLabel("Change Image")
@@ -588,7 +608,7 @@ struct ItemView: View {
                 }
                 .frame(height: 44, alignment: .leading)
                 .foregroundStyle(colorScheme == .light ? .black : .white)
-                .adaptiveGlassBackground()
+                .adaptiveGlassButton()
             }
         }
     }
