@@ -101,7 +101,7 @@ extension Item {
         if let location = newLocation {
             let oldLocation = self.location
             self.location = location
-            oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+            await oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         }
         if let category = newCategory {
             let oldCategory = self.category
@@ -110,7 +110,7 @@ extension Item {
             } else {
                 self.category = category
             }
-            oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+            await oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         }
         if let background = background {
             switch background {
@@ -147,14 +147,14 @@ extension Item {
         
         // Add to tombstones in CloudKit if available
         if let syncEngine = cloudKitSyncEngine {
-            syncEngine.addTombstone(self.id.uuidString)
+            await syncEngine.addTombstone(self.id.uuidString)
         }
         
         context.delete(self)
         
         // Clean up old location/category if they are empty
-        oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+        await oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+        await oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         
         // Cascade sortOrder
         let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
@@ -191,7 +191,7 @@ extension Location {
         }
     }
     
-    func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+    @MainActor func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
         // Save changes before cleanup
         try? context.save()
         
@@ -230,7 +230,7 @@ extension Category {
     }
     
     /// Checks if this category has no items and deletes it if empty.
-    func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+    @MainActor func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
         // Save changes before cleanup
         try? context.save()
         

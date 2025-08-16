@@ -60,6 +60,13 @@ public class CloudKitSyncEngine: ObservableObject {
     private let tombstoneKey = "CloudKitTombstones"
     private let tombstoneRetentionDays = 30
     
+    // Pending relationship resolution for items across zone batches
+    private struct PendingRefs {
+        var locationID: UUID?
+        var categoryID: UUID?
+    }
+    private var pendingItemRelationships: [UUID: PendingRefs] = [:]
+    
     // MARK: - Initialization
     public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.lagera.Inventory") {
         self.modelContext = modelContext
@@ -135,7 +142,7 @@ public class CloudKitSyncEngine: ObservableObject {
             _ = try await database.modifyRecordZones(saving: zones, deleting: [])
             logger.info("Successfully created/verified record zones")
         } catch let error as CKError {
-            // Only throw if it's not a zone already exists error
+            // Ignore benign cases where zones are not yet present or a referenced item is missing
             if error.code != .zoneNotFound && error.code != .unknownItem {
                 throw error
             }
@@ -191,6 +198,10 @@ public class CloudKitSyncEngine: ObservableObject {
         
         // Then send any local changes to CloudKit
         try await syncEngine.sendChanges()
+        
+        // Final pass to resolve any pending relationships after all batches
+        resolvePendingRelationships()
+        saveContext("performSync: final resolve")
         
         syncState = .success
         lastSyncDate = Date()
@@ -272,18 +283,17 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Create an Item from a CKRecord
     private func recordToItem(_ record: CKRecord) async -> Item? {
-        guard let idString = record["CD_id"] as? String,
-              let id = UUID(uuidString: idString),
+        guard let id = uuid(from: record),
               let name = record["CD_name"] as? String,
               let quantity = record["CD_quantity"] as? Int else {
             return nil
         }
         
-        // Check if item exists locally
-        let descriptor = FetchDescriptor<Item>(predicate: #Predicate { $0.id == id })
-        let existingItems = (try? modelContext.fetch(descriptor)) ?? []
+        // Stash desired relationships for later resolution as well
+        updatePendingRelationships(from: record)
         
-        if let existingItem = existingItems.first {
+        // Check if item exists locally
+        if let existingItem = fetchItem(id: id) {
             // Update existing item
             existingItem.name = name
             existingItem.quantity = quantity
@@ -303,23 +313,16 @@ public class CloudKitSyncEngine: ObservableObject {
                 existingItem.sortOrder = sortOrder
             }
             
-            // Handle relationships
-            if let locationReference = record["CD_location"] as? CKRecord.Reference {
-                let locationId = locationReference.recordID.recordName
-                if let uuid = UUID(uuidString: locationId) {
-                    let locationDescriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == uuid })
-                    let locations = (try? modelContext.fetch(locationDescriptor)) ?? []
-                    existingItem.location = locations.first
-                }
+            // Handle relationships (only set if found; don't overwrite with nil)
+            if let locationReference = record["CD_location"] as? CKRecord.Reference,
+               let uuid = UUID(uuidString: locationReference.recordID.recordName),
+               let location = fetchLocation(id: uuid) {
+                existingItem.location = location
             }
-            
-            if let categoryReference = record["CD_category"] as? CKRecord.Reference {
-                let categoryId = categoryReference.recordID.recordName
-                if let uuid = UUID(uuidString: categoryId) {
-                    let categoryDescriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == uuid })
-                    let categories = (try? modelContext.fetch(categoryDescriptor)) ?? []
-                    existingItem.category = categories.first
-                }
+            if let categoryReference = record["CD_category"] as? CKRecord.Reference,
+               let uuid = UUID(uuidString: categoryReference.recordID.recordName),
+               let category = fetchCategory(id: uuid) {
+                existingItem.category = category
             }
             
             return existingItem
@@ -345,8 +348,7 @@ public class CloudKitSyncEngine: ObservableObject {
                 newItem.imageData = imageData
             }
             
-            // Handle relationships - do this after inserting all entities
-            
+            // Relationships will be resolved later (after all entities are present)
             modelContext.insert(newItem)
             return newItem
         }
@@ -354,17 +356,12 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Create a Category from a CKRecord
     private func recordToCategory(_ record: CKRecord) async -> Category? {
-        guard let idString = record["CD_id"] as? String,
-              let id = UUID(uuidString: idString),
+        guard let id = uuid(from: record),
               let name = record["CD_name"] as? String else {
             return nil
         }
         
-        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
-        let existingCategories = (try? modelContext.fetch(descriptor)) ?? []
-        
-        if let existingCategory = existingCategories.first {
-            // Update existing category
+        if let existingCategory = fetchCategory(id: id) {
             existingCategory.name = name
             if let sortOrder = record["CD_sortOrder"] as? Int {
                 existingCategory.sortOrder = sortOrder
@@ -374,7 +371,6 @@ public class CloudKitSyncEngine: ObservableObject {
             }
             return existingCategory
         } else {
-            // Create new category
             let newCategory = Category(
                 id,
                 name: name,
@@ -388,17 +384,12 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Create a Location from a CKRecord
     private func recordToLocation(_ record: CKRecord) async -> Location? {
-        guard let idString = record["CD_id"] as? String,
-              let id = UUID(uuidString: idString),
+        guard let id = uuid(from: record),
               let name = record["CD_name"] as? String else {
             return nil
         }
         
-        let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
-        let existingLocations = (try? modelContext.fetch(descriptor)) ?? []
-        
-        if let existingLocation = existingLocations.first {
-            // Update existing location
+        if let existingLocation = fetchLocation(id: id) {
             existingLocation.name = name
             if let sortOrder = record["CD_sortOrder"] as? Int {
                 existingLocation.sortOrder = sortOrder
@@ -411,7 +402,6 @@ public class CloudKitSyncEngine: ObservableObject {
             }
             return existingLocation
         } else {
-            // Create new location
             let color: Color = {
                 if let colorData = record["CD_colorData"] as? Data,
                    let decoded = Color(rgbaData: colorData) {
@@ -440,7 +430,7 @@ public class CloudKitSyncEngine: ObservableObject {
                 let locationId = locationReference.recordID.recordName
                 if let uuid = UUID(uuidString: locationId) {
                     let locationDescriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == uuid })
-                    if let location = try? modelContext.fetch(locationDescriptor).first {
+                    if let location = ((try? modelContext.fetch(locationDescriptor))?.first) {
                         item.location = location
                     }
                 }
@@ -450,12 +440,102 @@ public class CloudKitSyncEngine: ObservableObject {
                 let categoryId = categoryReference.recordID.recordName
                 if let uuid = UUID(uuidString: categoryId) {
                     let categoryDescriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == uuid })
-                    if let category = try? modelContext.fetch(categoryDescriptor).first {
+                    if let category = ((try? modelContext.fetch(categoryDescriptor))?.first) {
                         item.category = category
                     }
                 }
             }
         }
+    }
+    
+    /// Extract and store desired relationships from an item record for later resolution
+    private func updatePendingRelationships(from record: CKRecord) {
+        guard record.recordType == "CD_Item" else { return }
+        // Prefer CD_id, fall back to recordID.recordName for robustness
+        let itemID: UUID? = {
+            if let idString = record["CD_id"] as? String, let id = UUID(uuidString: idString) { return id }
+            return UUID(uuidString: record.recordID.recordName)
+        }()
+        guard let itemID else { return }
+        let locID: UUID? = (record["CD_location"] as? CKRecord.Reference).flatMap { UUID(uuidString: $0.recordID.recordName) }
+        let catID: UUID? = (record["CD_category"] as? CKRecord.Reference).flatMap { UUID(uuidString: $0.recordID.recordName) }
+        let existing = pendingItemRelationships[itemID] ?? PendingRefs(locationID: nil, categoryID: nil)
+        pendingItemRelationships[itemID] = PendingRefs(
+            locationID: locID ?? existing.locationID,
+            categoryID: catID ?? existing.categoryID
+        )
+    }
+    
+    // MARK: - Small Helpers
+    /// Safely parse the model UUID from a CKRecord, preferring CD_id and falling back to recordID.recordName
+    private func uuid(from record: CKRecord) -> UUID? {
+        if let idString = record["CD_id"] as? String, let id = UUID(uuidString: idString) {
+            return id
+        }
+        return UUID(uuidString: record.recordID.recordName)
+    }
+    
+    private func fetchItem(id: UUID) -> Item? {
+        let d = FetchDescriptor<Item>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(d))?.first)
+    }
+    private func fetchCategory(id: UUID) -> Category? {
+        let d = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(d))?.first)
+    }
+    private func fetchLocation(id: UUID) -> Location? {
+        let d = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(d))?.first)
+    }
+    
+    /// Delete a local entity by UUID based on the zoneID it belongs to
+    private func deleteEntity(for uuid: UUID, zoneID: CKRecordZone.ID) {
+        if zoneID == itemsZoneID {
+            if let item = fetchItem(id: uuid) { modelContext.delete(item) }
+        } else if zoneID == categoriesZoneID {
+            if let category = fetchCategory(id: uuid) { modelContext.delete(category) }
+        } else if zoneID == locationsZoneID {
+            if let location = fetchLocation(id: uuid) { modelContext.delete(location) }
+        }
+    }
+    
+    /// Attempt to save the model context and log any errors
+    private func saveContext(_ reason: String) {
+        do { try modelContext.save() } catch {
+            logger.error("ModelContext save failed (\(reason)): \(error.localizedDescription)")
+        }
+    }
+    
+    /// Attempt to resolve any pending item relationships now that more data may be present
+    private func resolvePendingRelationships() {
+        guard !pendingItemRelationships.isEmpty else { return }
+        var resolvedIDs: [UUID] = []
+        for (itemID, refs) in pendingItemRelationships {
+            let itemDescriptor = FetchDescriptor<Item>(predicate: #Predicate { $0.id == itemID })
+            guard let item = ((try? modelContext.fetch(itemDescriptor))?.first) else { continue }
+            var resolvedAll = true
+            if let locID = refs.locationID {
+                let locationDescriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == locID })
+                if let location = ((try? modelContext.fetch(locationDescriptor))?.first) {
+                    item.location = location
+                } else {
+                    resolvedAll = false
+                }
+            }
+            if let catID = refs.categoryID {
+                let categoryDescriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == catID })
+                if let category = ((try? modelContext.fetch(categoryDescriptor))?.first) {
+                    item.category = category
+                } else {
+                    resolvedAll = false
+                }
+            }
+            if resolvedAll { resolvedIDs.append(itemID) }
+        }
+        // Remove fully-resolved entries
+        for id in resolvedIDs { pendingItemRelationships.removeValue(forKey: id) }
+        // Save if we made any changes
+        if !resolvedIDs.isEmpty { saveContext("resolvePendingRelationships") }
     }
     
     /// Clean up duplicate items with the same ID
@@ -464,12 +544,10 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allItems = try? modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allItems, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
             for duplicate in group.dropFirst() {
                 modelContext.delete(duplicate)
             }
         }
-        try? modelContext.save()
     }
     
     /// Clean up duplicate categories with the same ID
@@ -478,12 +556,10 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allCategories = try? modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allCategories, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
             for duplicate in group.dropFirst() {
                 modelContext.delete(duplicate)
             }
         }
-        try? modelContext.save()
     }
     
     /// Clean up duplicate locations with the same ID
@@ -492,12 +568,10 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allLocations = try? modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allLocations, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            let winner = group.first!
             for duplicate in group.dropFirst() {
                 modelContext.delete(duplicate)
             }
         }
-        try? modelContext.save()
     }
     
     // MARK: - Tombstone Management
@@ -571,7 +645,7 @@ public class CloudKitSyncEngine: ObservableObject {
         // which would need to be implemented as a separate feature.
         
         // Save changes
-        try? modelContext.save()
+        saveContext("cleanupOrphanedData")
         
         // Clean up duplicates as a final step - this is still safe to do
         cleanupDuplicateItems()
@@ -619,8 +693,12 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                     }
                 case "CD_Category":
                     _ = await recordToCategory(record)
+                    // After categories arrive, try resolving pending relationships
+                    resolvePendingRelationships()
                 case "CD_Location":
                     _ = await recordToLocation(record)
+                    // After locations arrive, try resolving pending relationships
+                    resolvePendingRelationships()
                 default:
                     logger.warning("Unknown record type: \(record.recordType)")
                 }
@@ -635,36 +713,28 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                 addToTombstones(recordName)
                 
                 if let uuid = UUID(uuidString: recordName) {
-                    if recordID.zoneID == itemsZoneID {
-                        let descriptor = FetchDescriptor<Item>(predicate: #Predicate { $0.id == uuid })
-                        if let items = try? modelContext.fetch(descriptor), let item = items.first {
-                            modelContext.delete(item)
-                        }
-                    } else if recordID.zoneID == categoriesZoneID {
-                        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == uuid })
-                        if let categories = try? modelContext.fetch(descriptor), let category = categories.first {
-                            modelContext.delete(category)
-                        }
-                    } else if recordID.zoneID == locationsZoneID {
-                        let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == uuid })
-                        if let locations = try? modelContext.fetch(descriptor), let location = locations.first {
-                            modelContext.delete(location)
-                        }
-                    }
+                    // Clear any pending relationships for deleted items
+                    pendingItemRelationships.removeValue(forKey: uuid)
+                    
+                    // Use helper to delete appropriate entity
+                    deleteEntity(for: uuid, zoneID: recordID.zoneID)
                 }
             }
             
-            // Process relationships for items
+            // Process relationships for items in this batch immediately when possible
             if !itemsToProcess.isEmpty && !itemRecords.isEmpty {
                 processRelationships(for: itemsToProcess, with: itemRecords)
             }
+            
+            // Attempt to resolve any cross-zone pending relationships
+            resolvePendingRelationships()
             
             // Clean up any duplicates
             cleanupDuplicateItems()
             cleanupDuplicateCategories()
             cleanupDuplicateLocations()
             
-            try? modelContext.save()
+            saveContext("fetchedRecordZoneChanges")
             
         case .sentRecordZoneChanges(let changes):
             // Log the results of sending records to CloudKit
@@ -699,7 +769,7 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
             }
             
             if !changes.deletions.isEmpty {
-                try? modelContext.save()
+                saveContext("fetchedDatabaseChanges: zone deletions")
             }
             
         case .stateUpdate, .willFetchChanges, .didFetchChanges, .willSendChanges,
@@ -734,9 +804,9 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
         let allRecords = itemRecords + categoryRecords + locationRecords
         
         // Create a record map for the batch
-        var recordMap: [CKRecord.ID: CKRecord] = [:]
-        for record in allRecords {
-            recordMap[record.recordID] = record
+        let recordMap: [CKRecord.ID: CKRecord] = allRecords.reduce(into: [CKRecord.ID: CKRecord]()) { dict, record in
+            // Keep the last occurrence for duplicate keys
+            dict[record.recordID] = record
         }
         
         // Create batch with the pendingChanges parameter as suggested by the compiler

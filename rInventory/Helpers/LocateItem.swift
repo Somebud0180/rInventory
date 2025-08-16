@@ -37,7 +37,7 @@ struct LocateItem: AppIntent, WidgetConfigurationIntent, CustomIntentMigratedApp
             return .result(value: "Please provide an item name to search for.")
         }
         
-        let modelContext = ModelContext(InventoryApp.sharedModelContainer)
+        let modelContext = await ModelContext(InventoryApp.sharedModelContainer)
         let fetchDescriptor = FetchDescriptor<Item>(predicate: #Predicate { item in
             item.name.localizedStandardContains(itemName)
         })
