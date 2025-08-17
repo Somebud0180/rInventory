@@ -98,6 +98,11 @@ struct ItemCreationView: View {
                                     }
                                 }
                             
+                            Button(action: { locationName = "" }, label: {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.secondary)
+                            }).padding(.horizontal, 4)
+                            
                             if !locationName.isEmpty {
                                 ColorPicker("Location Color", selection: $locationColor, supportsOpacity: false)
                                     .labelsHidden()
@@ -110,18 +115,25 @@ struct ItemCreationView: View {
                         Divider()
                             .ignoresSafeArea(edges: .trailing)
                         
-                        TextField("Category", text: $categoryName)
-                            .font(.body)
-                            .autocapitalization(.words)
-                            .disableAutocorrection(true)
-                            .onSubmit {
-                                categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-                            }
-                            .onChange(of: categoryName) { oldValue, newValue in
-                                if newValue.count >= 40 {
-                                    categoryName = String(newValue.prefix(40))
+                        HStack {
+                            TextField("Category", text: $categoryName)
+                                .font(.body)
+                                .autocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .onSubmit {
+                                    categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
                                 }
-                            }
+                                .onChange(of: categoryName) { oldValue, newValue in
+                                    if newValue.count >= 40 {
+                                        categoryName = String(newValue.prefix(40))
+                                    }
+                                }
+                            
+                            Button(action: { categoryName = "" }, label: {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.secondary)
+                            }).padding(.horizontal, 4)
+                        }
                         
                         filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
                     }

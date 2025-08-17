@@ -459,7 +459,7 @@ struct ItemView: View {
                     }
                     
                     if (animateFocused == nil || animateFocused == .category) && !isCollapsed {
-                        HStack {
+                        HStack(alignment: .top) {
                             categorySection
                             Spacer()
                             if isEditing {
@@ -641,7 +641,7 @@ struct ItemView: View {
                         Button(action: { editCategoryName = "" }, label: {
                             Image(systemName: "xmark")
                                 .foregroundStyle(.secondary)
-                        })
+                        }).padding(.horizontal, 4)
                     }
                     filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $editCategoryName)
                 }
@@ -755,7 +755,7 @@ struct ItemView: View {
                         Button(action: { editLocationName = "" }, label: {
                             Image(systemName: "xmark")
                                 .foregroundStyle(.secondary)
-                        })
+                        }).padding(.horizontal, 4)
                         
                         ColorPicker("Location Color", selection: $editLocationColor, supportsOpacity: false)
                             .labelsHidden()
