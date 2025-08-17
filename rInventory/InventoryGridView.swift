@@ -104,7 +104,7 @@ struct InventoryGridView: View {
         .refreshable {
             viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
         }
-        .alert("Delete Item", isPresented: $showDeleteAlert) {
+        .alert("Delete \(viewModel.selectedItemIDs.count) Item\(viewModel.selectedItemIDs.count > 1 ? "s" : "")", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) {
             }
             
@@ -114,7 +114,7 @@ struct InventoryGridView: View {
                 }
             }
         } message: {
-            Text("Are you sure you want to delete this item? This action cannot be undone.")
+            Text("Are you sure you want to delete \(viewModel.selectedItemIDs.count > 1 ? "these items" : "this item")? This action cannot be undone.")
         }
         .onAppear {
             if !hasAppeared {
@@ -133,7 +133,7 @@ struct InventoryGridView: View {
             hasAppeared = false
         }
         .onChange(of: editMode?.wrappedValue.isEditing == true) {
-            if !(editMode?.wrappedValue.isEditing == true) {
+            if editMode?.wrappedValue.isEditing == false && !showDeleteAlert {
                 viewModel.selectedItemIDs.removeAll()
             }
         }
