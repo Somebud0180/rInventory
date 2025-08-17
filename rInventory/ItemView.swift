@@ -39,7 +39,6 @@ struct ItemBackgroundView: View {
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(symbolColor ?? .white)
-                .mask(mask)
                 .ignoresSafeArea(.all)
                 .padding(.top,
                          (UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular)
@@ -107,6 +106,14 @@ struct ItemView: View {
     /// Helper to determine if the device is an iPad
     private var isPad: Bool {
         return UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    private var osCornerRadius: CGFloat {
+        if #available (iOS 26.0, *) {
+            return 32.0
+        } else {
+            return 12.0
+        }
     }
     
     var body: some View {
@@ -495,9 +502,9 @@ struct ItemView: View {
                         .padding(.vertical, 6)
                 }
                 .padding(16)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: osCornerRadius))
             }
-            .background(.black.opacity(0.25), in: RoundedRectangle(cornerRadius: 32))
+            .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: osCornerRadius))
             .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height * 0.45, alignment: .bottom)
         }
         .padding(4)
@@ -563,8 +570,10 @@ struct ItemView: View {
     }
     
     private var backgroundLinearGradient: LinearGradient {
-        let secondaryColor = (colorScheme == .dark) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
-        return LinearGradient(colors: [.accentDark.opacity(0.9), secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
+        let currentSymbolColor = isEditing ? editSymbolColor : symbolColor
+        let primaryColor = (colorScheme == .dark || isColorWhite((currentSymbolColor ?? .white), sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
+        let secondaryColor = (colorScheme == .dark || isColorWhite((currentSymbolColor ?? .white), sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
+        return LinearGradient(colors: [primaryColor, secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
     private var toolbarSection: some View {
@@ -607,7 +616,7 @@ struct ItemView: View {
                     }
                 }
                 .frame(height: 44, alignment: .leading)
-                .foregroundStyle(colorScheme == .light ? .black : .white)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
                 .adaptiveGlassButton()
             }
         }
@@ -676,7 +685,7 @@ struct ItemView: View {
                         .font(.title3)
                         .padding(8)
                         .frame(minWidth: isPad ? 44 : 32, minHeight: isPad ? 44 : 32)
-                        .adaptiveGlassButton(tintStrength: 0.5)
+                        .adaptiveGlassButton()
                 }
                 .menuStyle(.borderlessButton)
             } else {
@@ -693,7 +702,7 @@ struct ItemView: View {
             }
         }
         .minimumScaleFactor(0.75)
-        .foregroundStyle(colorScheme == .light ? .black : .white)
+        .foregroundStyle(colorScheme == .dark ? .white : .black)
     }
     
     private var nameSection: some View {

@@ -52,7 +52,7 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
                     )
             }
         } else {
-            let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.gray.opacity(max(tintStrength, 0.2))
+            let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.white.opacity(max(tintStrength, 0.2))
             content
                 .background(tintColor, in: Capsule())
         }
@@ -88,7 +88,7 @@ extension View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
-    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.gray) -> some View {
+    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white) -> some View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor))
     }
     
