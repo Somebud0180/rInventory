@@ -39,7 +39,7 @@ class InventoryViewModel: ObservableObject {
         filterCancellable = Just((items, predicate, selectedSortType, selectedCategory))
             .subscribe(on: DispatchQueue.global(qos: .userInitiated))
             .map { (items, predicate, sortType, selectedCategory) -> [Item] in
-                var filtered = items
+                var filtered = items.uniqued(by: \.id)
                 if let predicate = predicate {
                     if predicate == "InventoryView" {
                         if !self.appDefaults.showHiddenCategoriesInGrid {

@@ -108,7 +108,7 @@ struct InventoryView: View {
                                             .padding(.bottom, -8)
                                         
                                         LazyVGrid(columns: rowColumns, spacing: 16) {
-                                            ForEach(categories, id: \ .id) { category in
+                                            ForEach(categories.uniqued(by: \.id), id: \ .id) { category in
                                                 inventoryRow(predicate: "Category: \(category.id)", title: category.name, showSortPicker: true)
                                             }
                                         }
@@ -126,7 +126,7 @@ struct InventoryView: View {
                                         .padding(.bottom, -8)
                                     
                                     LazyVGrid(columns: rowColumns, spacing: 16) {
-                                        ForEach(locations, id: \ .id) { location in
+                                        ForEach(locations.uniqued(by: \.id), id: \ .id) { location in
                                             inventoryRow(predicate: "Location: \(location.id)", title: location.name, color: location.color, showCategoryPicker: true, showSortPicker: true)
                                         }
                                     }
@@ -278,7 +278,7 @@ struct InventoryView: View {
     /// - showSortPicker: Whether to show the sort picker.
     private func inventoryRow(predicate: String? = nil, itemAmount: Int? = nil, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         let itemAmount = itemAmount ?? 4
-        let filteredItems = filteredItems(for: predicate)
+        let filteredItems = filteredItems(for: predicate).uniqued(by: \.id)
         
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
