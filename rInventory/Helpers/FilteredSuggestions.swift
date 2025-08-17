@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-func isColorWhite(_ color: Color, sensitivity: CGFloat = 0.8) -> Bool {
+func isColorWhite(_ color: Color, sensitivity: CGFloat = 0.75) -> Bool {
     return color.luminance() >= sensitivity
 }
 
@@ -26,7 +26,7 @@ private func filteredSuggestions<T>(_ items: [T], keyPath: KeyPath<T, String>, f
 // Example usage in a main view:
 // filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $searchText)
 // filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $searchText)
-func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filter: Binding<String>) -> some View {
+func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filter: Binding<String>, colorScheme: ColorScheme) -> some View {
     let suggestions = filteredSuggestions(items, keyPath: keyPath, filter: filter.wrappedValue)
     if suggestions.isEmpty {
         return AnyView(EmptyView())
@@ -52,7 +52,9 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
                 }
                 .padding(4)
                 .padding(.horizontal, 4)
-                .foregroundColor(isColorWhite(color) ? .black : .primary)
+                .foregroundColor(
+                    (!isColorWhite(color) || (usesLiquidGlass && colorScheme == .dark))
+                    ? .white : .black)
                 .overlay(Capsule().stroke(isColorWhite(color) ? Color.gray : Color.clear, lineWidth: isColorWhite(color) ? 1 : 0))
                 .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
             }

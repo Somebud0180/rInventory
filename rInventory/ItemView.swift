@@ -133,7 +133,7 @@ struct ItemView: View {
                                 
                                 if isPad {
                                     iPadBackground(geometry)
-                                        .ignoresSafeArea(.keyboard)
+                                        .ignoresSafeArea(.all)
                                 } else if isLandscape {
                                     landscapeLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
@@ -652,7 +652,7 @@ struct ItemView: View {
                                 .foregroundStyle(.secondary)
                         }).padding(.horizontal, 4)
                     }
-                    filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $editCategoryName)
+                    filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $editCategoryName, colorScheme: colorScheme)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -778,12 +778,14 @@ struct ItemView: View {
                                 }
                             }
                     }
-                    filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $editLocationName)
+                    filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $editLocationName, colorScheme: colorScheme)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(location.name)
-                    .foregroundColor(isColorWhite(location.color) ? .black : .white)
+                    .foregroundStyle(
+                        (!isColorWhite(location.color) || (usesLiquidGlass && colorScheme == .dark))
+                        ? .white : .black)
                     .font(.system(.callout, design: .rounded))
                     .fontWeight(.semibold)
                     .lineLimit(2)

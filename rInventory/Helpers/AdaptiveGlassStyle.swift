@@ -69,14 +69,15 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     let shape: S
     
     func body(content: Content) -> some View {
-        let tintColor = colorScheme == .dark ? tint.opacity(0.2) : tint.opacity(tintStrength)
         if #available(iOS 26.0, *), !simplified {
+            let tintColor = colorScheme == .dark ? tint.opacity(0.4) : tint.opacity(tintStrength)
             content
                 .glassEffect(
                     .regular
                     .tint(tintColor),
                     in: shape)
         } else {
+            let tintColor = colorScheme == .dark ? tint.opacity(0.8) : tint.opacity(tintStrength)
             content
                 .background(tintColor, in: shape)
         }

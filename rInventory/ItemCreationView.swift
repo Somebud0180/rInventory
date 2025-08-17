@@ -110,7 +110,7 @@ struct ItemCreationView: View {
                             }
                         }
                         
-                        filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName)
+                        filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName, colorScheme: colorScheme)
                         
                         Divider()
                             .ignoresSafeArea(edges: .trailing)
@@ -135,7 +135,7 @@ struct ItemCreationView: View {
                             }).padding(.horizontal, 4)
                         }
                         
-                        filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName)
+                        filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName, colorScheme: colorScheme)
                     }
                 }
                 
