@@ -16,11 +16,6 @@ enum ItemCardBackground {
 
 // MARK: - Constants
 struct ItemCardConstants {
-    static let backgroundGradient = LinearGradient(
-        colors: [.accentDark, .gray],
-        startPoint: .top,
-        endPoint: .bottom
-    )
     static let overlayGradient = LinearGradient(
         colors: [.clear, .black.opacity(0.75)],
         startPoint: .center,
@@ -122,12 +117,19 @@ struct ItemCardButton<Content: View>: View {
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
 func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
     let fontConfig = FontConfig(isLarge: largeFont ?? false)
+    let primaryColor = (colorScheme == .dark || isColorWhite((symbolColor ?? .white), sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
+    let secondaryColor = (colorScheme == .dark || isColorWhite((symbolColor ?? .white), sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
+    let backgroundGradient = LinearGradient(
+        colors: [primaryColor, secondaryColor],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
     
     var content: some View {
         ZStack {
             RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                 .aspectRatio(contentMode: .fill)
-                .foregroundStyle(ItemCardConstants.backgroundGradient)
+                .foregroundStyle(backgroundGradient)
             
             GeometryReader { geometry in
                 switch background {
