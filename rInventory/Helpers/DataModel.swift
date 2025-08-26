@@ -24,7 +24,7 @@ final class Item {
     var modifiedDate: Date = Date()
     var itemCreationDate: Date = Date()
     
-    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .accentColor, sortOrder: Int = 0, modifiedDate: Date = Date(), itemCreationDate: Date = Date()) {
+    init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .white, sortOrder: Int = 0, modifiedDate: Date = Date(), itemCreationDate: Date = Date()) {
         self.id = id
         self.name = name
         self.quantity = quantity
