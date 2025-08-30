@@ -43,8 +43,6 @@ struct SymbolPickerView: View {
         self._selectedSymbol = selectedSymbol
     }
     
-    
-    
     private let symbolColumns = [
         GridItem(.adaptive(minimum: 50))
     ]
