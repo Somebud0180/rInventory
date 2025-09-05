@@ -6,13 +6,21 @@ Keep track on what you have and where you have it. Keep your stuff in your new m
 
 #### Features (Tentative!!)
 - **Item entries**
+![Item Card](https://github.com/user-attachments/assets/30c6107e-33dd-44fc-93ef-d69759815391)
   - Keep track with the name, location, amount, and an image or symbol of the item
+
 - **Item overview**
+![Inventory View](https://github.com/user-attachments/assets/1ad66edf-c013-4580-8c0a-94cd429268e3)
   - View all your items in rows and grids
+
 - **Search and Categories**
+![Search View](https://github.com/user-attachments/assets/7fc78b76-8cbd-469c-8ae1-e630ec0eb5ed)
   - Search an object or categorize them to make it easier to find where that item is
+
 - **Sort and Organize**
+![Sorting](https://github.com/user-attachments/assets/50fd966b-5752-4cf9-8d04-ef506b06957c)
   - Sort your home menu and items, hide specific sections or categories and locations, make it work just for you.
+
 - **Multiplatform with iCloud Syncing**
   - Access your inventory from your iPhone to your Mac, kept in sync with iCloud
 
