@@ -14,7 +14,7 @@ struct AdaptiveGlassEditButtonModifier: ViewModifier {
     let isEditing: Bool
     
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, watchOS 26.0, *) {
             content
                 .glassEffect(
                     .regular
@@ -35,7 +35,7 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
     let tint: Color
     
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, watchOS 26.0, *) {
             let tintColor = colorScheme == .dark ? tint.opacity(0.2) : tint.opacity(tintStrength)
             if tintStrength == 0.0 {
                 content
@@ -69,7 +69,7 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     let shape: S
     
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *), !simplified {
+        if #available(iOS 26.0, watchOS 26.0, *), !simplified {
             let tintColor = colorScheme == .dark ? tint.opacity(0.4) : tint.opacity(tintStrength)
             content
                 .glassEffect(

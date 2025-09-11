@@ -10,6 +10,11 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+enum ItemCardBackground {
+    case symbol(String)
+    case image(Data)
+}
+
 extension Item {
     /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
     static func saveItem(

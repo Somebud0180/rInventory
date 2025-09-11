@@ -235,7 +235,7 @@ struct InventoryView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 LazyHStack(spacing: 16) {
                                     ForEach(0..<5, id: \.self) { _ in
-                                        RoundedRectangle(cornerRadius: 25.0)
+                                        RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                                             .fill(Color.gray.opacity(0.8))
                                             .aspectRatio(1.0, contentMode: .fit)
                                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
@@ -319,7 +319,7 @@ struct InventoryView: View {
                                 InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             } label: {
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 25.0)
+                                    RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                                         .aspectRatio(contentMode: .fill)
                                         .foregroundStyle(LinearGradient(colors: [.black.opacity(0.9), .gray.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
                                     

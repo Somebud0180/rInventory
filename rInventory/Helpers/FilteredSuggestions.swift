@@ -9,10 +9,6 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-func isColorWhite(_ color: Color, sensitivity: CGFloat = 0.75) -> Bool {
-    return color.luminance() >= sensitivity
-}
-
 private func filteredSuggestions<T>(_ items: [T], keyPath: KeyPath<T, String>, filter: String) -> [String] {
     let names = Set(items.map { $0[keyPath: keyPath] })
     let sorted = names.sorted()
@@ -53,9 +49,9 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
                 .padding(4)
                 .padding(.horizontal, 4)
                 .foregroundColor(
-                    (!isColorWhite(color) || (usesLiquidGlass && colorScheme == .dark))
+                    (!color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
                     ? .white : .black)
-                .overlay(Capsule().stroke(isColorWhite(color) ? Color.gray : Color.clear, lineWidth: isColorWhite(color) ? 1 : 0))
+                .overlay(Capsule().stroke(color.isColorWhite() ? Color.gray : Color.clear, lineWidth: color.isColorWhite() ? 1 : 0))
                 .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
             }
         }
@@ -63,7 +59,7 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
     
     return AnyView(
         ScrollView(.horizontal, showsIndicators: false) {
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, watchOS 26.0, *) {
                 GlassEffectContainer {
                     content
                         .padding(1)

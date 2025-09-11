@@ -1,13 +1,13 @@
 //
-//  Inventory_Watch_AppUITestsLaunchTests.swift
-//  rInventory Watch AppUITests
+//  Inventory_WatchUITestsLaunchTests.swift
+//  rInventory WatchUITests
 //
 //  Created by Ethan John Lagera on 8/11/25.
 //
 
 import XCTest
 
-final class rInventory_Watch_AppUITestsLaunchTests: XCTestCase {
+final class Inventory_WatchUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

@@ -1,14 +1,14 @@
 //
-//  Inventory_Watch_AppTests.swift
-//  rInventory Watch AppTests
+//  Inventory_WatchTests.swift
+//  rInventory WatchTests
 //
 //  Created by Ethan John Lagera on 8/11/25.
 //
 
 import Testing
-@testable import rInventory_Watch_App
+@testable import Inventory_Watch
 
-struct rInventory_Watch_AppTests {
+struct Inventory_WatchTests {
 
     @Test func example() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.

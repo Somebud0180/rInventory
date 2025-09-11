@@ -16,7 +16,7 @@ struct ItemCardConstants {
         startPoint: .center,
         endPoint: .bottom
     )
-    static let cornerRadius: CGFloat = 25.0
+    static let cornerRadius: CGFloat = 20.0
     static let aspectRatio: CGFloat = 1.0
 }
 
@@ -36,21 +36,15 @@ private struct FontConfig {
 // MARK: - Animation Modifier
 private struct ItemCardAnimationModifier: ViewModifier {
     let isPressed: Bool
-    let isHovered: Bool
-    let isDragged: Bool
     
     func body(content: Content) -> some View {
         content
-            .opacity(isDragged ? 0.5 : 1.0)
             .scaleEffect(scale)
             .animation(.interactiveSpring(), value: isPressed)
-            .animation(.interactiveSpring(), value: isHovered)
     }
     
     private var scale: Double {
-        if isDragged { return 0.93 }
         if isPressed { return 1.0 }
-        if isHovered { return 0.98 }
         return 0.96
     }
 }
@@ -60,7 +54,6 @@ struct ItemCardButton<Content: View>: View {
     let content: Content
     let onTap: () -> Void
     @State private var isPressed = false
-    @State private var isHovered = false
     
     init(@ViewBuilder content: () -> Content, onTap: @escaping () -> Void) {
         self.content = content()
@@ -73,15 +66,8 @@ struct ItemCardButton<Content: View>: View {
         }
         .buttonStyle(PlainButtonStyle())
         .modifier(ItemCardAnimationModifier(
-            isPressed: isPressed,
-            isHovered: isHovered,
-            isDragged: false
+            isPressed: isPressed
         ))
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
-            }
-        }
     }
     
     private func handleTap() {
@@ -144,22 +130,40 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
             
             ItemCardConstants.overlayGradient
-                .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                    .aspectRatio(contentMode: .fill))
+                .mask(
+                    RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                        .aspectRatio(contentMode: .fill)
+                )
+            
+            RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                .fill(location.color)
+                .mask(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.25),
+                            .init(color: .clear, location: 0.45)
+                        ]),
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                    .blur(radius: 12)
+                    .aspectRatio(contentMode: .fill)
+                )
             
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     if !category.name.isEmpty {
-                        Text(category.name)
-                            .font(fontConfig.bodyFont)
-                            .fontWeight(.bold)
-                            .lineLimit(1)
-                            .foregroundStyle(.white.opacity(0.95))
-                            .padding(8)
-                            .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
-                    }
+                    Text(category.name)
+                        .font(fontConfig.bodyFont)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(4)
+                        .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
+                }
                     if hideQuantity {
-                        Spacer(minLength: 32)
+                        Spacer(minLength: 16)
                     } else {
                         if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
                             Spacer()
@@ -168,7 +172,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .foregroundStyle(.white.opacity(0.95))
-                                .padding(8)
+                                .padding(4)
                                 .padding(.horizontal, 4)
                                 .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified, shape: quantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
                         }
@@ -195,16 +199,15 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                         ? .white.opacity(0.95) : .black.opacity(0.95))
                     .padding(4)
                     .padding(.horizontal, 4)
-                    .adaptiveGlassBackground(tintStrength: 0.75, tintColor: location.color, simplified: simplified, shape: RoundedRectangle(cornerRadius: 15.0))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(4)
         }
         .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
     }
     
-    if #available(iOS 26, *) {
+    if #available(watchOS 26, *) {
         return GlassEffectContainer {
             content
         }
@@ -248,27 +251,6 @@ func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, 
     )
 }
 
-// MARK: - Drop Handling
-func handleDrop(_ items: [Item], filteredItems: [Item], draggedItem: Binding<Item?>, droppedItemId: UUID, target: Item) {
-    defer { draggedItem.wrappedValue = nil }
-    
-    guard let droppedItem = items.first(where: { $0.id == droppedItemId }),
-          droppedItem.id != target.id,
-          let fromIndex = filteredItems.firstIndex(where: { $0.id == droppedItem.id }),
-          let toIndex = filteredItems.firstIndex(where: { $0.id == target.id }) else {
-        return
-    }
-    
-    var currentItems = filteredItems
-    withAnimation(.easeInOut(duration: 0.3)) {
-        currentItems.move(fromOffsets: IndexSet([fromIndex]), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
-        
-        for (newOrder, item) in currentItems.enumerated() {
-            item.sortOrder = newOrder
-        }
-    }
-}
-
 // MARK: - Item Card Views
 struct ItemCard: View {
     let item: Item
@@ -282,79 +264,6 @@ struct ItemCard: View {
         } onTap: {
             onTap()
         }
-    }
-}
-
-struct DraggableItemCard: View {
-    let item: Item
-    let colorScheme: ColorScheme
-    var showCounterForSingleItems: Bool = true
-    @Binding var draggedItem: Item?
-    var onTap: () -> Void = {}
-    var onDragChanged: (Bool) -> Void
-    var onDrop: (UUID) -> Void
-    
-    var isEditing: Bool
-    var isSelected: Bool = false
-    
-    @State private var isPressed = false
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: handleTap) {
-            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, showCounterForSingleItems: showCounterForSingleItems)
-                .overlay(alignment: .topTrailing) {
-                    if isEditing {
-                        checkmarkIcon
-                    }
-                }
-        }
-        .buttonStyle(PlainButtonStyle())
-        .modifier(ItemCardAnimationModifier(
-            isPressed: isPressed,
-            isHovered: isHovered,
-            isDragged: draggedItem?.id == item.id
-        ))
-        .draggable(ItemIdentifier(id: item.id)) {
-            itemCard(item: item, colorScheme: colorScheme, hideQuantity: isEditing, simplified: true, showCounterForSingleItems: showCounterForSingleItems)
-                .frame(width: 150, height: 150)
-                .opacity(0.8)
-                .overlay(alignment: .topTrailing) {
-                    if isEditing {
-                        checkmarkIcon
-                    }
-                }
-        }
-        .dropDestination(for: ItemIdentifier.self) { droppedItems, location in
-            guard let droppedItem = droppedItems.first else { return false }
-            onDrop(droppedItem.id)
-            return true
-        }
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7, blendDuration: 0.22)) {
-                isHovered = hovering
-            }
-        }
-    }
-    
-    private func handleTap() {
-        withAnimation(.spring()) {
-            isPressed = true
-        }
-        withAnimation(.spring().delay(0.1)) {
-            isPressed = false
-        }
-        onTap()
-    }
-    
-    private var checkmarkIcon: some View {
-        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 26, height: 26)
-            .foregroundColor(isSelected ? Color.blue : Color.white.opacity(0.8))
-            .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 0)
-            .padding(12)
     }
 }
 
@@ -387,9 +296,8 @@ extension Color {
 }
 
 #Preview {
-    ItemCreationView()
-        .modelContainer(for: Item.self)
-        .modelContainer(for: Category.self)
-        .modelContainer(for: Location.self)
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    InventoryView(syncEngine: syncEngine)
 }
 

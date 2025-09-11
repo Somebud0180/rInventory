@@ -108,7 +108,7 @@ struct ItemView: View {
     }
     
     private var osCornerRadius: CGFloat {
-        if #available (iOS 26.0, *) {
+        if #available (iOS 26.0, watchOS 26.0, *) {
             return 32.0
         } else {
             return 12.0
@@ -571,8 +571,8 @@ struct ItemView: View {
     
     private var backgroundLinearGradient: LinearGradient {
         let currentSymbolColor = isEditing ? editSymbolColor : symbolColor
-        let primaryColor = (colorScheme == .dark || isColorWhite((currentSymbolColor ?? .white), sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
-        let secondaryColor = (colorScheme == .dark || isColorWhite((currentSymbolColor ?? .white), sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
+        let primaryColor = (colorScheme == .dark || (currentSymbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
+        let secondaryColor = (colorScheme == .dark || (currentSymbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
         return LinearGradient(colors: [primaryColor, secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
@@ -784,7 +784,7 @@ struct ItemView: View {
             } else {
                 Text(location.name)
                     .foregroundStyle(
-                        (!isColorWhite(location.color) || (usesLiquidGlass && colorScheme == .dark))
+                        (!location.color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
                         ? .white : .black)
                     .font(.system(.callout, design: .rounded))
                     .fontWeight(.semibold)

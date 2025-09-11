@@ -38,7 +38,7 @@ struct ItemCreationView: View {
     
     // Helper to determine if Liquid Glass design is available
     let usesLiquidGlass: Bool = {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, watchOS 26.0, *) {
             return true
         } else {
             return false

@@ -1,13 +1,13 @@
 //
-//  Inventory_Watch_AppUITests.swift
-//  rInventory Watch AppUITests
+//  Inventory_WatchUITests.swift
+//  rInventory WatchUITests
 //
 //  Created by Ethan John Lagera on 8/11/25.
 //
 
 import XCTest
 
-final class rInventory_Watch_AppUITests: XCTestCase {
+final class Inventory_WatchUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
