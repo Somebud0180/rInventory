@@ -10,7 +10,6 @@ import SwiftUI
 import SwiftData
 import SwiftyCrop
 import PhotosUI
-import MijickCamera
 
 /// View for displaying either an image or a symbol background with a mask.
 struct ItemBackgroundView: View {
@@ -279,22 +278,23 @@ struct ItemView: View {
                         imageToCrop = newImage
                     }
                 }
-            ))
+            ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            MCamera()
-                .setCameraOutputType(.photo)
-                .setCameraOutputTypeSwitchVisibility(false)
-                .setAudioAvailability(false)
-                .onImageCaptured { image, controller in
-                    imageToCrop = image
-                    controller.reopenCameraScreen()
-                    showCamera = false
+            ImagePicker(selection: Binding(
+                get: {
+                    if case let .image(data) = background {
+                        return UIImage(data: data)
+                    } else {
+                        return nil
+                    }
+                },
+                set: { newImage in
+                    if let newImage {
+                        imageToCrop = newImage
+                    }
                 }
-                .setCloseMCameraAction {
-                    showCamera = false
-                }
-                .startSession()
+            ), sourceType: .camera)
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {

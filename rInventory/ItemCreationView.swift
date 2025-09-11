@@ -10,7 +10,6 @@ import SwiftUI
 import SwiftData
 import SwiftyCrop
 import PhotosUI
-import MijickCamera
 
 struct ItemCreationView: View {
     @Environment(\.modelContext) private var modelContext
@@ -239,22 +238,23 @@ struct ItemCreationView: View {
                         imageToCrop = newImage
                     }
                 }
-            ))
+            ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            MCamera()
-                .setCameraOutputType(.photo)
-                .setCameraOutputTypeSwitchVisibility(false)
-                .setAudioAvailability(false)
-                .onImageCaptured { image, controller in
-                    imageToCrop = image
-                    controller.reopenCameraScreen()
-                    showCamera = false
+            ImagePicker(selection: Binding(
+                get: {
+                    if case let .image(data) = background {
+                        return UIImage(data: data)
+                    } else {
+                        return nil
+                    }
+                },
+                set: { newImage in
+                    if let newImage {
+                        imageToCrop = newImage
+                    }
                 }
-                .setCloseMCameraAction {
-                    showCamera = false
-                }
-                .startSession()
+            ), sourceType: .camera)
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {

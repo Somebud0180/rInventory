@@ -1,15 +1,6 @@
 {
-  "originHash" : "137b1bcbbcbc7e99358d48a401ecaef6dbe96abcac651384b7152c4dbbaad358",
+  "originHash" : "0b3ee28867b351bf339d165ccf9fe70752b4170327cf2f4678bbf33b6e30286e",
   "pins" : [
-    {
-      "identity" : "camera",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Somebud0180/Camera",
-      "state" : {
-        "branch" : "main",
-        "revision" : "6ec52f6b67f7314f8f411c9831cca766fd8ef6a4"
-      }
-    },
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",
@@ -17,15 +8,6 @@
       "state" : {
         "branch" : "master",
         "revision" : "6ff1c2f62e17211176173aefe0bd2d210768f0c1"
-      }
-    },
-    {
-      "identity" : "timer",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Mijick/Timer",
-      "state" : {
-        "revision" : "342371c33c3f084d82a4818447ba77d858064c85",
-        "version" : "2.0.0"
       }
     }
   ],

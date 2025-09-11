@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = AA942A842E4100F100731E54 /* MijickCamera */; };
 		AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */ = {isa = PBXBuildFile; productRef = AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */; };
 		AABFF4E42E4A3260000B491E /* rInventory Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AABFF4C42E4A325E000B491E /* rInventory Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAFA444B2E18E51100AD6351 /* CloudKit.framework */; };
@@ -159,7 +158,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA1E86B12E4104AC0045E5AF /* MijickCamera in Frameworks */,
 				AAFA444C2E18E51100AD6351 /* CloudKit.framework in Frameworks */,
 				AA2DD9D72E438F9F00EE8486 /* SwiftyCrop in Frameworks */,
 			);
@@ -310,7 +308,6 @@
 			);
 			name = rInventory;
 			packageProductDependencies = (
-				AA942A842E4100F100731E54 /* MijickCamera */,
 				AA2DD9D62E438F9F00EE8486 /* SwiftyCrop */,
 			);
 			productName = Inventory;
@@ -407,7 +404,6 @@
 			mainGroup = AAC9D58A2E16056A0066997C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */,
 				AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1058,14 +1054,6 @@
 				kind = branch;
 			};
 		};
-		AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Somebud0180/Camera";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1073,11 +1061,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA2DD9D52E438F9F00EE8486 /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
 			productName = SwiftyCrop;
-		};
-		AA942A842E4100F100731E54 /* MijickCamera */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA942A832E4100F100731E54 /* XCRemoteSwiftPackageReference "Camera" */;
-			productName = MijickCamera;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
