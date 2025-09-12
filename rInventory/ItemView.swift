@@ -664,6 +664,14 @@ struct ItemView: View {
                         .minimumScaleFactor(0.75)
                         .padding(8)
                         .adaptiveGlassBackground(tintStrength: 0.5)
+                } else {
+                    Text("")
+                        .font(.system(.callout, design: .rounded))
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
+                        .padding(10)
+                        .hidden()
                 }
             }
         }
