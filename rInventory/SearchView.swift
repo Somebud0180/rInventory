@@ -71,8 +71,7 @@ struct SearchView: View {
                             .foregroundColor(.gray)
                             .padding(10)
                     } else {
-                        LazyVGrid(columns: itemColumns, content: {
-                            
+                        LazyVGrid(columns: itemColumns) {
                             ForEach(filteredItems, id: \.id) { item in
                                 ItemCard(
                                     item: item,
@@ -82,8 +81,7 @@ struct SearchView: View {
                                         selectedItem = item
                                     }
                                 )}
-                        })
-                        .padding(.horizontal)
+                        }.padding(.horizontal)
                     }
                 }
             }
@@ -159,18 +157,12 @@ struct SearchView: View {
                 if isCategoriesExpanded {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(categories.sorted(by: { $0.name < $1.name }), id: \.self) { category in
-                                Button(action: {
-                                    withAnimation {
-                                        selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
-                                    }
-                                }) {
-                                    Text(category.name)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 4)
+                            if #available(iOS 26.0, *) {
+                                GlassEffectContainer {
+                                    categoriesScroll
                                 }
-                                .buttonStyle(.plain)
-                                .adaptiveGlassButton(tintStrength: selectedCategoryName == category.name ? 0.6 : 0.4)
+                            } else {
+                                categoriesScroll
                             }
                         }
                         .padding(.vertical, 4)
@@ -222,19 +214,12 @@ struct SearchView: View {
                 if isLocationsExpanded {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(locations.sorted(by: { $0.name < $1.name }), id: \.self) { location in
-                                Button(action: {
-                                    withAnimation {
-                                        selectedLocationName = selectedLocationName == location.name ? "" : location.name
-                                    }
-                                }) {
-                                    Text(location.name)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 4)
-                                        .clipShape(Capsule())
+                            if #available(iOS 26.0, *) {
+                                GlassEffectContainer {
+                                    locationScroll
                                 }
-                                .buttonStyle(.plain)
-                                .adaptiveGlassButton(tintStrength: selectedLocationName == location.name ? 0.6 : 0.4, tintColor: location.color)
+                            } else {
+                                locationScroll
                             }
                         }
                         .padding(.vertical, 4)
@@ -243,6 +228,39 @@ struct SearchView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+        }
+    }
+    
+    private var categoriesScroll: some View {
+        ForEach(categories.sorted(by: { $0.name < $1.name }), id: \.self) { category in
+            Button(action: {
+                withAnimation {
+                    selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
+                }
+            }) {
+                Text(category.name)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            .adaptiveGlassButton(tintStrength: selectedCategoryName == category.name ? 0.6 : 0.4)
+        }
+    }
+    
+    private var locationScroll: some View {
+        ForEach(locations.sorted(by: { $0.name < $1.name }), id: \.self) { location in
+            Button(action: {
+                withAnimation {
+                    selectedLocationName = selectedLocationName == location.name ? "" : location.name
+                }
+            }) {
+                Text(location.name)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .adaptiveGlassButton(tintStrength: selectedLocationName == location.name ? 0.6 : 0.4, tintColor: location.color)
         }
     }
     

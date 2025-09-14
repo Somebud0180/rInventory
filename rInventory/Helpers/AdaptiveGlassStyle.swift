@@ -33,9 +33,10 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     let tintStrength: CGFloat
     let tint: Color
+    let simplified: Bool
     
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, watchOS 26.0, *) {
+        if #available(iOS 26.0, watchOS 26.0, *), !simplified {
             let tintColor = colorScheme == .dark ? tint.opacity(0.2) : tint.opacity(tintStrength)
             if tintStrength == 0.0 {
                 content
@@ -52,7 +53,7 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
                     )
             }
         } else {
-            let tintColor = colorScheme == .dark ? Color.gray.opacity(0.2) : Color.white.opacity(max(tintStrength, 0.2))
+            let tintColor = colorScheme == .dark ? tint.opacity(0.2) : tint.opacity(max(tintStrength, 0.2))
             content
                 .background(tintColor, in: Capsule())
         }
@@ -89,8 +90,8 @@ extension View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
-    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white) -> some View {
-        self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor))
+    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white, simplified: Bool = false) -> some View {
+        self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, simplified: simplified))
     }
     
     func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, tintColor: Color = Color.gray, simplified: Bool = false, shape: S = Capsule()) -> some View {

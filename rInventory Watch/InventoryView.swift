@@ -38,23 +38,52 @@ struct InventoryView: View {
     @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
+    @State private var selectedItem: Item? = nil
+    @State private var showItemView: Bool = false
+    
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
+        NavigationStack {
+            ScrollView {
                 if items.isEmpty {
                     emptyItemsView
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: 10) {
-                        ForEach(items) { item in
-                            ItemCard(item: item, colorScheme: colorScheme)
+                        if #available(watchOS 26.0, *) {
+                            GlassEffectContainer {
+                                ForEach(items) { item in
+                                    ItemCard(item: item, colorScheme: colorScheme, onTap: {
+                                        selectedItem = item
+                                        showItemView = true
+                                    })
+                                    .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
+                                }
+                            }
+                        } else {
+                            ForEach(items) { item in
+                                ItemCard(item: item, colorScheme: colorScheme, onTap: {
+                                    selectedItem = item
+                                    showItemView = true
+                                })
+                                .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
+                            }
                         }
                     }
                 }
             }
-        }
-        .scrollDisabled(items.isEmpty)
-        .refreshable {
-            await syncEngine.manualSync()
+            .navigationTitle("rInventory")
+            .navigationBarTitleDisplayMode(.large)
+            .scrollDisabled(items.isEmpty)
+            .refreshable {
+                await syncEngine.manualSync()
+            }
+            .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
+                if let selectedItem {
+                    ItemView(item: bindingForItem(selectedItem, items))
+                        .transition(.blurReplace)
+                } else {
+                    ProgressView("Loading item...")
+                }
+            }
         }
     }
     
@@ -91,6 +120,22 @@ struct InventoryView: View {
             }
         }
     }
+}
+
+func bindingForItem(_ item: Item, _ items: [Item]) -> Binding<Item> {
+    return Binding(
+        get: {
+            // Fetch the item from the model context
+            if let fetchedItem = items.first(where: { $0.id == item.id }) {
+                return fetchedItem
+            }
+            return item
+        },
+        set: { newValue in
+            // Changes are automatically persisted through SwiftData's model context
+            // No explicit save needed as SwiftData handles this automatically
+        }
+    )
 }
 
 #Preview {
