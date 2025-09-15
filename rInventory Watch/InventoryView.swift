@@ -75,9 +75,9 @@ struct InventoryView: View {
                         Button(action: { showSortPicker = true }) {
                             SortPickerLabel(
                                 selectedSortType: selectedSortType,
-                                symbolName: selectedSortType == .order ? "line.3.horizontal.decrease.circle" :
+                                symbolName: selectedSortType == .order ? "line.3.horizontal.decrease" :
                                             selectedSortType == .alphabetical ? "textformat.abc" :
-                                            "clock.arrow.circlepath",
+                                            "calendar",
                                 menuPresented: $sortMenuPresented
                             )
                         }
@@ -136,10 +136,14 @@ struct InventoryView: View {
                                 showSortPicker = false
                             }) {
                                 HStack {
-                                    Label(sort.rawValue,
-                                          systemImage: sort == .order ? "line.3.horizontal.decrease.circle" :
+                                    Image(systemName: sort == .order ? "line.3.horizontal.decrease" :
                                             sort == .alphabetical ? "textformat.abc" :
-                                            "clock.arrow.circlepath")
+                                            "calendar")
+                                        .font(.body)
+                                    Text(sort.rawValue)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
                                     if selectedSortType == sort {
                                         Spacer()
                                         Image(systemName: "checkmark")

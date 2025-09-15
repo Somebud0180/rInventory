@@ -341,7 +341,7 @@ class InventoryViewModel: ObservableObject {
     /// - Parameter type: The sort type for which to get the symbol name.
     static func symbolName(for type: SortType) -> String {
         switch type {
-        case .order: return "line.3.horizontal"
+        case .order: return "line.3.horizontal.decrease"
         case .alphabetical: return "textformat.abc"
         case .dateModified: return "calendar"
         }
