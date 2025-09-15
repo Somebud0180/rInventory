@@ -18,12 +18,11 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
-    @ObservedObject var syncEngine: CloudKitSyncEngine
     @State var tabSelection: Int = 0
     
     var body: some View {
         TabView(selection: $tabSelection) {
-            InventoryView(syncEngine: syncEngine)
+            InventoryView()
                 .disabled(tabSelection != 0)
                 .tabItem {
                     Label("Inventory", systemImage: "list.bullet")
@@ -41,8 +40,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    let tempContainer = try! ModelContainer(for: Item.self, Location.self, Category.self)
-    let engine = CloudKitSyncEngine(modelContext: tempContainer.mainContext)
-    ContentView(syncEngine: engine)
+    ContentView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

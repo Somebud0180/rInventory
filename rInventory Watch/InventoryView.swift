@@ -35,7 +35,6 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     
     @EnvironmentObject private var appDefaults: AppDefaults
-    @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
     @State private var selectedItem: Item? = nil
@@ -73,9 +72,6 @@ struct InventoryView: View {
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
             .scrollDisabled(items.isEmpty)
-            .refreshable {
-                await syncEngine.manualSync()
-            }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if let selectedItem {
                     ItemView(item: bindingForItem(selectedItem, items))
@@ -139,7 +135,6 @@ func bindingForItem(_ item: Item, _ items: [Item]) -> Binding<Item> {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
-    
-    InventoryView(syncEngine: syncEngine)
+    InventoryView()
+        .modelContainer(for: [Item.self, Location.self, Category.self])
 }

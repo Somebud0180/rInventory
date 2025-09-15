@@ -45,7 +45,7 @@ struct SearchView: View {
         // Apply search text
         if !searchText.isEmpty {
             filtered = filtered.filter { item in
-                item.name.localizedStandardContains(searchText)
+                item.name.localizedCaseInsensitiveContains(searchText)
             }
         }
         
@@ -290,4 +290,5 @@ struct SearchView: View {
 
 #Preview {
     SearchView()
+        .modelContainer(for: [Item.self, Location.self, Category.self])
 }
