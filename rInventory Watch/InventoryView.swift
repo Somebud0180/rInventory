@@ -26,6 +26,12 @@ struct ItemIdentifier: Transferable {
     }
 }
 
+enum SortType: String, CaseIterable {
+    case order = "Order"
+    case alphabetical = "Alphabetical"
+    case dateModified = "Date Modified"
+}
+
 let gridColumns = [
     GridItem(.adaptive(minimum: 80), spacing: 10)
 ]
@@ -35,20 +41,66 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     
     @EnvironmentObject private var appDefaults: AppDefaults
-    @Query private var items: [Item]
+    @Query private var allItems: [Item]
     
     @State private var selectedItem: Item? = nil
     @State private var showItemView: Bool = false
     
+    @State private var selectedSortType: SortType = .order
+    @State private var sortMenuPresented: Bool = false
+    
+    @State private var showSortPicker = false
+    
+    private var items: [Item] {
+        switch selectedSortType {
+        case .order:
+            return allItems.sorted(by: { (lhs: Item, rhs: Item) -> Bool in
+                lhs.sortOrder < rhs.sortOrder
+            })
+        case .alphabetical:
+            return allItems.sorted(by: { (lhs: Item, rhs: Item) -> Bool in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            })
+        case .dateModified:
+            let items = allItems.sorted { $0.itemCreationDate > $1.itemCreationDate }
+            return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
-                if items.isEmpty {
-                    emptyItemsView
-                } else {
-                    LazyVGrid(columns: gridColumns, spacing: 10) {
-                        if #available(watchOS 26.0, *) {
-                            GlassEffectContainer {
+                VStack(spacing: 8) {
+                    HStack {
+                        Button(action: { showSortPicker = true }) {
+                            SortPickerLabel(
+                                selectedSortType: selectedSortType,
+                                symbolName: selectedSortType == .order ? "line.3.horizontal.decrease.circle" :
+                                            selectedSortType == .alphabetical ? "textformat.abc" :
+                                            "clock.arrow.circlepath",
+                                menuPresented: $sortMenuPresented
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    
+                    if items.isEmpty {
+                        emptyItemsView
+                    } else {
+                        LazyVGrid(columns: gridColumns, spacing: 10) {
+                            if #available(watchOS 26.0, *) {
+                                GlassEffectContainer {
+                                    ForEach(items) { item in
+                                        ItemCard(item: item, colorScheme: colorScheme, onTap: {
+                                            selectedItem = item
+                                            showItemView = true
+                                        })
+                                        .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
+                                    }
+                                }
+                            } else {
                                 ForEach(items) { item in
                                     ItemCard(item: item, colorScheme: colorScheme, onTap: {
                                         selectedItem = item
@@ -56,14 +108,6 @@ struct InventoryView: View {
                                     })
                                     .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                                 }
-                            }
-                        } else {
-                            ForEach(items) { item in
-                                ItemCard(item: item, colorScheme: colorScheme, onTap: {
-                                    selectedItem = item
-                                    showItemView = true
-                                })
-                                .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                             }
                         }
                     }
@@ -78,6 +122,33 @@ struct InventoryView: View {
                         .transition(.blurReplace)
                 } else {
                     ProgressView("Loading item...")
+                }
+            }
+            .sheet(isPresented: $showSortPicker) {
+                VStack {
+                    Text("Sort Items By")
+                        .font(.headline)
+                        .padding(.top)
+                    List {
+                        ForEach(SortType.allCases, id: \.self) { sort in
+                            Button(action: {
+                                selectedSortType = sort
+                                showSortPicker = false
+                            }) {
+                                HStack {
+                                    Label(sort.rawValue,
+                                          systemImage: sort == .order ? "line.3.horizontal.decrease.circle" :
+                                            sort == .alphabetical ? "textformat.abc" :
+                                            "clock.arrow.circlepath")
+                                    if selectedSortType == sort {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -114,6 +185,94 @@ struct InventoryView: View {
                     .frame(height: geo.size.height * 0.9)
                 }
             }
+        }
+    }
+    
+    /// A label for the sort picker that dynamically adjusts its width based on the selected sort type.
+    struct SortPickerLabel: View {
+        let selectedSortType: SortType
+        let symbolName: String
+        @Binding var menuPresented: Bool
+        @State private var displayedWidth: CGFloat = 50
+        @State private var measuredWidth: CGFloat = 50
+        @State private var lastSortType: SortType
+        
+        init(selectedSortType: SortType, symbolName: String, menuPresented: Binding<Bool>) {
+            self.selectedSortType = selectedSortType
+            self.symbolName = symbolName
+            self._menuPresented = menuPresented
+            _lastSortType = State(initialValue: selectedSortType)
+        }
+        
+        var body: some View {
+            ZStack {
+                // Visible label
+                HStack(spacing: 6) {
+                    Image(systemName: symbolName)
+                        .font(.body)
+                    Text(selectedSortType.rawValue)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .frame(width: displayedWidth)
+                .frame(minHeight: 44)
+                .foregroundColor(.primary)
+                .background(.white.opacity(0.01), in: Capsule())
+                
+                // Hidden label for measurement
+                HStack(spacing: 6) {
+                    Image(systemName: symbolName)
+                        .font(.body)
+                    Text(selectedSortType.rawValue)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(key: SortWidthPreferenceKey.self, value: geo.size.width)
+                    }
+                )
+                .hidden()
+            }
+            .adaptiveGlassButton(tintStrength: 0.0)
+            .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
+                let width = max(newWidth, 50)
+                measuredWidth = width
+                displayedWidth = measuredWidth
+            }
+            .onChange(of: selectedSortType) {
+                lastSortType = selectedSortType
+                // Wait until menu is closed before expanding
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    if !menuPresented {
+                        displayedWidth = measuredWidth
+                    }
+                }
+            }
+            .onChange(of: menuPresented) {
+                if !menuPresented {
+                    displayedWidth = measuredWidth
+                }
+            }
+            .onAppear {
+                displayedWidth = measuredWidth
+            }
+        }
+    }
+    
+    /// Preference key to measure width of the dynamic sort label
+    struct SortWidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 100
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
         }
     }
 }
