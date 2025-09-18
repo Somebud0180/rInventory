@@ -75,7 +75,7 @@ struct InteractiveCreationView: View {
                         Text("Review and Save View")
                     }
                 }
-                .foregroundStyle(colorScheme == .dark ? .black : .white)
+                .foregroundStyle(.white)
                 .transition(.push(from: .trailing))
                 .frame(maxWidth: 400, maxHeight: 800)
                 .padding(16)
@@ -108,7 +108,7 @@ struct InteractiveCreationView: View {
         VStack {
             Text("Step \(creationProgress.rawValue + 1) of 6")
                 .font(.callout)
-                .foregroundStyle(colorScheme == .dark ? .black : .white)
+                .foregroundStyle(.white)
             
             HStack(spacing: 8) {
                 ForEach(0..<6) { index in
@@ -287,70 +287,74 @@ struct InteractiveCreationView: View {
     }
     
     private var itemQuantity: some View {
-        VStack {
+        Group {
             if !isQuantityEnabled {
-                Spacer()
-                
-                Text("Do you have multiple of this item?")
-                    .font(.title2)
-                    .bold()
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                
-                Spacer()
-                
-                Button(action: { withAnimation{ isQuantityEnabled = true }}) {
-                    Label("Yes", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                }.adaptiveGlassButton()
-                
-                Button(action: { withAnimation{ isQuantityEnabled = false; creationProgress = .itemLocation }}) {
-                    Label("No", systemImage: "xmark.circle.fill")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                }.adaptiveGlassButton()
-            } else {
-                Spacer()
-                
-                Text("How many do you have?")
-                    .font(.title2)
-                    .bold()
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                
-                Stepper(value: $quantity, in: 1...100) {
-                    HStack {
-                        Group {
-                            Text("Quantity: ")
-                            TextField ("", value: $quantity, formatter: textFieldFormatter)
-                                .keyboardType(.numberPad)
-                        }
-                        .font(.title3)
+                VStack {
+                    Spacer()
+                    
+                    Text("Do you have multiple of this item?")
+                        .font(.title2)
                         .bold()
-                        
-                    }
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    
+                    Spacer()
+                    
+                    Button(action: { withAnimation{ isQuantityEnabled = true }}) {
+                        Label("Yes", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    
+                    Button(action: { withAnimation{ isQuantityEnabled = false; creationProgress = .itemLocation }}) {
+                        Label("No", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
                 }
-                .onSubmit { max(min(quantity, 100), 1) }
-                .padding()
-                
-                Spacer()
-                
-                Button(action: { withAnimation{ creationProgress = .itemLocation }}) {
-                    Label("Next", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                }.adaptiveGlassButton()
-                
-                Button(action: { withAnimation{ isQuantityEnabled = false }}) {
-                    Label("Nevermind", systemImage: "xmark.circle.fill")
-                        .foregroundStyle(colorScheme == .dark ? .white : .black)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                }.adaptiveGlassButton()
+            } else {
+                VStack {
+                    Spacer()
+                    
+                    Text("How many do you have?")
+                        .font(.title2)
+                        .bold()
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    
+                    Stepper(value: $quantity, in: 1...100) {
+                        HStack {
+                            Group {
+                                Text("Quantity: ")
+                                TextField ("", value: $quantity, formatter: textFieldFormatter)
+                                    .keyboardType(.numberPad)
+                            }
+                            .font(.title3)
+                            .bold()
+                            
+                        }
+                    }
+                    .onSubmit { max(min(quantity, 100), 1) }
+                    .padding()
+                    
+                    Spacer()
+                    
+                    Button(action: { withAnimation{ creationProgress = .itemLocation }}) {
+                        Label("Next", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    
+                    Button(action: { withAnimation{ isQuantityEnabled = false }}) {
+                        Label("Nevermind", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                }
             }
         }
     }
