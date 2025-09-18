@@ -19,7 +19,7 @@ struct InteractiveCreationView: View {
     
     @State private var showSymbolPicker: Bool = false
     
-    enum progress {
+    enum progress: Int {
         case itemSymbol
         case itemName
         case itemQuantity
@@ -29,12 +29,12 @@ struct InteractiveCreationView: View {
     }
     
     // Final Item Variables
-    @State private var creationProgress: progress = .itemSymbol
+    @State var creationProgress: progress = .itemSymbol
     @State private var background: ItemCardBackground? = nil
     @State private var symbolColor: Color = .white
     @State private var name: String = ""
     @State private var isQuantityEnabled: Bool = false
-    @State private var quantity: String = "1"
+    @State private var quantity: Int = 1
     @State private var location: Location? = nil
     @State private var category: Category? = nil
     
@@ -44,23 +44,41 @@ struct InteractiveCreationView: View {
         colorScheme == .light ? [.accentLight, .accentDark] : [.accentDark, .accentLight]
     }
     
+    private var textFieldFormatter: Formatter {
+        let formatter = NumberFormatter()
+        formatter.allowsFloats = false
+        formatter.minimum = 1
+        formatter.maximum = 100
+        return formatter
+    }
+    
     var body: some View {
         ZStack {
             animatedBackground
             
-            switch creationProgress {
-            case .itemSymbol:
-                itemSymbol
-            case .itemName:
-                itemName
-            case .itemQuantity:
-                Text("Item Quantity View")
-            case .itemLocation:
-                Text("Item Location View")
-            case .itemCategory:
-                Text("Item Category View")
-            case .reviewAndSave:
-                Text("Review and Save View")
+            VStack {
+                progressBar
+                
+                Group {
+                    switch creationProgress {
+                    case .itemSymbol:
+                        itemSymbol
+                    case .itemName:
+                        itemName
+                    case .itemQuantity:
+                        itemQuantity
+                    case .itemLocation:
+                        Text("Item Location View")
+                    case .itemCategory:
+                        Text("Item Category View")
+                    case .reviewAndSave:
+                        Text("Review and Save View")
+                    }
+                }
+                .foregroundStyle(colorScheme == .dark ? .black : .white)
+                .transition(.push(from: .trailing))
+                .frame(maxWidth: 400, maxHeight: 800)
+                .padding(16)
             }
         }
     }
@@ -86,72 +104,87 @@ struct InteractiveCreationView: View {
             }
     }
     
+    private var progressBar : some View {
+        VStack {
+            Text("Step \(creationProgress.rawValue + 1) of 6")
+                .font(.callout)
+                .foregroundStyle(colorScheme == .dark ? .black : .white)
+            
+            HStack(spacing: 8) {
+                ForEach(0..<6) { index in
+                    Capsule()
+                        .fill(index <= creationProgress.rawValue ? .green : .white.opacity(0.4))
+                        .frame(height: 8)
+                }
+            }.padding(.horizontal, 16)
+        }.padding()
+    }
+    
     private var itemSymbol: some View {
-        ZStack {
+        Group {
             if let bg = background {
                 VStack {
                     Text("Is this okay?")
-                        .font(.title3)
+                        .font(.title2)
                         .bold()
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
                     
                     Spacer()
                     
                     ItemBackgroundView(background: bg, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
-                        .aspectRatio(1, contentMode: .fill)
+                        .aspectRatio(1, contentMode: .fit)
                         .padding(16)
                     
                     Spacer()
                     
                     Button(action: { withAnimation{ creationProgress = .itemName }}) {
                         Label("Looks Good!", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             .padding()
                             .frame(maxWidth: .infinity)
                     }.adaptiveGlassButton()
                     
                     Button(action: { withAnimation { background = nil }}) {
                         Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             .padding()
                             .frame(maxWidth: .infinity)
                     }.adaptiveGlassButton()
                 }
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                .aspectRatio(0.75, contentMode: .fit)
-                .frame(maxHeight: 600)
-                .padding(16)
             } else {
                 VStack(spacing: 16) {
-                    Text("Capture an image or pick a symbol")
-                        .font(.title3)
+                    Spacer()
+                    
+                    Text("Give your item a look")
+                        .font(.title2)
                         .bold()
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
                     
                     Spacer()
                     
                     Button(action: { showCamera = true }) {
                         Label("Capture Image", systemImage: "camera.fill")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             .padding()
                             .frame(maxWidth: .infinity)
                     }.adaptiveGlassButton()
                     
                     Button(action: { showImagePicker = true }) {
                         Label("Pick from Photos", systemImage: "photo.fill.on.rectangle.fill")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             .padding()
                             .frame(maxWidth: .infinity)
                     }.adaptiveGlassButton()
                     
                     Button(action: { showSymbolPicker = true }) {
                         Label("Pick a Symbol", systemImage: "star.fill")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             .padding()
                             .frame(maxWidth: .infinity)
                     }.adaptiveGlassButton()
                 }
-                .frame(maxWidth: 400, maxHeight: 600)
-                .padding(16)
             }
         }
         .sheet(isPresented: $showSymbolPicker) {
@@ -215,36 +248,111 @@ struct InteractiveCreationView: View {
     
     private var itemName: some View {
         VStack {
-            Text("What do you want to call this item?")
-                .font(.title3)
-                .bold()
-                .multilineTextAlignment(.center)
-            
             Spacer()
             
-            TextField("Item Name", text: $name)
+            Text("What do you want to call this item?")
+                .font(.title2)
+                .bold()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            
+            
+            TextField(
+                "",
+                text: $name,
+                prompt: Text("Item Name").foregroundStyle(.white.opacity(0.4))
+            )
                 .textFieldStyle(CleanTextFieldStyle())
+                .font(.title3)
+                .fontWeight(.medium)
+                .fontDesign(.rounded)
                 .padding(.horizontal)
             
             Spacer()
             
             Button(action: { withAnimation{ creationProgress = .itemQuantity }}) {
                 Label("Next", systemImage: "arrow.right.circle.fill")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
             
             Button(action: { withAnimation { creationProgress = .itemSymbol; name = "" }}) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
         }
-        .transition(.move(edge: .trailing).combined(with: .opacity))
-        .frame(maxWidth: 400, maxHeight: 600)
-        .padding(16)
+    }
+    
+    private var itemQuantity: some View {
+        VStack {
+            if !isQuantityEnabled {
+                Spacer()
+                
+                Text("Do you have multiple of this item?")
+                    .font(.title2)
+                    .bold()
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                
+                Spacer()
+                
+                Button(action: { withAnimation{ isQuantityEnabled = true }}) {
+                    Label("Yes", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }.adaptiveGlassButton()
+                
+                Button(action: { withAnimation{ isQuantityEnabled = false; creationProgress = .itemLocation }}) {
+                    Label("No", systemImage: "xmark.circle.fill")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }.adaptiveGlassButton()
+            } else {
+                Spacer()
+                
+                Text("How many do you have?")
+                    .font(.title2)
+                    .bold()
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                
+                Stepper(value: $quantity, in: 1...100) {
+                    HStack {
+                        Group {
+                            Text("Quantity: ")
+                            TextField ("", value: $quantity, formatter: textFieldFormatter)
+                                .keyboardType(.numberPad)
+                        }
+                        .font(.title3)
+                        .bold()
+                        
+                    }
+                }
+                .onSubmit { max(min(quantity, 100), 1) }
+                .padding()
+                
+                Spacer()
+                
+                Button(action: { withAnimation{ creationProgress = .itemLocation }}) {
+                    Label("Next", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }.adaptiveGlassButton()
+                
+                Button(action: { withAnimation{ isQuantityEnabled = false }}) {
+                    Label("Nevermind", systemImage: "xmark.circle.fill")
+                        .foregroundStyle(colorScheme == .dark ? .white : .black)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }.adaptiveGlassButton()
+            }
+        }
     }
 }
 

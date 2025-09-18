@@ -22,6 +22,9 @@ struct CleanTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<_Label>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             configuration
+                .font(.title3)
+                .fontWeight(.medium)
+                .fontDesign(.rounded)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 2)
                 .background(Color.clear)
