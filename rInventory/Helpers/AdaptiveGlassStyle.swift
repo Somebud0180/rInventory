@@ -33,6 +33,7 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     let tintStrength: CGFloat
     let tint: Color
+    let interactive: Bool
     let simplified: Bool
     
     func body(content: Content) -> some View {
@@ -42,14 +43,14 @@ struct AdaptiveGlassButtonModifier: ViewModifier {
                 content
                     .glassEffect(
                         .regular
-                        .interactive()
+                        .interactive(interactive)
                     )
             } else {
                 content
                     .glassEffect(
                         .regular
                         .tint(tintColor)
-                        .interactive()
+                        .interactive(interactive)
                     )
             }
         } else {
@@ -90,8 +91,8 @@ extension View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
-    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white, simplified: Bool = false) -> some View {
-        self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, simplified: simplified))
+    func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white, interactive: Bool = true, simplified: Bool = false) -> some View {
+        self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, interactive: interactive, simplified: simplified))
     }
     
     func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, tintColor: Color = Color.gray, simplified: Bool = false, shape: S = Capsule()) -> some View {

@@ -96,7 +96,6 @@
 				Helpers/CloudKitSyncEngine.swift,
 				Helpers/DataModel.swift,
 				Helpers/DataModelExtension.swift,
-				Helpers/TextFieldStyles.swift,
 			);
 			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;
 		};
