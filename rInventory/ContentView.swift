@@ -41,6 +41,7 @@ struct ContentView: View {
     @State private var selectedItem: Item? = nil
     @State private var showInventoryGridView: Bool = false
     @State private var showItemCreationView: Bool = false
+    @State private var showInteractiveCreationView: Bool = false
     @State private var showItemView: Bool = false
     
     init(syncEngine: CloudKitSyncEngine) {
@@ -49,9 +50,6 @@ struct ContentView: View {
     
     var body: some View {
         return tabView()
-            .sheet(isPresented: $showItemCreationView) {
-                ItemCreationView()
-            }
             .onChange(of: selectedItem) {
                 if selectedItem != nil {
                     showItemView = true
@@ -64,6 +62,12 @@ struct ContentView: View {
                 } else {
                     ProgressView("Loading item...")
                 }
+            }
+            .sheet(isPresented: $showItemCreationView) {
+                ItemCreationView()
+            }
+            .animatedFullscreenCover(isPresented: $showInteractiveCreationView) {
+                InteractiveCreationView(isPresented: $showInteractiveCreationView)
             }
             .fullScreenCover(isPresented: $showInventoryGridView, onDismiss: { continuedActivity = nil }) {
                 if let activity = continuedActivity {
@@ -105,7 +109,7 @@ struct ContentView: View {
             return TabView(selection: $tabSelection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
-                    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
+                    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                 }
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
@@ -119,7 +123,7 @@ struct ContentView: View {
         } else {
             return TabView(selection: $tabSelection) {
                 // Home Tab
-                InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
+                InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }

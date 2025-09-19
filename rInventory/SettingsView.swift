@@ -66,6 +66,7 @@ struct SettingsView: View {
                 }
                 Group {
                     Section("Visuals") {
+                        Toggle("Interactive Item Creation", isOn: $appDefaults.useInteractiveCreation)
                         Toggle("Show Counter For Single Items", isOn: $appDefaults.showCounterForSingleItems)
                         Picker("Theme", selection: $appDefaults.themeMode) {
                             Text("System").tag(0)

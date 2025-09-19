@@ -13,13 +13,11 @@ import Playgrounds
 struct InteractiveCreationView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var motion = MotionManager()
     
-    @Query(sort: \Location.name, order: .forward) var locations: [Location]
-    @Query(sort: \Category.name, order: .forward) var categories: [Category]
+    @Query(sort: \Location.name, order: .forward) private var locations: [Location]
+    @Query(sort: \Category.name, order: .forward) private var categories: [Category]
     
-    enum progress: Int {
+    private enum progress: Int {
         case itemSymbol
         case itemName
         case itemQuantity
@@ -28,7 +26,8 @@ struct InteractiveCreationView: View {
         case reviewAndSave
     }
     
-    @State var creationProgress: progress = .itemSymbol
+    @Binding var isPresented: Bool
+    @State private var creationProgress: progress = .itemSymbol
     @State private var lastProgress: progress = .itemSymbol
     @State private var isForward: Bool = true
     @State private var animateGradient: Bool = false
@@ -37,6 +36,7 @@ struct InteractiveCreationView: View {
     @State private var showCropView: Bool = false
     @State private var selectedImage: UIImage? = nil
     @State private var showSymbolPicker: Bool = false
+    @State private var showDismissAlert: Bool = false
     
     // Final Item Variables
     @State private var background: ItemCardBackground = .symbol("")
@@ -61,44 +61,50 @@ struct InteractiveCreationView: View {
     }
     
     var body: some View {
-        ZStack {
-            animatedBackground
-            
-            VStack {
-                progressBar
+        NavigationStack {
+            ZStack {
+                animatedBackground
                 
-                Group {
-                    switch creationProgress {
-                    case .itemSymbol:
-                        itemSymbol
-                    case .itemName:
-                        itemName
-                    case .itemQuantity:
-                        itemQuantity
-                    case .itemLocation:
-                        itemLocation
-                    case .itemCategory:
-                        itemCategory
-                    case .reviewAndSave:
-                        reviewAndSave
+                VStack {
+                    progressBar
+                    
+                    Group {
+                        switch creationProgress {
+                        case .itemSymbol:
+                            itemSymbol
+                        case .itemName:
+                            itemName
+                        case .itemQuantity:
+                            itemQuantity
+                        case .itemLocation:
+                            itemLocation
+                        case .itemCategory:
+                            itemCategory
+                        case .reviewAndSave:
+                            reviewAndSave
+                        }
                     }
+                    .foregroundStyle(.white)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: isForward ? .trailing : .leading),
+                        removal: .move(edge: isForward ? .leading : .trailing)
+                    ))
+                    .frame(maxWidth: 400, maxHeight: 800)
+                    .padding(16)
                 }
-                .foregroundStyle(.white)
-                .transition(.asymmetric(
-                    insertion: .move(edge: isForward ? .trailing : .leading),
-                    removal: .move(edge: isForward ? .leading : .trailing)
-                ))
-                .frame(maxWidth: 400, maxHeight: 800)
-                .padding(16)
             }
-        }
-        .onChange(of: creationProgress) { oldValue, newValue in
-            lastProgress = oldValue
-            isForward = newValue.rawValue > oldValue.rawValue
+            .alert("Are you sure you want to exit? Your progress will be lost.", isPresented: $showDismissAlert) {
+                Button("Exit", role: .destructive) { isPresented = false }
+                Button("Cancel", role: .cancel) {}
+            }
+            .onChange(of: creationProgress) { oldValue, newValue in
+                lastProgress = oldValue
+                isForward = newValue.rawValue > oldValue.rawValue
+            }
         }
     }
     
-    private var animatedBackground : some View {
+    private var animatedBackground: some View {
         Rectangle()
             .foregroundStyle(
                 LinearGradient(
@@ -119,11 +125,29 @@ struct InteractiveCreationView: View {
             }
     }
     
-    private var progressBar : some View {
+    private var progressBar: some View {
         VStack {
-            Text("Step \(creationProgress.rawValue + 1) of 6")
-                .font(.callout)
-                .foregroundStyle(.white)
+            ZStack {
+                Text("Step \(creationProgress.rawValue + 1) of 6")
+                    .font(.callout)
+                    .foregroundStyle(.white)
+                
+                HStack {
+                    Button(action: {
+                        if creationProgress != .itemSymbol {
+                            showDismissAlert = true
+                        } else {
+                            isPresented = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(.white)
+                    }
+                    
+                    Spacer()
+                }
+            }.padding(.horizontal, 16)
             
             HStack(spacing: 8) {
                 ForEach(0..<6) { index in
@@ -180,9 +204,17 @@ struct InteractiveCreationView: View {
                     
                     Spacer()
                     
-                    ItemBackgroundView(background: background, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
-                        .aspectRatio(1, contentMode: .fit)
-                        .padding(16)
+                        ItemBackgroundView(background: background, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
+                            .aspectRatio(1, contentMode: .fit)
+                            .padding(16)
+                        
+                    if case .symbol = background {
+                        ColorPicker("Symbol Color:", selection: $symbolColor, supportsOpacity: false)
+                            .bold()
+                            .frame(maxWidth: 200)
+                            .padding(10)
+                            .adaptiveGlassBackground(tintStrength: 0.5, tintColor: symbolColor)
+                    }
                     
                     Spacer()
                     
@@ -302,6 +334,18 @@ struct InteractiveCreationView: View {
             .fontWeight(.medium)
             .fontDesign(.rounded)
             .padding(.horizontal)
+            .autocapitalization(.words)
+            .disableAutocorrection(true)
+            .onSubmit {
+                name = name.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                isForward = true
+                withAnimation { creationProgress = .itemQuantity }
+            }
+            .onChange(of: name) { oldValue, newValue in
+                if newValue.count >= 32 {
+                    name = String(newValue.prefix(40))
+                }
+            }
             
             Spacer()
             
@@ -355,7 +399,7 @@ struct InteractiveCreationView: View {
                     
                     Button(action: {
                         isForward = true
-                        withAnimation { isQuantityEnabled = true; creationProgress = .itemLocation }
+                        withAnimation { isQuantityEnabled = false; creationProgress = .itemLocation }
                     }) {
                         Label("No", systemImage: "xmark.circle.fill")
                             .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -445,11 +489,28 @@ struct InteractiveCreationView: View {
                     .font(.title3)
                     .fontWeight(.medium)
                     .fontDesign(.rounded)
+                    .autocapitalization(.words)
+                    .disableAutocorrection(true)
+                    .onSubmit {
+                        locationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                        isForward = true
+                        withAnimation { creationProgress = .itemCategory }
+                    }
+                    .onChange(of: locationName) { oldValue, newValue in
+                        if newValue.count >= 40 {
+                            locationName = String(newValue.prefix(40))
+                        }
+                        
+                        if let found = locations.first(where: { $0.name == newValue }) {
+                            locationColor = found.color
+                        } else {
+                            locationColor = .white
+                        }
+                    }
                     
-                    ColorPicker("", selection: $locationColor)
+                    ColorPicker("", selection: $locationColor, supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 32, height: 32)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .padding(4)
                 }
                 
@@ -515,6 +576,18 @@ struct InteractiveCreationView: View {
                 .fontWeight(.medium)
                 .fontDesign(.rounded)
                 .padding(.horizontal)
+                .autocapitalization(.words)
+                .disableAutocorrection(true)
+                .onSubmit {
+                    categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                    isForward = true
+                    withAnimation { creationProgress = .reviewAndSave }
+                }
+                .onChange(of: categoryName) { oldValue, newValue in
+                    if newValue.count >= 40 {
+                        categoryName = String(newValue.prefix(40))
+                    }
+                }
                 
                 filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName, colorScheme: colorScheme)
                     .padding(.horizontal)
@@ -555,7 +628,7 @@ struct InteractiveCreationView: View {
             
             Spacer()
             
-            itemCard(name: name, quantity: quantity, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, colorScheme: colorScheme, largeFont: true)
+            itemCard(name: name, quantity: quantity, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, symbolColor: symbolColor, colorScheme: colorScheme, largeFont: true)
                 .shadow(radius: 10)
                 .aspectRatio(1, contentMode: .fit)
                 .padding(16)
@@ -592,10 +665,12 @@ struct InteractiveCreationView: View {
             symbolColor: symbolColor,
             context: modelContext
         )
-        dismiss()
+        isPresented = false
     }
 }
 
 #Preview {
-    InteractiveCreationView()
+    @Previewable @State var isPresented: Bool = true
+    
+    InteractiveCreationView(isPresented: $isPresented)
 }

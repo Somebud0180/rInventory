@@ -17,6 +17,7 @@ class AppDefaults: ObservableObject {
     private let defaults = UserDefaults.standard
     
     @Published var themeMode: Int
+    @Published var useInteractiveCreation: Bool
     @Published var showCounterForSingleItems: Bool
     @Published var defaultInventorySort: Int
     @Published var showInventoryAsRows: Bool
@@ -28,6 +29,7 @@ class AppDefaults: ObservableObject {
     
     private enum Keys {
         static let themeMode = "themeMode"
+        static let useInteractiveCreation = "useInteractiveCreation"
         static let showCounterForSingleItems = "showCounterForSingleItems"
         static let defaultInventorySort = "defaultInventorySort"
         static let showInventoryAsRows = "showInventoryAsRows"
@@ -39,7 +41,8 @@ class AppDefaults: ObservableObject {
     }
     
     private init() {
-        themeMode = defaults.integer(forKey: Keys.themeMode) 
+        themeMode = defaults.integer(forKey: Keys.themeMode)
+        useInteractiveCreation = defaults.object(forKey: Keys.useInteractiveCreation) as? Bool ?? true
         showCounterForSingleItems = defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true
         defaultInventorySort = defaults.integer(forKey: Keys.defaultInventorySort)
         showInventoryAsRows = defaults.object(forKey: Keys.showInventoryAsRows) as? Bool ?? true
@@ -51,6 +54,7 @@ class AppDefaults: ObservableObject {
         
         // Add observers to save on change
         $themeMode.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.themeMode) }.store(in: &cancellables)
+        $useInteractiveCreation.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.useInteractiveCreation) }.store(in: &cancellables)
         $showCounterForSingleItems.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCounterForSingleItems) }.store(in: &cancellables)
         $defaultInventorySort.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.defaultInventorySort) }.store(in: &cancellables)
         $showInventoryAsRows.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showInventoryAsRows) }.store(in: &cancellables)

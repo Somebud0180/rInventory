@@ -45,6 +45,7 @@ struct InventoryView: View {
     @EnvironmentObject private var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
+    @Binding var showInteractiveCreationView: Bool
     @Binding var showItemView: Bool
     @Binding var selectedItem: Item?
     @State var isActive: Bool
@@ -55,9 +56,10 @@ struct InventoryView: View {
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
-    init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showItemView: Binding<Bool>, selectedItem: Binding<Item?>, isActive: Bool) {
+    init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showInteractiveCreationView: Binding<Bool>, showItemView: Binding<Bool>, selectedItem: Binding<Item?>, isActive: Bool) {
         self._syncEngine = StateObject(wrappedValue: syncEngine)
         self._showItemCreationView = showItemCreationView
+        self._showInteractiveCreationView = showInteractiveCreationView
         self._showItemView = showItemView
         self._selectedItem = selectedItem
         self._isActive = State(initialValue: isActive)
@@ -163,7 +165,13 @@ struct InventoryView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showItemCreationView = true }) {
+                    Button(action: {
+                        if appDefaults.useInteractiveCreation {
+                            showInteractiveCreationView = true
+                        } else {
+                            showItemCreationView = true
+                        }
+                    }) {
                         Label("Add", systemImage: "plus.circle")
                     }
                 }
@@ -430,11 +438,12 @@ struct InventoryView: View {
 
 #Preview {
     @Previewable @State var showItemCreationView: Bool = false
+    @Previewable @State var showInteractiveCreationView: Bool = false
     @Previewable @State var showItemView: Bool = false
     @Previewable @State var selectedItem: Item? = nil
     @Previewable @State var isActive: Bool = true
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
     
-    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
+    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
