@@ -556,11 +556,6 @@ struct InteractiveCreationView: View {
             Spacer()
             
             itemCard(name: name, quantity: quantity, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, colorScheme: colorScheme, largeFont: true)
-                .card3DEffect(
-                    pitch: motion.pitch,
-                    roll: motion.roll,
-                    perspective: 0.6
-                )
                 .shadow(radius: 10)
                 .aspectRatio(1, contentMode: .fit)
                 .padding(16)
