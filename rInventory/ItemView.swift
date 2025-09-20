@@ -123,14 +123,6 @@ struct ItemView: View {
                     GeometryReader { geometry in
                         GlassEffectContainer {
                             ZStack(alignment: .top) {
-                                if case let .image(data) = background {
-                                    AsyncItemImage(imageData: data)
-                                        .scaledToFill()
-                                        .ignoresSafeArea(.all)
-                                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                                        .blur(radius: 44)
-                                }
-                                
                                 if isPad {
                                     iPadBackground(geometry)
                                         .ignoresSafeArea(.all)
@@ -175,15 +167,7 @@ struct ItemView: View {
             } else {
                 ZStack {
                     GeometryReader { geometry in
-                        ZStack(alignment: .top) {
-                            if case let .image(data) = background {
-                                AsyncItemImage(imageData: data)
-                                    .scaledToFill()
-                                    .ignoresSafeArea(.all)
-                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                                    .blur(radius: 44)
-                            }
-                            
+                        ZStack(alignment: .top) { 
                             if isPad {
                                 iPadBackground(geometry)
                                     .ignoresSafeArea(.keyboard)
