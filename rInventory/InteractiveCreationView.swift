@@ -114,16 +114,22 @@ struct InteractiveCreationView: View {
                             switch creationProgress {
                             case .itemSymbol:
                                 itemSymbol
+                                symbolButtons
                             case .itemName:
                                 itemName
+                                nameButtons
                             case .itemQuantity:
                                 itemQuantity
+                                quantityButtons
                             case .itemLocation:
                                 itemLocation
+                                locationButtons
                             case .itemCategory:
                                 itemCategory
+                                categoryButtons
                             case .reviewAndSave:
                                 reviewAndSave
+                                reviewButtons
                             }
                         }
                         .foregroundStyle(.white)
@@ -229,7 +235,7 @@ struct InteractiveCreationView: View {
             .disabled(name.isEmpty)
             Button(action: {
                 isForward = false
-                withAnimation { creationProgress = .itemSymbol; name = "" }
+                withAnimation { creationProgress = .itemSymbol }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
                     .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -263,7 +269,7 @@ struct InteractiveCreationView: View {
                     }.adaptiveGlassButton()
                     Button(action: {
                         isForward = false
-                        withAnimation { creationProgress = .itemName; quantity = 1 }
+                        withAnimation { creationProgress = .itemName }
                     }) {
                         Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
                             .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -311,7 +317,7 @@ struct InteractiveCreationView: View {
             .disabled(locationName.isEmpty)
             Button(action: {
                 isForward = false
-                withAnimation { creationProgress = .itemQuantity; locationName = "" }
+                withAnimation { creationProgress = .itemQuantity }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
                     .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -335,7 +341,7 @@ struct InteractiveCreationView: View {
             .adaptiveGlassButton()
             Button(action: {
                 isForward = false
-                withAnimation { creationProgress = .itemLocation; categoryName = "" }
+                withAnimation { creationProgress = .itemLocation }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
                     .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -393,7 +399,6 @@ struct InteractiveCreationView: View {
                 Text("Step \(creationProgress.rawValue + 1) of 6")
                     .font(.callout)
                     .foregroundStyle(.white)
-                
                 HStack {
                     Button(action: {
                         if creationProgress != .itemSymbol {
@@ -406,16 +411,37 @@ struct InteractiveCreationView: View {
                             .font(.largeTitle)
                             .foregroundStyle(.white)
                     }
-                    
                     Spacer()
                 }
             }.padding(.horizontal, 16)
-            
             HStack(spacing: 8) {
                 ForEach(0..<6) { index in
-                    Capsule()
-                        .fill(index <= creationProgress.rawValue ? .green : .white.opacity(0.4))
-                        .frame(height: 8)
+                    let step = progress(rawValue: index)!
+                    let isCompleted = index < creationProgress.rawValue
+                    let isCurrent = index == creationProgress.rawValue
+                    let isNext = index == creationProgress.rawValue + 1
+                    let canTap = isCompleted || isNext
+                    let isReviewAndSave = step == .reviewAndSave
+                    let reviewDisabled = (!isCompleted && isReviewAndSave) || (creationProgress.rawValue < progress.reviewAndSave.rawValue && !isCompleted)
+                    Button(action: {
+                        if canTap && !(isReviewAndSave && reviewDisabled) {
+                            withAnimation { creationProgress = step }
+                        }
+                    }) {
+                        Capsule()
+                            .fill(
+                                isCompleted ? .green :
+                                (isCurrent ? (reviewDisabled ? .white.opacity(0.4) : .accentColor) :
+                                (canTap ? .accentColor : .white.opacity(0.4)))
+                            )
+                            .frame(height: 8)
+                            .overlay(
+                                isReviewAndSave && reviewDisabled ?
+                                    Capsule().stroke(Color.red, lineWidth: 2) : nil
+                            )
+                    }
+                    .disabled(!canTap || (isReviewAndSave && reviewDisabled))
+                    .opacity((isReviewAndSave && reviewDisabled) ? 0.4 : 1)
                 }
             }.padding(.horizontal, 16)
         }.padding()
@@ -426,35 +452,12 @@ struct InteractiveCreationView: View {
             if case .symbol(let symbol) = background, symbol.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
-                    
                     Text("Give your item a look")
                         .font(.title2)
                         .bold()
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
-                    
                     Spacer()
-                    
-                    Button(action: { showCamera = true }) {
-                        Label("Capture Image", systemImage: "camera.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: { showImagePicker = true }) {
-                        Label("Pick from Photos", systemImage: "photo.fill.on.rectangle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: { showSymbolPicker = true }) {
-                        Label("Pick a Symbol", systemImage: "star.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
                 }
             } else {
                 VStack {
@@ -463,13 +466,10 @@ struct InteractiveCreationView: View {
                         .bold()
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
-                    
                     Spacer()
-                    
-                        ItemBackgroundView(background: background, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
-                            .aspectRatio(1, contentMode: .fit)
-                            .padding(16)
-                        
+                    ItemBackgroundView(background: background, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
+                        .aspectRatio(1, contentMode: .fit)
+                        .padding(16)
                     if case .symbol = background {
                         ColorPicker("Symbol Color:", selection: $symbolColor, supportsOpacity: false)
                             .bold()
@@ -477,28 +477,7 @@ struct InteractiveCreationView: View {
                             .padding(10)
                             .adaptiveGlassBackground(tintStrength: 0.5, tintColor: symbolColor)
                     }
-                    
                     Spacer()
-                    
-                    Button(action: {
-                        isForward = true
-                        withAnimation { creationProgress = .itemName }
-                    }) {
-                        Label("Looks Good!", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: {
-                        isForward = false
-                        withAnimation { background = .symbol("") }
-                    }) {
-                        Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
                 }
             }
         }
@@ -566,14 +545,11 @@ struct InteractiveCreationView: View {
     private var itemName: some View {
         VStack {
             Spacer()
-            
             Text("What do you want to call this item?")
                 .font(.title2)
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            
-            
             TextField(
                 "",
                 text: Binding(
@@ -608,30 +584,7 @@ struct InteractiveCreationView: View {
                     name = String(newValue.prefix(40))
                 }
             }
-            
             Spacer()
-            
-            Button(action: {
-                isForward = true
-                withAnimation { creationProgress = .itemQuantity }
-            }) {
-                Label("Next", systemImage: "arrow.right.circle.fill")
-                    .foregroundStyle(name.isEmpty ? .gray : (colorScheme == .dark ? .white : .black))
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }
-            .adaptiveGlassButton(tintColor: name.isEmpty ? .gray : .white, interactive: !name.isEmpty)
-            .disabled(name.isEmpty)
-            
-            Button(action: {
-                isForward = false
-                withAnimation { creationProgress = .itemSymbol; name = "" }
-            }) {
-                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }.adaptiveGlassButton()
         }
     }
     
@@ -640,55 +593,21 @@ struct InteractiveCreationView: View {
             if !isQuantityEnabled {
                 VStack {
                     Spacer()
-                    
                     Text("Do you have multiple of this item?")
                         .font(.title2)
                         .bold()
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
-                    
                     Spacer()
-                    
-                    Button(action: {
-                        isForward = true
-                        withAnimation { isQuantityEnabled = true }
-                    }) {
-                        Label("Yes", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: {
-                        isForward = true
-                        withAnimation { isQuantityEnabled = false; creationProgress = .itemLocation }
-                    }) {
-                        Label("No", systemImage: "xmark.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: {
-                        isForward = false
-                        withAnimation { creationProgress = .itemName; quantity = 1 }
-                    }) {
-                        Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
                 }
             } else {
                 VStack {
                     Spacer()
-                    
                     Text("How many do you have?")
                         .font(.title2)
                         .bold()
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
-                    
                     Stepper(value: $quantity, in: 1...100) {
                         HStack {
                             Group {
@@ -698,33 +617,11 @@ struct InteractiveCreationView: View {
                             }
                             .font(.title3)
                             .bold()
-                            
                         }
                     }
                     .onSubmit { quantity = max(min(quantity, 100), 1) }
                     .padding()
-                    
                     Spacer()
-                    
-                    Button(action: {
-                        isForward = true
-                        withAnimation { creationProgress = .itemLocation }
-                    }) {
-                        Label("Next", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
-                    
-                    Button(action: {
-                        isForward = false
-                        withAnimation { isQuantityEnabled = false }
-                    }) {
-                        Label("Nevermind", systemImage: "xmark.circle.fill")
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }.adaptiveGlassButton()
                 }
             }
         }
@@ -733,13 +630,11 @@ struct InteractiveCreationView: View {
     private var itemLocation: some View {
         VStack {
             Spacer()
-            
             Text("Where is this item located?")
                 .font(.title2)
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            
             VStack(spacing: 2) {
                 HStack {
                     TextField(
@@ -762,59 +657,31 @@ struct InteractiveCreationView: View {
                         if newValue.count >= 40 {
                             locationName = String(newValue.prefix(40))
                         }
-                        
                         if let found = locations.first(where: { $0.name == newValue }) {
                             locationColor = found.color
                         } else {
                             locationColor = .white
                         }
                     }
-                    
                     ColorPicker("", selection: $locationColor, supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 32, height: 32)
                         .padding(4)
                 }
-                
                 filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName, colorScheme: colorScheme)
             }.padding(.horizontal)
-            
             Spacer()
-            
-            Button(action: {
-                isForward = true
-                withAnimation { creationProgress = .itemCategory }
-            }) {
-                Label("Next", systemImage: "arrow.right.circle.fill")
-                    .foregroundStyle(locationName.isEmpty ? .gray : (colorScheme == .dark ? .white : .black))
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }
-            .adaptiveGlassButton(tintColor: locationName.isEmpty ? .gray : .white, interactive: !locationName.isEmpty)
-            .disabled(locationName.isEmpty)
-            
-            Button(action: {
-                isForward = false
-                withAnimation { creationProgress = .itemQuantity; locationName = "" }
-            }) {
-                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }.adaptiveGlassButton()
         }
     }
     
     private var itemCategory: some View {
         VStack {
             Spacer()
-            
             Text("What category does this item belong to?")
                 .font(.title2)
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            
             VStack {
                 TextField(
                     "",
@@ -850,33 +717,10 @@ struct InteractiveCreationView: View {
                         categoryName = String(newValue.prefix(40))
                     }
                 }
-                
                 filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName, colorScheme: colorScheme)
                     .padding(.horizontal)
             }
-            
             Spacer()
-            
-            Button(action: {
-                isForward = true
-                withAnimation { creationProgress = .reviewAndSave }
-            }) {
-                Label(categoryName.isEmpty ? "Skip" : "Next", systemImage: "arrow.right.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }
-            .adaptiveGlassButton()
-            
-            Button(action: {
-                isForward = false
-                withAnimation { creationProgress = .itemLocation; categoryName = "" }
-            }) {
-                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }.adaptiveGlassButton()
         }
     }
     
@@ -887,32 +731,12 @@ struct InteractiveCreationView: View {
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            
             Spacer()
-            
             itemCard(name: name, quantity: quantity, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, symbolColor: symbolColor, colorScheme: colorScheme, largeFont: true)
                 .shadow(radius: 10)
                 .aspectRatio(1, contentMode: .fit)
                 .padding(16)
-            
             Spacer()
-            
-            Button(action: { saveItem() }) {
-                Label("Save Item", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }.adaptiveGlassButton()
-            
-            Button(action: {
-                isForward = false
-                withAnimation { creationProgress = .itemCategory }
-            }) {
-                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }.adaptiveGlassButton()
         }
     }
     
