@@ -79,6 +79,7 @@ struct ItemView: View {
     @State private var showCamera: Bool = false
     @State private var imageToCrop: UIImage? = nil
     @State private var showCropper: Bool = false
+    @State private var animateBackground: Bool = false
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -225,6 +226,12 @@ struct ItemView: View {
         }
         .onAppear {
             initializeDisplayVariables()
+            // Start breathing animation
+            DispatchQueue.main.async {
+                withAnimation {
+                    animateBackground = true
+                }
+            }
         }
         .alert("Delete Item", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) {
@@ -550,6 +557,9 @@ struct ItemView: View {
     }
     
     private var backgroundGradient: AnyView {
+        // Animate blur and hue for breathing effect
+        let blurRadius: CGFloat = animateBackground ? 60 : 30
+        let hue: Angle = animateBackground ? .degrees(30) : .degrees(0)
         return AnyView(
             ZStack {
                 if case let .image(data) = background, let uiImage = UIImage(data: data) {
@@ -558,7 +568,9 @@ struct ItemView: View {
                         .scaledToFill()
                         .ignoresSafeArea()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .blur(radius: 44)
+                        .blur(radius: blurRadius)
+                        .hueRotation(hue)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: animateBackground)
                 }
                 
                 Rectangle()
