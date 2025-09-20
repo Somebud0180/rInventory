@@ -13,6 +13,7 @@ import Playgrounds
 struct InteractiveCreationView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @Query(sort: \Location.name, order: .forward) private var locations: [Location]
     @Query(sort: \Category.name, order: .forward) private var categories: [Category]
@@ -59,38 +60,80 @@ struct InteractiveCreationView: View {
         formatter.maximum = 100
         return formatter
     }
-    
+
+    /// Helper to determine if the device is an iPhone in landscape mode
+    private var isPhoneLandscape: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 animatedBackground
-                
-                VStack {
-                    progressBar
-                    
-                    Group {
-                        switch creationProgress {
-                        case .itemSymbol:
-                            itemSymbol
-                        case .itemName:
-                            itemName
-                        case .itemQuantity:
-                            itemQuantity
-                        case .itemLocation:
-                            itemLocation
-                        case .itemCategory:
-                            itemCategory
-                        case .reviewAndSave:
-                            reviewAndSave
+                if isPhoneLandscape {
+                    HStack(alignment: .center) {
+                        VStack {
+                            progressBar
+                            Group {
+                                switch creationProgress {
+                                case .itemSymbol:
+                                    itemSymbol
+                                case .itemName:
+                                    itemName
+                                case .itemQuantity:
+                                    itemQuantity
+                                case .itemLocation:
+                                    itemLocation
+                                case .itemCategory:
+                                    itemCategory
+                                case .reviewAndSave:
+                                    reviewAndSave
+                                }
+                            }
+                            .foregroundStyle(.white)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: isForward ? .trailing : .leading),
+                                removal: .move(edge: isForward ? .leading : .trailing)
+                            ))
+                            .frame(maxWidth: 400, maxHeight: 800)
+                            .padding(16)
                         }
+                        Divider()
+                        VStack {
+                            Spacer()
+                            landscapeButtonsView
+                            Spacer()
+                        }
+                        .frame(maxWidth: 300)
+                        .padding(.trailing, 24)
                     }
-                    .foregroundStyle(.white)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: isForward ? .trailing : .leading),
-                        removal: .move(edge: isForward ? .leading : .trailing)
-                    ))
-                    .frame(maxWidth: 400, maxHeight: 800)
-                    .padding(16)
+                } else {
+                    VStack {
+                        progressBar
+                        Group {
+                            switch creationProgress {
+                            case .itemSymbol:
+                                itemSymbol
+                            case .itemName:
+                                itemName
+                            case .itemQuantity:
+                                itemQuantity
+                            case .itemLocation:
+                                itemLocation
+                            case .itemCategory:
+                                itemCategory
+                            case .reviewAndSave:
+                                reviewAndSave
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: isForward ? .trailing : .leading),
+                            removal: .move(edge: isForward ? .leading : .trailing)
+                        ))
+                        .frame(maxWidth: 400, maxHeight: 800)
+                        .padding(16)
+                    }
                 }
             }
             .alert("Are you sure you want to exit? Your progress will be lost.", isPresented: $showDismissAlert) {
@@ -102,6 +145,225 @@ struct InteractiveCreationView: View {
                 isForward = newValue.rawValue > oldValue.rawValue
             }
         }
+    // Buttons for landscape mode
+    private var landscapeButtonsView: some View {
+        VStack(spacing: 16) {
+            switch creationProgress {
+            case .itemSymbol:
+                symbolButtons
+            case .itemName:
+                nameButtons
+            case .itemQuantity:
+                quantityButtons
+            case .itemLocation:
+                locationButtons
+            case .itemCategory:
+                categoryButtons
+            case .reviewAndSave:
+                reviewButtons
+            }
+        }
+    }
+
+    // Extracted buttons for each step
+    private var symbolButtons: some View {
+        Group {
+            if case .symbol(let symbol) = background, symbol.isEmpty {
+                VStack(spacing: 16) {
+                    Button(action: { showCamera = true }) {
+                        Label("Camera", systemImage: "camera.fill")
+                            .foregroundStyle(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: { showImagePicker = true }) {
+                        Label("Photo Library", systemImage: "photo.fill")
+                            .foregroundStyle(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: { showSymbolPicker = true }) {
+                        Label("Symbol", systemImage: "star.fill")
+                            .foregroundStyle(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Button(action: {
+                        isForward = true
+                        withAnimation { creationProgress = .itemName }
+                    }) {
+                        Label("Looks Good!", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: {
+                        isForward = false
+                        withAnimation { background = .symbol("") }
+                    }) {
+                        Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                }
+            }
+        }
+    }
+
+    private var nameButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: {
+                isForward = true
+                withAnimation { creationProgress = .itemQuantity }
+            }) {
+                Label("Next", systemImage: "arrow.right.circle.fill")
+                    .foregroundStyle(name.isEmpty ? .gray : (colorScheme == .dark ? .white : .black))
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }
+            .adaptiveGlassButton(tintColor: name.isEmpty ? .gray : .white, interactive: !name.isEmpty)
+            .disabled(name.isEmpty)
+            Button(action: {
+                isForward = false
+                withAnimation { creationProgress = .itemSymbol; name = "" }
+            }) {
+                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }.adaptiveGlassButton()
+        }
+    }
+
+    private var quantityButtons: some View {
+        Group {
+            if !isQuantityEnabled {
+                VStack(spacing: 16) {
+                    Button(action: {
+                        isForward = true
+                        withAnimation { isQuantityEnabled = true }
+                    }) {
+                        Label("Yes", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: {
+                        isForward = true
+                        withAnimation { isQuantityEnabled = false; creationProgress = .itemLocation }
+                    }) {
+                        Label("No", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: {
+                        isForward = false
+                        withAnimation { creationProgress = .itemName; quantity = 1 }
+                    }) {
+                        Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Button(action: {
+                        isForward = true
+                        withAnimation { creationProgress = .itemLocation }
+                    }) {
+                        Label("Next", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                    Button(action: {
+                        isForward = false
+                        withAnimation { isQuantityEnabled = false }
+                    }) {
+                        Label("Nevermind", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(colorScheme == .dark ? .white : .black)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }.adaptiveGlassButton()
+                }
+            }
+        }
+    }
+
+    private var locationButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: {
+                isForward = true
+                withAnimation { creationProgress = .itemCategory }
+            }) {
+                Label("Next", systemImage: "arrow.right.circle.fill")
+                    .foregroundStyle(locationName.isEmpty ? .gray : (colorScheme == .dark ? .white : .black))
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }
+            .adaptiveGlassButton(tintColor: locationName.isEmpty ? .gray : .white, interactive: !locationName.isEmpty)
+            .disabled(locationName.isEmpty)
+            Button(action: {
+                isForward = false
+                withAnimation { creationProgress = .itemQuantity; locationName = "" }
+            }) {
+                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }.adaptiveGlassButton()
+        }
+    }
+
+    private var categoryButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: {
+                isForward = true
+                withAnimation { creationProgress = .reviewAndSave }
+            }) {
+                Label(categoryName.isEmpty ? "Skip" : "Next", systemImage: "arrow.right.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }
+            .adaptiveGlassButton()
+            Button(action: {
+                isForward = false
+                withAnimation { creationProgress = .itemLocation; categoryName = "" }
+            }) {
+                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }.adaptiveGlassButton()
+        }
+    }
+
+    private var reviewButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: { saveItem() }) {
+                Label("Save Item", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }.adaptiveGlassButton()
+            Button(action: {
+                isForward = false
+                withAnimation { creationProgress = .itemCategory }
+            }) {
+                Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }.adaptiveGlassButton()
+        }
+    }
     }
     
     private var animatedBackground: some View {
