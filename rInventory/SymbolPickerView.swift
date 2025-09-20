@@ -23,7 +23,11 @@ struct SymbolPickerView: View {
     
     /// The set of pickable symbols.
     private let symbols: [String: [String]] = [
-        "objects": ["hammer.fill", "wrench.fill", "screwdriver.fill", "paintbrush.fill", "scissors", "pencil", "list.clipboard.fill", "archivebox.fill", "tray.2.fill", "bag.fill", "cart.fill", "gift.fill", "lightbulb.fill", "fanblades.fill", "microwave.fill", "oven.fill", "fork.knife", "cup.and.saucer.fill", "book.fill", "umbrella.fill", "balloon.fill", "party.popper.fill"],
+        "objects": [
+            "hammer.fill", "wrench.fill", "screwdriver.fill", "paintbrush.fill", "scissors", "pencil", "list.clipboard.fill", "archivebox.fill", "tray.2.fill", "bag.fill", "cart.fill", "gift.fill", "lightbulb.fill", "fanblades.fill", "microwave.fill", "oven.fill", "fork.knife", "cup.and.saucer.fill", "book.fill", "umbrella.fill", "balloon.fill", "party.popper.fill", "camera.fill", "printer.fill", "tv.fill", 
+            "desktopcomputer", "laptopcomputer", "iphone", "ipad", "applewatch", "watch.analog", "network", "antenna.radiowaves.left.and.right", "lock.fill", "key.fill", "paintpalette.fill", "ruler.fill", "calendar", "clock.fill", "alarm.fill", "stopwatch.fill", "timer", "hourglass", "envelope.fill", "paperclip", "bookmark.fill", "pin.fill", "magnifyingglass", "doc.fill", "folder.fill", "trash.fill", 
+            "cart.badge.plus", "cart.badge.minus", "creditcard.fill", "wallet.pass.fill", "tag.fill", "barcode.viewfinder", "barcode", "qrcode", "qrcode.viewfinder", "cube.box.fill", "shippingbox.fill", "cube.fill", "cube", "cube.box"
+        ],
         "math": ["plus", "minus", "multiply", "divide", "number"],
         "transport": ["car.fill", "car.2.fill", "bolt.car.fill", "bus.fill", "bus.doubledecker.fill", "tram.fill", "airplane", "fuelpump.fill", "bicycle", "figure.walk"],
         "nature": ["clock.fill", "alarm.fill", "stopwatch.fill", "timer", "hourglass"],
