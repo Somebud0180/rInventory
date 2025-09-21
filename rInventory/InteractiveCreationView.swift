@@ -133,14 +133,14 @@ struct InteractiveCreationView: View {
                                 reviewButtons
                             }
                         }
-                        .foregroundStyle(.white)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: isForward ? .trailing : .leading),
-                            removal: .move(edge: isForward ? .leading : .trailing)
-                        ))
-                        .frame(maxWidth: 400, maxHeight: 800)
-                        .padding(16)
                     }
+                    .foregroundStyle(.white)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: isForward ? .trailing : .leading),
+                        removal: .move(edge: isForward ? .leading : .trailing)
+                    ))
+                    .frame(maxWidth: 400, maxHeight: 800)
+                    .padding(16)
                 }
             }
             .alert("Are you sure you want to exit? Your progress will be lost.", isPresented: $showDismissAlert) {
