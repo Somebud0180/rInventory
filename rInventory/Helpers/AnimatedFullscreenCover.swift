@@ -17,6 +17,7 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
         let colorBackground = colorScheme == .dark ? Color.black : Color.white
         ZStack {
             content
+                .ignoresSafeArea()
                 .disabled(isPresented)
             
             if isPresented {
@@ -30,6 +31,7 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
                     }
                 
                 overlayContent()
+                    .ignoresSafeArea()
                     .transition(.blurReplace)
                     .zIndex(1)
             }
