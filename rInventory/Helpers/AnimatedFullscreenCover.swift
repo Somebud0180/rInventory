@@ -19,6 +19,9 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
             content
                 .ignoresSafeArea()
                 .disabled(isPresented)
+                .mask(
+                    RoundedRectangle(cornerRadius: 25)
+                ) 
             
             if isPresented {
                 colorBackground
@@ -31,7 +34,6 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
                     }
                 
                 overlayContent()
-                    .ignoresSafeArea()
                     .transition(.blurReplace)
                     .zIndex(1)
             }
