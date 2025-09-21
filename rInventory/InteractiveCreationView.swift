@@ -183,7 +183,7 @@ struct InteractiveCreationView: View {
                     .foregroundStyle(.white)
                 HStack {
                     Button(action: {
-                        if creationProgress != .itemSymbol {
+                        if completedSteps.isEmpty {
                             showDismissAlert = true
                         } else {
                             isPresented = false
