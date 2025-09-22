@@ -310,7 +310,7 @@ struct InteractiveCreationView: View {
             ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            ImagePicker(selection: Binding(
+            CameraViewUI(selectedImage: Binding(
                 get: {
                     nil
                 },
@@ -319,7 +319,7 @@ struct InteractiveCreationView: View {
                         selectedImage = newImage
                     }
                 }
-            ), sourceType: .camera)
+            ))
         }
         .onChange(of: selectedImage) { _, newValue in
             if newValue != nil {
