@@ -201,7 +201,7 @@ struct InteractiveCreationView: View {
                     .foregroundStyle(.white)
                 HStack {
                     Button(action: {
-                        if completedSteps.isEmpty {
+                        if case .symbol(let symbol) = background, symbol.isEmpty, completedSteps.isEmpty {
                             isPresented = false
                         } else {
                             showDismissAlert = true
