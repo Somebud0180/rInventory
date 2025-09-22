@@ -39,11 +39,6 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
             }
         }
         .animation(.easeInOut(duration: 0.5), value: isPresented)
-                        .transition(.blurReplace)
-                        .zIndex(1)
-            }
-        }
-        .animation(.easeInOut(duration: 0.5), value: isPresented)
     }
 }
 

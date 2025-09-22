@@ -42,6 +42,7 @@ struct InteractiveCreationView: View {
     @State private var showDismissAlert: Bool = false
     
     // Final Item Variables
+    @State private var itemCardDisplacement: CGFloat = 0
     @State private var background: ItemCardBackground = .symbol("")
     @State private var symbolColor: Color = .white
     @State private var name: String = ""
@@ -65,82 +66,99 @@ struct InteractiveCreationView: View {
 
     /// Helper to determine if the device is an iPhone in landscape mode
     private var isVerticallyLimited: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular ||
-        UIDevice.current.userInterfaceIdiom == .pad && verticalSizeClass == .compact
+        (UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular) ||
+        (UIDevice.current.userInterfaceIdiom == .pad && verticalSizeClass == .compact)
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 animatedBackground
-                if isVerticallyLimited {
-                    HStack(alignment: .center) {
+                
+                VStack {
+                    progressBar
+                    if isVerticallyLimited {
+                        HStack(alignment: .center) {
+                            VStack {
+                                Group {
+                                    switch creationProgress {
+                                    case .itemSymbol:
+                                        itemSymbol
+                                    case .itemName:
+                                        itemName
+                                    case .itemQuantity:
+                                        itemQuantity
+                                    case .itemLocation:
+                                        itemLocation
+                                    case .itemCategory:
+                                        itemCategory
+                                    case .reviewAndSave:
+                                        reviewAndSave
+                                    }
+                                }
+                                .padding(16)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: 400, maxHeight: 800)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: isForward ? .trailing : .leading).combined(with: .opacity),
+                                    removal: .move(edge: isForward ? .leading : .trailing).combined(with: .opacity)
+                                ))
+                            }
+                            
+                            VStack {
+                                Spacer()
+                                switch creationProgress {
+                                case .itemSymbol:
+                                    symbolButtons
+                                case .itemName:
+                                    nameButtons
+                                case .itemQuantity:
+                                    quantityButtons
+                                case .itemLocation:
+                                    locationButtons
+                                case .itemCategory:
+                                    categoryButtons
+                                case .reviewAndSave:
+                                    reviewButtons
+                                }
+                                Spacer()
+                            }
+                            .frame(maxWidth: 300)
+                            .padding(.trailing, 24)
+                        }
+                    } else {
                         VStack {
-                            progressBar
                             Group {
                                 switch creationProgress {
                                 case .itemSymbol:
                                     itemSymbol
+                                    symbolButtons
                                 case .itemName:
                                     itemName
+                                    nameButtons
                                 case .itemQuantity:
                                     itemQuantity
+                                    quantityButtons
                                 case .itemLocation:
                                     itemLocation
+                                    locationButtons
                                 case .itemCategory:
                                     itemCategory
+                                    categoryButtons
                                 case .reviewAndSave:
                                     reviewAndSave
+                                    reviewButtons
                                 }
                             }
-                            .foregroundStyle(.white)
                             .transition(.asymmetric(
-                                insertion: .move(edge: isForward ? .trailing : .leading),
-                                removal: .move(edge: isForward ? .leading : .trailing)
+                                insertion: .move(edge: isForward ? .trailing : .leading).combined(with: .opacity),
+                                removal: .move(edge: isForward ? .leading : .trailing).combined(with: .opacity)
                             ))
-                            .frame(maxWidth: 400, maxHeight: 800)
-                            .padding(16)
                         }
-                        Divider()
-                        VStack {
-                            landscapeButtonsView
-                        }
-                        .frame(maxWidth: 300)
-                        .padding(.trailing, 24)
+                        .padding(16)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: 400, maxHeight: 800)
                     }
-                } else {
-                    VStack {
-                        progressBar
-                        Group {
-                            switch creationProgress {
-                            case .itemSymbol:
-                                itemSymbol
-                                symbolButtons
-                            case .itemName:
-                                itemName
-                                nameButtons
-                            case .itemQuantity:
-                                itemQuantity
-                                quantityButtons
-                            case .itemLocation:
-                                itemLocation
-                                locationButtons
-                            case .itemCategory:
-                                itemCategory
-                                categoryButtons
-                            case .reviewAndSave:
-                                reviewAndSave
-                                reviewButtons
-                            }
-                        }
-                    }
-                    .foregroundStyle(.white)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: isForward ? .trailing : .leading),
-                        removal: .move(edge: isForward ? .leading : .trailing)
-                    ))
-                    .frame(maxWidth: 400, maxHeight: 800)
-                    .padding(16)
                 }
             }
             .alert("Are you sure you want to exit? Your progress will be lost.", isPresented: $showDismissAlert) {
@@ -184,9 +202,9 @@ struct InteractiveCreationView: View {
                 HStack {
                     Button(action: {
                         if completedSteps.isEmpty {
-                            showDismissAlert = true
-                        } else {
                             isPresented = false
+                        } else {
+                            showDismissAlert = true
                         }
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -196,24 +214,22 @@ struct InteractiveCreationView: View {
                     Spacer()
                 }
             }.padding(.horizontal, 16)
+            
+            let isStepTappable: (Int) -> Bool = { idx in
+                guard idx > 0 else { return true }
+                return (0..<idx).allSatisfy { completedSteps.contains(progress(rawValue: $0)!) }
+            }
+            
             HStack(spacing: 8) {
                 ForEach(0..<6) { index in
                     let step = progress(rawValue: index)!
                     let isCompleted = completedSteps.contains(progress(rawValue: index)!)
                     let isCurrent = index == creationProgress.rawValue
-                    let isNext = index == creationProgress.rawValue + 1
-                    var canTap: Bool {
-                        if isNext {
-                            // Next step can only be tapped if current is completed or all steps are completed
-                            return completedSteps.contains(progress(rawValue: creationProgress.rawValue)!) || completedSteps.count == 5
-                        } else {
-                            return isCompleted
-                        }
-                    }
                     let isReviewAndSave = step == .reviewAndSave
                     let reviewDisabled = completedSteps.count != 5
+                    
                     Button(action: {
-                        if canTap && !(isReviewAndSave && reviewDisabled) {
+                        if isStepTappable(index) && !(isReviewAndSave && reviewDisabled) {
                             if step.rawValue > creationProgress.rawValue {
                                 isForward = true
                             } else if step.rawValue < creationProgress.rawValue {
@@ -225,35 +241,14 @@ struct InteractiveCreationView: View {
                         Capsule()
                             .fill(
                                 isCompleted ? .green :
-                                (isCurrent ? (reviewDisabled ? .white.opacity(0.4) : .green) : .white.opacity(0.4))
+                                (isCurrent ? .orange : (!isCompleted && isStepTappable(index) ? .orange : .white.opacity(0.4)))
                             )
                             .frame(height: 8)
                     }
-                    .disabled(!canTap || (isReviewAndSave && reviewDisabled))
+                    .disabled(!isStepTappable(index) || (isReviewAndSave && reviewDisabled))
                 }
             }.padding(.horizontal, 16)
         }.padding()
-    }
-    
-    private var landscapeButtonsView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            switch creationProgress {
-            case .itemSymbol:
-                symbolButtons
-            case .itemName:
-                nameButtons
-            case .itemQuantity:
-                quantityButtons
-            case .itemLocation:
-                locationButtons
-            case .itemCategory:
-                categoryButtons
-            case .reviewAndSave:
-                reviewButtons
-            }
-            Spacer()
-        }
     }
     
     // MARK: - Item Symbol
@@ -279,7 +274,7 @@ struct InteractiveCreationView: View {
                     Spacer()
                     ItemBackgroundView(background: background, symbolColor: symbolColor, mask: AnyView(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)))
                         .aspectRatio(1, contentMode: .fit)
-                        .padding(16)
+                        .padding(8)
                     if case .symbol = background {
                         ColorPicker("Symbol Color:", selection: $symbolColor, supportsOpacity: false)
                             .bold()
@@ -397,7 +392,7 @@ struct InteractiveCreationView: View {
                     }.adaptiveGlassButton()
                 }
             }
-        }
+        }.glassContain()
     }
     
     
@@ -457,6 +452,7 @@ struct InteractiveCreationView: View {
             Button(action: {
                 isForward = true
                 completedSteps.insert(.itemName)
+                hideKeyboard()
                 withAnimation { creationProgress = .itemQuantity }
             }) {
                 Label("Next", systemImage: "arrow.right.circle.fill")
@@ -468,6 +464,7 @@ struct InteractiveCreationView: View {
             .disabled(name.isEmpty)
             Button(action: {
                 isForward = false
+                hideKeyboard()
                 withAnimation { creationProgress = .itemSymbol }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
@@ -475,7 +472,7 @@ struct InteractiveCreationView: View {
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
-        }
+        }.glassContain()
     }
     
     // MARK: - Item Quantity
@@ -565,6 +562,7 @@ struct InteractiveCreationView: View {
                 VStack(spacing: 16) {
                     Button(action: {
                         isForward = true
+                        hideKeyboard()
                         withAnimation { creationProgress = .itemLocation; completedSteps.insert(.itemQuantity) }
                     }) {
                         Label("Next", systemImage: "checkmark.circle.fill")
@@ -575,6 +573,7 @@ struct InteractiveCreationView: View {
                     
                     Button(action: {
                         isForward = false
+                        hideKeyboard()
                         withAnimation { isQuantityEnabled = false }
                     }) {
                         Label("Nevermind", systemImage: "xmark.circle.fill")
@@ -585,7 +584,7 @@ struct InteractiveCreationView: View {
                     
                 }
             }
-        }
+        }.glassContain()
     }
     
     // MARK: - Item Location
@@ -643,6 +642,7 @@ struct InteractiveCreationView: View {
             Button(action: {
                 isForward = true
                 completedSteps.insert(.itemLocation)
+                hideKeyboard()
                 withAnimation { creationProgress = .itemCategory }
             }) {
                 Label("Next", systemImage: "arrow.right.circle.fill")
@@ -655,6 +655,7 @@ struct InteractiveCreationView: View {
             
             Button(action: {
                 isForward = false
+                hideKeyboard()
                 withAnimation { creationProgress = .itemQuantity }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
@@ -662,7 +663,7 @@ struct InteractiveCreationView: View {
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
-        }
+        }.glassContain()
     }
     
     // MARK: - Item Category
@@ -722,6 +723,7 @@ struct InteractiveCreationView: View {
             Button(action: {
                 isForward = true
                 completedSteps.insert(.itemCategory)
+                hideKeyboard()
                 withAnimation { creationProgress = .reviewAndSave }
             }) {
                 Label(categoryName.isEmpty ? "Skip" : "Next", systemImage: "arrow.right.circle.fill")
@@ -733,6 +735,7 @@ struct InteractiveCreationView: View {
             
             Button(action: {
                 isForward = false
+                hideKeyboard()
                 withAnimation { creationProgress = .itemLocation }
             }) {
                 Label("Go Back", systemImage: "arrow.uturn.backward.circle.fill")
@@ -740,7 +743,7 @@ struct InteractiveCreationView: View {
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
-        }
+        }.glassContain()
     }
     
     // MARK: - Review and Save
@@ -752,7 +755,8 @@ struct InteractiveCreationView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Spacer()
-            itemCard(name: name, quantity: quantity, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, symbolColor: symbolColor, colorScheme: colorScheme, largeFont: true)
+            itemCard(name: name, quantity: isQuantityEnabled ? quantity : 0, location: Location(name: locationName, color: locationColor), category: Category(name: categoryName), background: background, symbolColor: symbolColor, colorScheme: colorScheme, largeFont: true)
+                .offset(y: itemCardDisplacement)
                 .shadow(radius: 10)
                 .aspectRatio(1, contentMode: .fit)
                 .padding(16)
@@ -777,24 +781,52 @@ struct InteractiveCreationView: View {
                     .padding()
                     .frame(maxWidth: .infinity)
             }.adaptiveGlassButton()
-        }
+        }.glassContain()
     }
     
     // MARK: - Functions
     private func saveItem() {
-        Item.saveItem(
-            name: name,
-            quantity: isQuantityEnabled ? quantity : 0,
-            locationName: locationName,
-            locationColor: locationColor,
-            categoryName: categoryName,
-            background: background,
-            symbolColor: symbolColor,
-            context: modelContext
-        )
-        isPresented = false
+        withAnimation(.easeInOut(duration: 0.5)) {
+            itemCardDisplacement = -768
+            completedSteps.insert(.reviewAndSave)
+            Item.saveItem(
+                name: name,
+                quantity: isQuantityEnabled ? quantity : 0,
+                locationName: locationName,
+                locationColor: locationColor,
+                categoryName: categoryName,
+                background: background,
+                symbolColor: symbolColor,
+                context: modelContext
+            )
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isPresented = false
+        }
     }
 }
+
+extension View {
+    func glassContain() -> some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer {
+                    self
+                }
+            } else {
+                self
+            }
+        }
+    }
+    
+#if canImport(UIKit)
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+#endif
+}
+
 
 #Preview {
     @Previewable @State var isPresented: Bool = true
