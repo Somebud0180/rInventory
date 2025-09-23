@@ -405,43 +405,53 @@ struct InteractiveCreationView: View {
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            TextField(
-                "",
-                text: Binding(
-                    get: { name },
-                    set: { newValue in
-                        // Limit to 50 characters
-                        withAnimation {
-                            if newValue.count <= 50 {
-                                name = newValue
-                            } else {
-                                name = String(newValue.prefix(50))
+            HStack {
+                TextField(
+                    "",
+                    text: Binding(
+                        get: { name },
+                        set: { newValue in
+                            // Limit to 50 characters
+                            withAnimation {
+                                if newValue.count <= 50 {
+                                    name = newValue
+                                } else {
+                                    name = String(newValue.prefix(50))
+                                }
                             }
                         }
+                    ),
+                    prompt: Text("Item Name").foregroundStyle(.white.opacity(0.4))
+                )
+                .textFieldStyle(CleanTextFieldStyle())
+                .font(.title3)
+                .fontWeight(.medium)
+                .fontDesign(.rounded)
+                .padding(.horizontal)
+                .autocapitalization(.words)
+                .disableAutocorrection(true)
+                .onSubmit {
+                    name = name.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
+                    isForward = true
+                    completedSteps.insert(.itemName)
+                    withAnimation { creationProgress = .itemQuantity }
+                }
+                .onChange(of: name) { oldValue, newValue in
+                    if newValue.count >= 32 {
+                        name = String(newValue.prefix(40))
                     }
-                ),
-                prompt: Text("Item Name").foregroundStyle(.white.opacity(0.4))
-            )
-            .textFieldStyle(CleanTextFieldStyle())
-            .font(.title3)
-            .fontWeight(.medium)
-            .fontDesign(.rounded)
-            .padding(.horizontal)
-            .autocapitalization(.words)
-            .disableAutocorrection(true)
-            .onSubmit {
-                name = name.prefix(32).trimmingCharacters(in: .whitespacesAndNewlines)
-                isForward = true
-                completedSteps.insert(.itemName)
-                withAnimation { creationProgress = .itemQuantity }
-            }
-            .onChange(of: name) { oldValue, newValue in
-                if newValue.count >= 32 {
-                    name = String(newValue.prefix(40))
+                    if name.isEmpty {
+                        completedSteps.remove(.itemName)
+                    }
                 }
-                if name.isEmpty {
-                    completedSteps.remove(.itemName)
-                }
+                
+                Button(action: { name = "" }, label: {
+                    Label("Clear Text Field", systemImage: "xmark")
+                        .labelStyle(.iconOnly)
+                        .font(.title2)
+                        .frame(width: 24, height: 24)
+                        .foregroundStyle(.white)
+                })
             }
             Spacer()
         }
@@ -596,6 +606,7 @@ struct InteractiveCreationView: View {
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+            
             VStack(spacing: 2) {
                 HStack {
                     TextField(
@@ -615,25 +626,36 @@ struct InteractiveCreationView: View {
                         completedSteps.insert(.itemLocation)
                         withAnimation { creationProgress = .itemCategory }
                     }
-                    .onChange(of: locationName) { oldValue, newValue in
-                        if newValue.count >= 40 {
-                            locationName = String(newValue.prefix(40))
-                        }
-                        if locationName.isEmpty { completedSteps.remove(.itemLocation) }
-                        if let found = locations.first(where: { $0.name == newValue }) {
-                            locationColor = found.color
-                        } else {
-                            locationColor = .white
-                        }
-                    }
+                    
                     ColorPicker("", selection: $locationColor, supportsOpacity: false)
                         .labelsHidden()
-                        .frame(width: 32, height: 32)
+                        .frame(width: 24, height: 24)
                         .padding(4)
+                    
+                    Button(action: { locationName = "" }, label: {
+                        Label("Clear Text Field", systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                            .font(.title2)
+                            .frame(width: 24, height: 24)
+                            .foregroundStyle(.white)
+                    })
                 }
+                
                 filteredSuggestionsPicker(items: locations, keyPath: \Location.name, filter: $locationName, colorScheme: colorScheme)
             }.padding(.horizontal)
+            
             Spacer()
+        }
+        .onChange(of: locationName) { oldValue, newValue in
+            if newValue.count >= 40 {
+                locationName = String(newValue.prefix(40))
+            }
+            if locationName.isEmpty { completedSteps.remove(.itemLocation) }
+            if let found = locations.first(where: { $0.name == newValue }) {
+                locationColor = found.color
+            } else {
+                locationColor = .white
+            }
         }
     }
     
@@ -676,45 +698,55 @@ struct InteractiveCreationView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             VStack {
-                TextField(
-                    "",
-                    text: Binding(
-                        get: { categoryName },
-                        set: { newValue in
-                            // Limit to 30 characters
-                            withAnimation {
-                                if newValue.count <= 30 {
-                                    categoryName = newValue
-                                } else {
-                                    categoryName = String(newValue.prefix(30))
+                HStack {
+                    TextField(
+                        "",
+                        text: Binding(
+                            get: { categoryName },
+                            set: { newValue in
+                                // Limit to 30 characters
+                                withAnimation {
+                                    if newValue.count <= 30 {
+                                        categoryName = newValue
+                                    } else {
+                                        categoryName = String(newValue.prefix(30))
+                                    }
                                 }
                             }
-                        }
-                    ),
-                    prompt: Text("Insert a category").foregroundStyle(.white.opacity(0.4))
-                )
-                .textFieldStyle(CleanTextFieldStyle())
-                .font(.title3)
-                .fontWeight(.medium)
-                .fontDesign(.rounded)
-                .padding(.horizontal)
-                .autocapitalization(.words)
-                .disableAutocorrection(true)
-                .onSubmit {
-                    categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-                    isForward = true
-                    withAnimation { creationProgress = .reviewAndSave }
-                }
-                .onChange(of: categoryName) { oldValue, newValue in
-                    if newValue.count >= 40 {
-                        categoryName = String(newValue.prefix(40))
+                        ),
+                        prompt: Text("Insert a category").foregroundStyle(.white.opacity(0.4))
+                    )
+                    .textFieldStyle(CleanTextFieldStyle())
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .fontDesign(.rounded)
+                    .padding(.horizontal)
+                    .autocapitalization(.words)
+                    .disableAutocorrection(true)
+                    .onSubmit {
+                        categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+                        isForward = true
+                        withAnimation { creationProgress = .reviewAndSave }
                     }
-                    if categoryName.isEmpty { completedSteps.remove(.itemCategory) }
+                    
+                    Button(action: { categoryName = "" }, label: {
+                        Label("Clear Text Field", systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                            .font(.title2)
+                            .frame(width: 24, height: 24)
+                            .foregroundStyle(.white)
+                    })
                 }
                 filteredSuggestionsPicker(items: categories, keyPath: \Category.name, filter: $categoryName, colorScheme: colorScheme)
                     .padding(.horizontal)
             }
             Spacer()
+        }
+        .onChange(of: categoryName) { oldValue, newValue in
+            if newValue.count >= 40 {
+                categoryName = String(newValue.prefix(40))
+            }
+            if categoryName.isEmpty { completedSteps.remove(.itemCategory) }
         }
     }
     
