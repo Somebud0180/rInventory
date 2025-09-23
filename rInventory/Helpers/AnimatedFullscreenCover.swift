@@ -21,7 +21,6 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
             
             if isPresented {
                 colorBackground
-                    .ignoresSafeArea()
                     .transition(.opacity)
                     .onTapGesture {
                         withAnimation(.easeInOut) {
@@ -29,11 +28,11 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
                         }
                     }
                 overlayContent()
-                    .ignoresSafeArea()
                     .transition(.blurReplace)
                     .zIndex(1)
             }
         }
+        .ignoresSafeArea()
         .animation(.easeInOut(duration: 0.5), value: isPresented)
     }
 }
