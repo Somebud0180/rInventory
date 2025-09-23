@@ -17,11 +17,7 @@ struct AnimatedFullscreenCover<OverlayContent: View>: ViewModifier {
         let colorBackground = colorScheme == .dark ? Color.black : Color.white
         ZStack {
             content
-                .ignoresSafeArea()
                 .disabled(isPresented)
-                .mask(
-                    RoundedRectangle(cornerRadius: 25)
-                ) 
             
             if isPresented {
                 colorBackground

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Orientation Lock View Modifier
 struct DeviceOrientationViewModifier: ViewModifier {
@@ -54,7 +55,11 @@ class OrientationManager {
         }
         
         UIDevice.current.setValue(orientationValue, forKey: "orientation")
-        UIViewController.attemptRotationToDeviceOrientation()
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
     }
     
     // Unlock orientation
