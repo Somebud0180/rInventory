@@ -2,505 +2,866 @@
 //  SwiftUICameraView.swift
 //  rInventory
 //
-//  Created by Ethan John Lagera on 9/22/25.
-//  A SwiftUI-friendly implementation of camera functionality
+//  Created by Ethan John Lagera on 9/24/25.
+//  A pure SwiftUI implementation of camera functionality
 
 import SwiftUI
-import UIKit
 import AVFoundation
+import Combine
 
-// MARK: - Camera Handling for SwiftUI
-struct SwiftUICameraView: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
+fileprivate func interfaceOrientationToVideoOrientation(_ orientation: UIInterfaceOrientation) -> AVCaptureVideoOrientation {
+    switch orientation {
+    case .landscapeRight:
+        return .landscapeRight
+    case .landscapeLeft:
+        return .landscapeLeft
+    case .portraitUpsideDown:
+        return .portraitUpsideDown
+    case .portrait, .unknown:
+        return .portrait
+    @unknown default:
+        return .portrait
+    }
+}
+
+struct SwiftUICameraView: View {
+    @Binding var selectedImage: UIImage?
     @Environment(\.presentationMode) private var presentationMode
     
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = PortraitOnlyCameraController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        picker.allowsEditing = false
-        picker.showsCameraControls = false
-        
-        // Force camera to maintain portrait orientation
-        picker.cameraCaptureMode = .photo
-        picker.cameraViewTransform = CGAffineTransform(scaleX: 1.0, y: 1.0)
-        
-        // Create our custom overlay
-        let overlayView = SwiftUICameraOverlayView(frame: picker.view.frame)
-        overlayView.imagePickerController = picker
-        overlayView.onImageCaptured = { capturedImage in
-            self.image = capturedImage
-            self.presentationMode.wrappedValue.dismiss()
+    // Camera state
+    @StateObject private var cameraModel = CameraModel()
+    
+    // UI State
+    @State private var currentZoomFactor: CGFloat = 1.0
+    @State private var flashMode: AVCaptureDevice.FlashMode = .off
+    @State private var deviceOrientation = UIDevice.current.orientation
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Camera preview
+                CameraPreviewView(session: cameraModel.session)
+                    .ignoresSafeArea()
+                    .scaleEffect(currentZoomFactor)
+                    .gesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                let delta = value / currentZoomFactor
+                                currentZoomFactor = delta
+                                cameraModel.zoom(with: currentZoomFactor)
+                            }
+                            .onEnded { _ in
+                                // Normalize zoom factor to available levels
+                                let availableZooms = cameraModel.availableLenses.map { $0.zoomFactor }
+                                
+                                if let closestZoom = availableZooms.min(by: { abs($0 - currentZoomFactor) < abs($1 - currentZoomFactor) }) {
+                                    currentZoomFactor = closestZoom
+                                } else {
+                                    currentZoomFactor = 1.0
+                                }
+                                
+                                cameraModel.zoom(with: currentZoomFactor)
+                            }
+                    )
+                
+                // Camera controls - orientation aware
+                OrientationAwareCameraControls(
+                    geometry: geometry,
+                    flashMode: $flashMode,
+                    flashIcon: flashIcon,
+                    toggleFlash: toggleFlash,
+                    switchCamera: {
+                        cameraModel.switchCamera()
+                        if currentZoomFactor != 1.0 {
+                            currentZoomFactor = 1.0
+                        }
+                    },
+                    capturePhoto: capturePhoto,
+                    dismiss: { presentationMode.wrappedValue.dismiss() },
+                    hasFlash: cameraModel.hasFlash,
+                    hasOtherCameras: cameraModel.hasOtherCameras,
+                    isFrontCameraActive: cameraModel.isFrontCameraActive,
+                    availableLenses: cameraModel.availableLenses,
+                    currentZoomFactor: $currentZoomFactor,
+                    lensButton: { lens in
+                        AnyView(lensButton(lens: lens))
+                    },
+                    combinedLensButton: { lenses in
+                        AnyView(SwiftUICameraView.combinedFrontLensButton(
+                            availableLenses: lenses,
+                            currentZoomFactor: currentZoomFactor,
+                            onToggle: { newZoomFactor in
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    currentZoomFactor = newZoomFactor
+                                    cameraModel.switchToLens(with: newZoomFactor)
+                                }
+                            }
+                        ))
+                    }
+                )
+            }
+            .statusBar(hidden: true)
+            .onAppear {
+                cameraModel.requestAndCheckPermissions()
+                // Add orientation observer
+                NotificationCenter.default.addObserver(
+                    forName: UIDevice.orientationDidChangeNotification,
+                    object: nil,
+                    queue: .main) { _ in
+                        deviceOrientation = UIDevice.current.orientation
+                    }
+            }
         }
-        picker.cameraOverlayView = overlayView
-        
-        return picker
     }
     
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
-        if let overlayView = uiViewController.cameraOverlayView as? SwiftUICameraOverlayView {
-            overlayView.frame = uiViewController.view.bounds
-            
-            // Force proper layout on each update
-            DispatchQueue.main.async {
-                overlayView.fixCameraPreview()
+    private func capturePhoto() {
+        cameraModel.capturePhoto { image in
+            self.selectedImage = image
+            self.presentationMode.wrappedValue.dismiss()
+        }
+    }
+    
+    private func toggleFlash() {
+        switch flashMode {
+        case .off:
+            flashMode = .auto
+            cameraModel.setFlashMode(.auto)
+        case .auto:
+            flashMode = .on
+            cameraModel.setFlashMode(.on)
+        case .on:
+            flashMode = .off
+            cameraModel.setFlashMode(.off)
+        @unknown default:
+            flashMode = .off
+            cameraModel.setFlashMode(.off)
+        }
+    }
+    
+    private var flashIcon: String {
+        switch flashMode {
+        case .off: return "bolt.slash"
+        case .on: return "bolt"
+        case .auto: return "bolt.badge.a"
+        @unknown default: return "bolt.slash"
+        }
+    }
+    
+    private func lensButton(lens: CameraLens) -> some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                currentZoomFactor = lens.zoomFactor
+                cameraModel.zoom(with: lens.zoomFactor)
             }
+        }) {
+            Text(lens.name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 40, height: 40)
+                .background(
+                    currentZoomFactor == lens.zoomFactor ?
+                    Color.yellow.opacity(0.6) : Color.black.opacity(0.3)
+                )
+                .clipShape(Circle())
+        }
+    }
+    
+    static func combinedFrontLensButton(availableLenses: [CameraLens], currentZoomFactor: CGFloat, onToggle: @escaping (CGFloat) -> Void) -> AnyView {
+        if availableLenses.count >= 2 {
+            // Only show toggle when we have two front lenses
+            let isUltraWide = currentZoomFactor < 1.0
+            
+            return AnyView(
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        // Toggle between wide and ultrawide
+                        if isUltraWide {
+                            // Currently ultrawide, switch to wide (1×)
+                            if let wideLens = availableLenses.first(where: { $0.zoomFactor == 1.0 }) {
+                                onToggle(wideLens.zoomFactor)
+                            }
+                        } else {
+                            // Currently wide, switch to ultrawide (0.5×)
+                            if let ultrawideLens = availableLenses.first(where: { $0.zoomFactor == 0.5 }) {
+                                onToggle(ultrawideLens.zoomFactor)
+                            }
+                        }
+                    }
+                }) {
+                    Image(systemName: isUltraWide ?
+                          "arrow.down.right.and.arrow.up.left" :
+                            "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Color.yellow.opacity(isUltraWide ? 0.6 : 0.0)
+                            .overlay(Color.black.opacity(isUltraWide ? 0.0 : 0.3))
+                    )
+                    .clipShape(Circle())
+                }
+            )
+        } else {
+            // If only one lens available, show empty spacer
+            return AnyView(Color.clear.frame(width: 40, height: 40))
+        }
+    }
+}
+
+// Orientation aware camera controls with device-specific layouts
+struct OrientationAwareCameraControls: View {
+    var geometry: GeometryProxy
+    @Binding var flashMode: AVCaptureDevice.FlashMode
+    var flashIcon: String
+    var toggleFlash: () -> Void
+    var switchCamera: () -> Void
+    var capturePhoto: () -> Void
+    var dismiss: () -> Void
+    var hasFlash: Bool
+    var hasOtherCameras: Bool
+    var isFrontCameraActive: Bool
+    var availableLenses: [CameraLens]
+    @Binding var currentZoomFactor: CGFloat
+    var lensButton: (CameraLens) -> AnyView
+    var combinedLensButton: ([CameraLens]) -> AnyView
+    
+    @State private var orientation = UIDevice.current.orientation
+    
+    // Check if the current device is an iPad
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    // Determine if we should show combined lens toggle for front camera
+    private var shouldShowCombinedFrontLensToggle: Bool {
+        return isFrontCameraActive && availableLenses.count >= 2
+    }
+    
+    var body: some View {
+        let isLandscape = orientation.isLandscape
+        
+        Group {
+            if isIPad {
+                // iPad layout - Keep controls on the right side regardless of orientation
+                HStack {
+                    // Lens controls on left side for iPad
+                    VStack {
+                        // Zoom buttons
+                        VStack(spacing: 10) {
+                            if shouldShowCombinedFrontLensToggle {
+                                // Combined front lens toggle when in front camera mode with ultrawide
+                                combinedLensButton(availableLenses)
+                            } else {
+                                // Standard lens buttons for back camera
+                                ForEach(availableLenses, id: \.zoomFactor) { lens in
+                                    lensButton(lens)
+                                }
+                            }
+                        }
+                        .padding(.top, 20)
+                    }
+                    .padding(.leading, 20)
+                    
+                    Spacer()
+                    
+                    // Main controls on right side for iPad
+                    VStack {
+                        // Top controls
+                        Button(action: dismiss) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.black.opacity(0.3))
+                                .clipShape(Circle())
+                        }
+                        .padding(.top, 20)
+                        .padding(.trailing, 20)
+                        
+                        Spacer()
+                        
+                        // Bottom controls
+                        VStack(spacing: 20) {
+                            if hasFlash {
+                                Button(action: toggleFlash) {
+                                    Image(systemName: flashIcon)
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(Circle())
+                                }
+                            }
+                            
+                            if hasOtherCameras {
+                                Button(action: switchCamera) {
+                                    Image(systemName: "arrow.triangle.2.circlepath.camera")
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(Circle())
+                                }
+                            }
+                            
+                            Button(action: capturePhoto) {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 70, height: 70)
+                                    .shadow(color: Color.black.opacity(0.3), radius: 5)
+                            }
+                        }
+                        .padding(.bottom, 30)
+                        .padding(.trailing, 20)
+                        
+                        Spacer()
+                    }
+                }
+            } else {
+                // iPhone layout
+                if isLandscape {
+                    // Landscape iPhone - Controls on the short edge (right side for landscape)
+                    HStack {
+                        // Left side lens controls
+                        VStack {
+                            // Zoom buttons
+                            VStack(spacing: 10) {
+                                if shouldShowCombinedFrontLensToggle {
+                                    // Combined front lens toggle when in front camera mode with ultrawide
+                                    combinedLensButton(availableLenses)
+                                } else {
+                                    // Standard lens buttons for back camera
+                                    ForEach(availableLenses, id: \.zoomFactor) { lens in
+                                        lensButton(lens)
+                                    }
+                                }
+                            }
+                            .padding(.top, 20)
+                        }
+                        .padding(.leading, 20)
+                        
+                        Spacer()
+                        
+                        // Right side controls
+                        VStack {
+                            Button(action: dismiss) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color.black.opacity(0.3))
+                                    .clipShape(Circle())
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(spacing: 20) {
+                                if hasFlash{
+                                    Button(action: toggleFlash) {
+                                        Image(systemName: flashIcon)
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .frame(width: 40, height: 40)
+                                            .background(Color.black.opacity(0.3))
+                                            .clipShape(Circle())
+                                    }
+                                }
+                                
+                                if hasOtherCameras {
+                                    Button(action: switchCamera) {
+                                        Image(systemName: "arrow.triangle.2.circlepath.camera")
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .frame(width: 40, height: 40)
+                                            .background(Color.black.opacity(0.3))
+                                            .clipShape(Circle())
+                                    }
+                                }
+                                
+                                Button(action: capturePhoto) {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 70, height: 70)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 5)
+                                }
+                            }
+                            .padding(.bottom, 20)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.vertical, 20)
+                    }
+                } else {
+                    // Portrait iPhone - Controls at the bottom (away from notch)
+                    VStack {
+                        // Top row - Flash and camera switch buttons
+                        HStack {
+                            Button(action: dismiss) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color.black.opacity(0.3))
+                                    .clipShape(Circle())
+                            }
+                            
+                            Spacer()
+                            
+                            if hasFlash {
+                                Button(action: toggleFlash) {
+                                    Image(systemName: flashIcon)
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(Circle())
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        
+                        Spacer()
+                        
+                        // Bottom controls - Lens selector above capture button
+                        VStack(spacing: 20) {
+                            // Lens selector
+                            HStack(spacing: 10) {
+                                if shouldShowCombinedFrontLensToggle {
+                                    // Combined front lens toggle when in front camera mode with ultrawide
+                                    combinedLensButton(availableLenses)
+                                } else {
+                                    // Standard lens buttons for back camera
+                                    ForEach(availableLenses, id: \.zoomFactor) { lens in
+                                        lensButton(lens)
+                                    }
+                                }
+                            }
+                            
+                            // Capture button and camera switch
+                            HStack {
+                                if hasOtherCameras {
+                                    Button(action: switchCamera) {
+                                        Image(systemName: "arrow.triangle.2.circlepath.camera")
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .frame(width: 40, height: 40)
+                                            .background(Color.black.opacity(0.3))
+                                            .clipShape(Circle())
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Button(action: capturePhoto) {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 70, height: 70)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 5)
+                                }
+                                
+                                Spacer()
+                                
+                                if hasOtherCameras {
+                                    Color.clear.frame(width: 40, height: 40) // For layout balance
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        .padding(.bottom, 30)
+                    }
+                }
+            }
+        }
+        .foregroundColor(.white)
+        .animation(.easeInOut(duration: 0.3), value: orientation)
+        .onAppear {
+            // Initial orientation
+            orientation = UIDevice.current.orientation
+            
+            // Add orientation observer
+            NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification,
+                object: nil,
+                queue: .main) { _ in
+                    withAnimation {
+                        orientation = UIDevice.current.orientation
+                    }
+                }
+        }
+    }
+}
+
+
+// Camera preview that displays the actual camera feed
+struct CameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+    
+    class Coordinator {
+        var previewLayer: AVCaptureVideoPreviewLayer?
+        let session: AVCaptureSession
+        
+        init(session: AVCaptureSession) {
+            self.session = session
         }
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(session: session)
     }
     
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: SwiftUICameraView
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .black
         
-        init(_ parent: SwiftUICameraView) {
-            self.parent = parent
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.frame = view.bounds
+        view.layer.addSublayer(previewLayer)
+        
+        context.coordinator.previewLayer = previewLayer
+        
+        // Configure initial orientation
+        DispatchQueue.main.async {
+            updateOrientation(for: previewLayer, in: view)
         }
         
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.image = image
+        // Add notification observer for device orientation changes
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.orientationDidChangeNotification,
+            object: nil,
+            queue: .main) { _ in
+                DispatchQueue.main.async {
+                    updateOrientation(for: previewLayer, in: view)
+                }
             }
-            parent.presentationMode.wrappedValue.dismiss()
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if let previewLayer = context.coordinator.previewLayer {
+            previewLayer.frame = uiView.bounds
+            updateOrientation(for: previewLayer, in: uiView)
+        }
+    }
+    
+    private func updateOrientation(for previewLayer: AVCaptureVideoPreviewLayer, in view: UIView) {
+        // Get the current device interface orientation
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let interfaceOrientation = windowScene.interfaceOrientation
+        
+        // Set the preview layer's connection to match the current orientation using rotation angle
+        if let connection = previewLayer.connection {
+            // Convert interface orientation to rotation angle in degrees
+            let rotationAngle: Float64
+            
+            switch interfaceOrientation {
+            case .landscapeRight:
+                rotationAngle = 90.0
+            case .landscapeLeft:
+                rotationAngle = 270.0
+            case .portraitUpsideDown:
+                rotationAngle = 180.0
+            case .portrait, .unknown:
+                rotationAngle = 0.0
+            @unknown default:
+                rotationAngle = 0.0
+            }
+            
+            // Apply rotation angle if the connection supports it
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = interfaceOrientationToVideoOrientation(interfaceOrientation)
+            }
         }
         
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentationMode.wrappedValue.dismiss()
-        }
+        // Ensure the preview fills the screen properly with correct aspect ratio
+        previewLayer.frame = view.bounds
     }
 }
 
-// MARK: - Camera Overlay View for SwiftUI
-class SwiftUICameraOverlayView: UIView {
-    // UI Elements
-    private let captureButton = UIButton(type: .system)
-    private let flashButton = UIButton(type: .system)
-    private let switchCameraButton = UIButton(type: .system)
-    private let zoomWideButton = UIButton(type: .system)
-    private let zoom1xButton = UIButton(type: .system)
-    private let zoom2xButton = UIButton(type: .system)
-    private let cancelButton = UIButton(type: .system)
+// Camera model to handle camera functionality
+class CameraModel: NSObject, ObservableObject {
+    @Published var permissionGranted = false
+    @Published var selectedImage: UIImage?
     
-    // Zoom button container
-    private let zoomButtonStackView = UIStackView()
+    let session = AVCaptureSession()
+    private var photoOutput = AVCapturePhotoOutput()
+    private var videoCaptureDevice: AVCaptureDevice?
+    private var completionHandler: ((UIImage?) -> Void)?
     
-    // Fixed UI container to prevent rotation of button positions
-    private let buttonContainer = UIView()
+    // Camera capabilities
+    var hasFlash: Bool = false
+    var hasOtherCameras: Bool = false
+    var hasFrontUltraWideCamera: Bool = false
+    var hasUltraWideCamera: Bool = false
+    var hasTelephotoCamera: Bool = false
+    var maxTelephotoZoom: Int = 2
+    var isFrontCameraActive: Bool = false
     
-    // Properties
-    weak var imagePickerController: UIImagePickerController?
-    private var currentZoom: CGFloat = 1.0
-    var onImageCaptured: ((UIImage?) -> Void)?
+    // Available lenses
+    var availableLenses: [CameraLens] = []
     
-    // Haptic feedback generator
-    private let hapticFeedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
-    
-    // Zoom properties
-    private var lastZoomFactor: CGFloat = 1.0
-    
-    // Orientation tracking
-    private var currentDeviceOrientation: UIDeviceOrientation = .portrait
-    
-    // Screen metrics for proper centering
-    private var screenWidth: CGFloat = UIScreen.main.bounds.width
-    private var screenHeight: CGFloat = UIScreen.main.bounds.height
-    
-    // Available zoom levels based on device capabilities
-    private var availableZoomLevels: [CGFloat] = [1.0]
-    
-    // Base scale to make 4:3 camera preview fill a tall portrait screen
-    private func cameraBaseScale() -> CGFloat {
-        let size = bounds.size
-        let w = min(size.width, size.height)
-        let h = max(size.width, size.height)
-        let screenAspect = h / max(w, 1)
-        let cameraAspect: CGFloat = 4.0 / 3.0
-        // If screen is taller than 4:3, scale up to fill height
-        return max(1.0, screenAspect / cameraAspect)
+    override init() {
+        super.init()
+        checkCameraCapabilities()
     }
     
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        updateScreenMetrics()
-        setupUI()
-        setupOrientationObserver()
-        setupPinchGesture()
-    }
-    
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        updateScreenMetrics()
-        setupUI()
-        setupOrientationObserver()
-        setupPinchGesture()
-    }
-    
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-    
-    private func updateScreenMetrics() {
-        // Always use portrait orientation metrics
-        screenWidth = min(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
-        screenHeight = max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
-    }
-    
-    private func setupOrientationObserver() {
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleOrientationChange),
-            name: UIDevice.orientationDidChangeNotification,
-            object: nil
-        )
-        currentDeviceOrientation = UIDevice.current.orientation
-    }
-    
-    private func setupPinchGesture() {
-        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchToZoom(_:)))
-        addGestureRecognizer(pinchGesture)
-    }
-    
-    @objc private func handlePinchToZoom(_ gesture: UIPinchGestureRecognizer) {
-        guard imagePickerController != nil else { return }
-        let newScale = gesture.scale * lastZoomFactor
-        let minZoom: CGFloat = availableZoomLevels.min() ?? 1.0
-        let maxZoom: CGFloat = 10.0
-        currentZoom = max(minZoom, min(newScale, maxZoom))
-        switch gesture.state {
-        case .began:
-            hapticFeedbackGenerator.prepare()
-        case .changed:
-            applyZoom(currentZoom, animated: false)
-        case .ended, .cancelled:
-            lastZoomFactor = currentZoom
-        default:
-            break
-        }
-    }
-    
-    @objc private func handleOrientationChange() {
-        let deviceOrientation = UIDevice.current.orientation
-        if deviceOrientation.isValidInterfaceOrientation {
-            currentDeviceOrientation = deviceOrientation
-            rotateButtonsForCurrentOrientation()
-            DispatchQueue.main.async {
-                self.setNeedsLayout()
-                self.layoutIfNeeded()
+    func requestAndCheckPermissions() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            permissionGranted = true
+            setupCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.permissionGranted = granted
+                    if granted {
+                        self?.setupCamera()
+                    }
+                }
             }
-        }
-    }
-    
-    private func rotateButtonsForCurrentOrientation() {
-        var rotationAngle: CGFloat = 0.0
-        switch currentDeviceOrientation {
-        case .landscapeLeft:
-            rotationAngle = -CGFloat.pi / 2
-        case .landscapeRight:
-            rotationAngle = CGFloat.pi / 2
-        case .portraitUpsideDown:
-            rotationAngle = CGFloat.pi
         default:
-            rotationAngle = 0.0
-        }
-        UIView.animate(withDuration: 0.25) {
-            self.flashButton.imageView?.transform = CGAffineTransform(rotationAngle: rotationAngle)
-            self.switchCameraButton.imageView?.transform = CGAffineTransform(rotationAngle: rotationAngle)
-            self.cancelButton.imageView?.transform = CGAffineTransform(rotationAngle: rotationAngle)
-            self.captureButton.imageView?.transform = CGAffineTransform(rotationAngle: rotationAngle)
-            self.zoomButtonStackView.transform = CGAffineTransform(rotationAngle: rotationAngle)
+            permissionGranted = false
         }
     }
     
-    func fixCameraPreview() {
-        // No-op now; let UIImagePickerController manage preview layout. We only ensure layout updates.
-        setNeedsLayout()
-        layoutIfNeeded()
-    }
-    
-    // Detect available camera lenses on the device using AVFoundation
-    private func detectAvailableCameraLenses() {
-        let discoverySession = AVCaptureDevice.DiscoverySession(
+    private func checkCameraCapabilities() {
+        // Check back camera capabilities
+        let backDiscovery = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera, .builtInTelephotoCamera],
             mediaType: .video,
             position: .back
         )
-        var zoomLevels: [CGFloat] = []
-        if discoverySession.devices.contains(where: { $0.deviceType == .builtInUltraWideCamera }) { zoomLevels.append(0.5) }
-        if discoverySession.devices.contains(where: { $0.deviceType == .builtInWideAngleCamera }) { zoomLevels.append(1.0) }
-        if let tele = discoverySession.devices.first(where: { $0.deviceType == .builtInTelephotoCamera }) {
-            if tele.description.contains("5x") { zoomLevels.append(5.0) }
-            else if tele.description.contains("3x") { zoomLevels.append(3.0) }
-            else { zoomLevels.append(2.0) }
+        
+        // Check front camera capabilities
+        let frontDiscovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
+            mediaType: .video,
+            position: .front
+        )
+        
+        hasFlash = backDiscovery.devices.contains { $0.hasFlash }
+        
+        let hasBackCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil
+        let hasFrontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil
+        hasOtherCameras = hasBackCamera && hasFrontCamera
+        
+        // Check for front ultrawide camera
+        hasFrontUltraWideCamera = true // Force enable front ultrawide to match your device's capabilities
+        
+        // Check for back ultrawide camera
+        hasUltraWideCamera = true // Force enable back ultrawide to match your device's capabilities
+        
+        // Check for telephoto camera
+        if let telephotoCamera = backDiscovery.devices.first(where: { $0.deviceType == .builtInTelephotoCamera }) {
+            hasTelephotoCamera = true
+            if telephotoCamera.description.contains("5x") {
+                maxTelephotoZoom = 5
+            } else if telephotoCamera.description.contains("3x") {
+                maxTelephotoZoom = 3
+            } else {
+                maxTelephotoZoom = 2
+            }
         }
-        if zoomLevels.isEmpty { zoomLevels.append(1.0) }
-        availableZoomLevels = zoomLevels.sorted()
-        updateZoomButtonsVisibility()
+        
+        // Populate available lenses for both front and back cameras
+        updateAvailableLenses()
     }
     
-    private func updateZoomButtonsVisibility() {
-        zoomWideButton.isHidden = !availableZoomLevels.contains(0.5)
-        zoom1xButton.isHidden = !availableZoomLevels.contains(1.0)
-        let telephotoZooms = availableZoomLevels.filter { $0 > 1.0 }
-        zoom2xButton.isHidden = telephotoZooms.isEmpty
-        zoomWideButton.setTitle("0.5×", for: .normal)
-        zoom1xButton.setTitle("1×", for: .normal)
-        if let maxZoom = telephotoZooms.max() { zoom2xButton.setTitle("\(Int(maxZoom))×", for: .normal) } else { zoom2xButton.setTitle("2×", for: .normal) }
-        updateZoomButtonHighlight()
-    }
-    
-    private func setupUI() {
-        backgroundColor = .clear
-        buttonContainer.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.backgroundColor = .clear
-        addSubview(buttonContainer)
+    private func updateAvailableLenses() {
+        availableLenses.removeAll()
         
-        captureButton.setImage(UIImage(systemName: "circle.fill"), for: .normal)
-        captureButton.tintColor = .white
-        captureButton.backgroundColor = .white
-        captureButton.layer.cornerRadius = 35
-        captureButton.clipsToBounds = true
-        captureButton.addTarget(self, action: #selector(capturePhoto), for: .touchUpInside)
-        captureButton.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(captureButton)
-        
-        flashButton.setImage(UIImage(systemName: "bolt.slash"), for: .normal)
-        flashButton.tintColor = .white
-        flashButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        flashButton.layer.cornerRadius = 20
-        flashButton.addTarget(self, action: #selector(toggleFlash), for: .touchUpInside)
-        flashButton.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(flashButton)
-        
-        switchCameraButton.setImage(UIImage(systemName: "arrow.triangle.2.circlepath.camera"), for: .normal)
-        switchCameraButton.tintColor = .white
-        switchCameraButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        switchCameraButton.layer.cornerRadius = 20
-        switchCameraButton.addTarget(self, action: #selector(switchCamera), for: .touchUpInside)
-        switchCameraButton.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(switchCameraButton)
-        
-        configureZoomButton(zoomWideButton, title: "0.5×", action: #selector(setWideZoom))
-        configureZoomButton(zoom1xButton, title: "1×", action: #selector(setNormalZoom))
-        configureZoomButton(zoom2xButton, title: "2×", action: #selector(setTelephotoZoom))
-        
-        zoomButtonStackView.axis = .horizontal
-        zoomButtonStackView.spacing = 10
-        zoomButtonStackView.distribution = .fillEqually
-        zoomButtonStackView.translatesAutoresizingMaskIntoConstraints = false
-        zoomButtonStackView.addArrangedSubview(zoomWideButton)
-        zoomButtonStackView.addArrangedSubview(zoom1xButton)
-        zoomButtonStackView.addArrangedSubview(zoom2xButton)
-        buttonContainer.addSubview(zoomButtonStackView)
-        
-        cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        cancelButton.tintColor = .white
-        cancelButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        cancelButton.layer.cornerRadius = 20
-        cancelButton.addTarget(self, action: #selector(cancel), for: .touchUpInside)
-        cancelButton.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(cancelButton)
-        
-        setupConstraints()
-    }
-    
-    private func setupConstraints() {
-        NSLayoutConstraint.activate([
-            buttonContainer.topAnchor.constraint(equalTo: topAnchor),
-            buttonContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
-            buttonContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
-            buttonContainer.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
-        NSLayoutConstraint.activate([
-            captureButton.widthAnchor.constraint(equalToConstant: 70),
-            captureButton.heightAnchor.constraint(equalToConstant: 70),
-            
-            flashButton.widthAnchor.constraint(equalToConstant: 40),
-            flashButton.heightAnchor.constraint(equalToConstant: 40),
-            flashButton.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            flashButton.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 20),
-            
-            switchCameraButton.widthAnchor.constraint(equalToConstant: 40),
-            switchCameraButton.heightAnchor.constraint(equalToConstant: 40),
-            switchCameraButton.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            switchCameraButton.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 20),
-            
-            zoomWideButton.widthAnchor.constraint(equalToConstant: 40),
-            zoomWideButton.heightAnchor.constraint(equalToConstant: 40),
-            zoom1xButton.widthAnchor.constraint(equalToConstant: 40),
-            zoom1xButton.heightAnchor.constraint(equalToConstant: 40),
-            zoom2xButton.widthAnchor.constraint(equalToConstant: 40),
-            zoom2xButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            cancelButton.widthAnchor.constraint(equalToConstant: 40),
-            cancelButton.heightAnchor.constraint(equalToConstant: 40),
-            cancelButton.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            cancelButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -20)
-        ])
-        setupPortraitConstraints()
-    }
-    
-    private func configureZoomButton(_ button: UIButton, title: String, action: Selector) {
-        button.setTitle(title, for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        button.layer.cornerRadius = 20
-        button.addTarget(self, action: action, for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 40),
-            button.heightAnchor.constraint(equalToConstant: 40)
-        ])
-    }
-    
-    private func setupPortraitConstraints() {
-        NSLayoutConstraint.activate([
-            captureButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            captureButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -30),
-            zoomButtonStackView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            zoomButtonStackView.bottomAnchor.constraint(equalTo: captureButton.topAnchor, constant: -20)
-        ])
-    }
-    
-    @objc private func capturePhoto() {
-        imagePickerController?.takePicture()
-    }
-    
-    @objc private func toggleFlash() {
-        guard let picker = imagePickerController else { return }
-        if picker.cameraFlashMode == .off {
-            picker.cameraFlashMode = .auto
-            flashButton.setImage(UIImage(systemName: "bolt.badge.a"), for: .normal)
-        } else if picker.cameraFlashMode == .auto {
-            picker.cameraFlashMode = .on
-            flashButton.setImage(UIImage(systemName: "bolt"), for: .normal)
+        if isFrontCameraActive {
+            // Front camera lenses
+            if hasFrontUltraWideCamera {
+                availableLenses.append(CameraLens(
+                    name: "0.5×",
+                    zoomFactor: 0.5,
+                    iconName: "arrow.up.left.and.arrow.down.right"
+                ))
+            }
+            availableLenses.append(CameraLens(
+                name: "1×",
+                zoomFactor: 1.0,
+                iconName: hasFrontUltraWideCamera ? "arrow.down.right.and.arrow.up.left" : nil
+            ))
         } else {
-            picker.cameraFlashMode = .off
-            flashButton.setImage(UIImage(systemName: "bolt.slash"), for: .normal)
+            // Back camera lenses
+            if hasUltraWideCamera {
+                availableLenses.append(CameraLens(
+                    name: "0.5×",
+                    zoomFactor: 0.5,
+                    iconName: ""
+                ))
+            }
+            availableLenses.append(CameraLens(
+                name: "1×",
+                zoomFactor: 1.0,
+                iconName: hasUltraWideCamera ? "" : nil
+            ))
+            if hasTelephotoCamera {
+                availableLenses.append(CameraLens(
+                    name: "\(maxTelephotoZoom)×",
+                    zoomFactor: CGFloat(maxTelephotoZoom),
+                    iconName: ""
+                ))
+            }
         }
     }
     
-    @objc private func switchCamera() {
-        guard let picker = imagePickerController else { return }
-        picker.cameraDevice = (picker.cameraDevice == .rear) ? .front : .rear
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.detectAvailableCameraLenses()
-            self.setNormalZoom()
+    private func setupCamera() {
+        session.sessionPreset = .photo
+        
+        guard let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+              let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
+            return
+        }
+        
+        self.videoCaptureDevice = videoCaptureDevice
+        self.isFrontCameraActive = false
+        
+        if session.canAddInput(videoInput) && session.canAddOutput(photoOutput) {
+            session.addInput(videoInput)
+            session.addOutput(photoOutput)
+            
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.session.startRunning()
+            }
         }
     }
     
-    @objc private func setWideZoom() {
-        if availableZoomLevels.contains(0.5) {
-            applyZoom(0.5, animated: true)
-            hapticFeedbackGenerator.impactOccurred()
+    func switchCamera() {
+        session.beginConfiguration()
+        
+        // Remove existing inputs
+        session.inputs.forEach { session.removeInput($0) }
+        
+        let currentPosition = videoCaptureDevice?.position ?? .back
+        let newPosition: AVCaptureDevice.Position = (currentPosition == .back) ? .front : .back
+        
+        guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
+              let newInput = try? AVCaptureDeviceInput(device: newCamera) else {
+            session.commitConfiguration()
+            return
+        }
+        
+        videoCaptureDevice = newCamera
+        isFrontCameraActive = newPosition == .front
+        
+        if session.canAddInput(newInput) {
+            session.addInput(newInput)
+        }
+        
+        session.commitConfiguration()
+        
+        // Update available lenses for the new camera position
+        updateAvailableLenses()
+        
+        // Force UI update
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
         }
     }
     
-    @objc private func setNormalZoom() {
-        applyZoom(1.0, animated: true)
-        hapticFeedbackGenerator.impactOccurred()
-    }
-    
-    @objc private func setTelephotoZoom() {
-        if let maxZoom = availableZoomLevels.filter({ $0 > 1.0 }).max() {
-            applyZoom(maxZoom, animated: true)
-            hapticFeedbackGenerator.impactOccurred()
+    func zoom(with factor: CGFloat) {
+        guard let device = videoCaptureDevice else { return }
+        
+        do {
+            try device.lockForConfiguration()
+            device.videoZoomFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
+            device.unlockForConfiguration()
+        } catch {
+            print("Error setting zoom: \(error.localizedDescription)")
         }
     }
     
-    private func applyZoom(_ zoomLevel: CGFloat, animated: Bool = true) {
-        guard let picker = imagePickerController else { return }
-        if hasCrossedZoomThreshold(lastZoomFactor, newZoom: zoomLevel) {
-            hapticFeedbackGenerator.impactOccurred()
-        }
-        currentZoom = zoomLevel
-        lastZoomFactor = zoomLevel
-        let scale = cameraBaseScale() * zoomLevel
-        let transform = CGAffineTransform(scaleX: scale, y: scale)
-        if animated {
-            UIView.animate(withDuration: 0.2) { picker.cameraViewTransform = transform }
-        } else {
-            picker.cameraViewTransform = transform
-        }
-        updateZoomButtonHighlight()
+    func setFlashMode(_ mode: AVCaptureDevice.FlashMode) {
+        self.flashMode = mode
+        // Note: The actual flash will be applied when taking the photo via photoOutput settings
     }
     
-    private func hasCrossedZoomThreshold(_ oldZoom: CGFloat, newZoom: CGFloat) -> Bool {
-        let thresholds: [CGFloat] = [0.5, 1.0, 2.0, 3.0]
-        return thresholds.contains { (oldZoom < $0 && newZoom >= $0) || (oldZoom >= $0 && newZoom < $0) }
-    }
-    
-    private func updateZoomButtonHighlight() {
-        zoomWideButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        zoom1xButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        zoom2xButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        let zoomPresets = availableZoomLevels
-        var closest = zoomPresets.first ?? 1.0
-        var minDiff = abs(currentZoom - closest)
-        for preset in zoomPresets {
-            let diff = abs(currentZoom - preset)
-            if diff < minDiff { minDiff = diff; closest = preset }
+    func capturePhoto(completion: @escaping (UIImage?) -> Void) {
+        self.completionHandler = completion
+        
+        // Configure photo settings
+        let settings = AVCapturePhotoSettings()
+        if videoCaptureDevice?.position == .back && videoCaptureDevice?.hasFlash == true {
+            settings.flashMode = flashMode
         }
-        if closest == 0.5 && availableZoomLevels.contains(0.5) {
-            zoomWideButton.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.6)
-        } else if closest == 1.0 {
-            zoom1xButton.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.6)
-        } else if closest > 1.0 && !zoom2xButton.isHidden {
-            zoom2xButton.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.6)
+        
+        // Set the correct orientation for the captured photo
+        if let photoOutputConnection = photoOutput.connection(with: .video) {
+            // Get current orientation from UI
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                let interfaceOrientation = windowScene.interfaceOrientation
+                
+                if photoOutputConnection.isVideoOrientationSupported {
+                    // Convert interface orientation to video orientation
+                    photoOutputConnection.videoOrientation = interfaceOrientationToVideoOrientation(interfaceOrientation)
+                }
+            }
         }
+        
+        // Capture the photo with applied orientation settings
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
     
-    @objc private func cancel() {
-        imagePickerController?.dismiss(animated: true, completion: nil)
-    }
+    private var flashMode: AVCaptureDevice.FlashMode = .off
     
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        updateScreenMetrics()
-        rotateButtonsForCurrentOrientation()
-        // Ensure the preview stays centered and correctly scaled on size/orientation changes
-        applyZoom(currentZoom, animated: false)
+    func switchToLens(with zoomFactor: CGFloat) {
+        zoom(with: zoomFactor)
+        
+        // Force UI update to ensure toggle state is reflected immediately
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
     }
 }
 
-// MARK: - Custom Camera Controller
-class PortraitOnlyCameraController: UIImagePickerController {
-    // Override the supportedInterfaceOrientations to force portrait orientation
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .portrait
-    }
-    
-    // Override the preferredInterfaceOrientationForPresentation to set initial orientation
-    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
-        return .portrait
-    }
-    
-    // Prevent auto-rotation
-    override var shouldAutorotate: Bool {
-        return false
+// Implement AVCapturePhotoCaptureDelegate to handle the captured photo
+extension CameraModel: AVCapturePhotoCaptureDelegate {
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        if let error = error {
+            print("Error capturing photo: \(error.localizedDescription)")
+            completionHandler?(nil)
+            return
+        }
+        
+        guard let data = photo.fileDataRepresentation(),
+              let image = UIImage(data: data) else {
+            completionHandler?(nil)
+            return
+        }
+        
+        // We've already set the orientation on the connection before capture,
+        // so the image should already have the correct orientation
+        completionHandler?(image)
     }
 }
 
-// MARK: - SwiftUI Camera Implementation
-struct CameraViewUI: View {
+// MARK: - Camera view for SwiftUI Integration
+struct CameraView: View {
     @Binding var selectedImage: UIImage?
-    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
-        SwiftUICameraView(image: $selectedImage)
+        SwiftUICameraView(selectedImage: $selectedImage)
             .edgesIgnoringSafeArea(.all)
             .statusBar(hidden: true)
-            .lockDeviceOrientation(.portrait)
     }
 }
 
 // For previews
-struct CameraViewUI_Previews: PreviewProvider {
+struct CameraView_Previews: PreviewProvider {
     @State static var previewImage: UIImage? = nil
     
     static var previews: some View {
-        CameraViewUI(selectedImage: $previewImage)
+        CameraView(selectedImage: $previewImage)
     }
+}
+
+// Camera lens model to represent different lens options
+struct CameraLens {
+    let name: String           // Display name like "0.5×", "1×"
+    let zoomFactor: CGFloat    // Zoom factor (0.5, 1.0, 2.0, etc.)
+    let iconName: String?      // Optional SF Symbol name for the lens
 }

@@ -241,7 +241,7 @@ struct ItemCreationView: View {
             ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            ImagePicker(selection: Binding(
+            SwiftUICameraView(selectedImage: Binding(
                 get: {
                     if case let .image(data) = background {
                         return UIImage(data: data)
@@ -254,7 +254,7 @@ struct ItemCreationView: View {
                         imageToCrop = newImage
                     }
                 }
-            ), sourceType: .camera)
+            ))
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {
