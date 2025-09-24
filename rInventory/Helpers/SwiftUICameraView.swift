@@ -593,8 +593,14 @@ class CameraModel: NSObject, ObservableObject {
     var hasFrontUltraWideCamera: Bool = false
     var hasUltraWideCamera: Bool = false
     var hasTelephotoCamera: Bool = false
+    var hasDigitalZoom: Bool = false
     var maxTelephotoZoom: Int = 2
     var isFrontCameraActive: Bool = false
+    
+    // Zoom ranges for smooth transitions
+    private let ultraWideZoomRange: ClosedRange<CGFloat> = 0.5...0.9
+    private let wideZoomRange: ClosedRange<CGFloat> = 1.0...1.9
+    private let telephotoZoomRange: ClosedRange<CGFloat> = 2.0...10.0
     
     // Available lenses
     var availableLenses: [CameraLens] = []
@@ -640,7 +646,7 @@ class CameraModel: NSObject, ObservableObject {
         
         // Check front camera capabilities
         let frontDiscovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInTelephotoCamera, .builtInWideAngleCamera],
+            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
             mediaType: .video,
             position: .front
         )
@@ -674,6 +680,17 @@ class CameraModel: NSObject, ObservableObject {
             } else {
                 maxTelephotoZoom = 2
             }
+        } else {
+            // If no telephoto is available, enable digital zoom capabilities
+            hasDigitalZoom = true
+        }
+        
+        // Force enable capabilities for devices that might not report them correctly
+        if !hasFrontUltraWideCamera {
+            hasFrontUltraWideCamera = true // Force enable for testing
+        }
+        if !hasUltraWideCamera {
+            hasUltraWideCamera = true // Force enable for testing
         }
         
         // Populate available lenses for both front and back cameras
@@ -715,6 +732,13 @@ class CameraModel: NSObject, ObservableObject {
                 availableLenses.append(CameraLens(
                     name: "\(maxTelephotoZoom)×",
                     zoomFactor: CGFloat(maxTelephotoZoom),
+                    iconName: ""
+                ))
+            } else if hasDigitalZoom {
+                // Add digital 2x option if no telephoto lens available
+                availableLenses.append(CameraLens(
+                    name: "2×",
+                    zoomFactor: 2.0,
                     iconName: ""
                 ))
             }
@@ -791,7 +815,17 @@ class CameraModel: NSObject, ObservableObject {
         
         do {
             try device.lockForConfiguration()
-            device.videoZoomFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
+            
+            // Calculate appropriate zoom factor based on device capabilities
+            let maxZoom = device.activeFormat.videoMaxZoomFactor
+            let minZoom = device.minAvailableVideoZoomFactor
+            
+            // Clamp the zoom factor within the device's capabilities
+            let zoomFactor = max(minZoom, min(factor, maxZoom))
+            
+            // Apply the zoom
+            device.videoZoomFactor = zoomFactor
+            
             device.unlockForConfiguration()
         } catch {
             print("Error setting zoom: \(error.localizedDescription)")
@@ -835,29 +869,42 @@ class CameraModel: NSObject, ObservableObject {
     func switchToLens(with zoomFactor: CGFloat) {
         session.beginConfiguration()
         
-        // Remove existing inputs
-        session.inputs.forEach { session.removeInput($0) }
-        
+        // Determine appropriate camera based on zoom factor
+        let currentPosition = videoCaptureDevice?.position ?? .back
         var newCamera: AVCaptureDevice?
+        var shouldApplyDigitalZoom = false
         
-        if isFrontCameraActive {
+        // Determine which physical camera should be active based on zoom factor
+        if currentPosition == .front {
             // Front camera lens selection
             if zoomFactor == 0.5 && frontUltraWideCamera != nil {
                 newCamera = frontUltraWideCamera
             } else {
                 newCamera = frontWideCamera
+                // Apply digital zoom for front camera if zoom factor > 1.0
+                shouldApplyDigitalZoom = zoomFactor > 1.0
             }
         } else {
-            // Back camera lens selection
-            if zoomFactor == 0.5 && backUltraWideCamera != nil {
+            // Back camera lens selection based on zoom ranges
+            if ultraWideZoomRange.contains(zoomFactor) && backUltraWideCamera != nil {
+                // Ultrawide range: 0.5x - 0.9x
                 newCamera = backUltraWideCamera
-            } else if zoomFactor > 1.5 && backTelephotoCamera != nil {
-                newCamera = backTelephotoCamera
-            } else {
+            } else if wideZoomRange.contains(zoomFactor) || backWideCamera == nil {
+                // Wide range: 1.0x - 1.9x (or fallback if no other cameras available)
                 newCamera = backWideCamera
+                shouldApplyDigitalZoom = zoomFactor > 1.0
+            } else if telephotoZoomRange.contains(zoomFactor) && backTelephotoCamera != nil {
+                // Telephoto range: 2.0x and above with physical telephoto lens
+                newCamera = backTelephotoCamera
+                shouldApplyDigitalZoom = zoomFactor > CGFloat(maxTelephotoZoom)
+            } else {
+                // Digital zoom on wide lens if no telephoto available
+                newCamera = backWideCamera
+                shouldApplyDigitalZoom = true
             }
         }
         
+        // Safely switch input
         guard let camera = newCamera,
               let newInput = try? AVCaptureDeviceInput(device: camera) else {
             // If we can't switch to the requested lens, restore the previous input
@@ -870,6 +917,9 @@ class CameraModel: NSObject, ObservableObject {
             return
         }
         
+        // Remove existing inputs
+        session.inputs.forEach { session.removeInput($0) }
+        
         videoCaptureDevice = camera
         
         if session.canAddInput(newInput) {
@@ -878,10 +928,8 @@ class CameraModel: NSObject, ObservableObject {
         
         session.commitConfiguration()
         
-        // Apply digital zoom if needed (for fine-tuning)
-        if (zoomFactor > 1.0 && camera.deviceType == .builtInWideAngleCamera) ||
-            (zoomFactor > 2.0 && camera.deviceType == .builtInTelephotoCamera) {
-            // Only apply digital zoom for adjustment, not as the primary zoom method
+        // Apply digital zoom if needed
+        if shouldApplyDigitalZoom {
             zoom(with: zoomFactor)
         }
         
