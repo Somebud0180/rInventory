@@ -39,10 +39,9 @@ struct SwiftUICameraView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Camera preview
+                // Camera preview - No scale effect to maintain consistent preview size
                 CameraPreviewView(session: cameraModel.session)
                     .ignoresSafeArea()
-                    .scaleEffect(currentZoomFactor)
                     .gesture(
                         MagnificationGesture()
                             .onChanged { value in
@@ -60,7 +59,7 @@ struct SwiftUICameraView: View {
                                     currentZoomFactor = 1.0
                                 }
                                 
-                                cameraModel.zoom(with: currentZoomFactor)
+                                cameraModel.switchToLens(with: currentZoomFactor)
                             }
                     )
                 
@@ -151,7 +150,7 @@ struct SwiftUICameraView: View {
         Button(action: {
             withAnimation(.easeInOut(duration: 0.2)) {
                 currentZoomFactor = lens.zoomFactor
-                cameraModel.zoom(with: lens.zoomFactor)
+                cameraModel.switchToLens(with: lens.zoomFactor)
             }
         }) {
             Text(lens.name)
@@ -195,8 +194,7 @@ struct SwiftUICameraView: View {
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)
                     .background(
-                        Color.yellow.opacity(isUltraWide ? 0.6 : 0.0)
-                            .overlay(Color.black.opacity(isUltraWide ? 0.0 : 0.3))
+                        isUltraWide ? Color.yellow.opacity(0.6) : Color.black.opacity(0.3)
                     )
                     .clipShape(Circle())
                 }
@@ -601,6 +599,13 @@ class CameraModel: NSObject, ObservableObject {
     // Available lenses
     var availableLenses: [CameraLens] = []
     
+    // Store camera devices by type for quick switching
+    private var backUltraWideCamera: AVCaptureDevice?
+    private var backWideCamera: AVCaptureDevice?
+    private var backTelephotoCamera: AVCaptureDevice?
+    private var frontUltraWideCamera: AVCaptureDevice?
+    private var frontWideCamera: AVCaptureDevice?
+    
     override init() {
         super.init()
         checkCameraCapabilities()
@@ -635,25 +640,32 @@ class CameraModel: NSObject, ObservableObject {
         
         // Check front camera capabilities
         let frontDiscovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
+            deviceTypes: [.builtInTelephotoCamera, .builtInWideAngleCamera],
             mediaType: .video,
             position: .front
         )
         
+        // Store references to available camera devices
+        backWideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+        backUltraWideCamera = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .back)
+        backTelephotoCamera = AVCaptureDevice.default(.builtInTelephotoCamera, for: .video, position: .back)
+        frontWideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+        frontUltraWideCamera = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .front)
+        
         hasFlash = backDiscovery.devices.contains { $0.hasFlash }
         
-        let hasBackCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil
-        let hasFrontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil
+        let hasBackCamera = backWideCamera != nil
+        let hasFrontCamera = frontWideCamera != nil
         hasOtherCameras = hasBackCamera && hasFrontCamera
         
         // Check for front ultrawide camera
-        hasFrontUltraWideCamera = true // Force enable front ultrawide to match your device's capabilities
+        hasFrontUltraWideCamera = frontUltraWideCamera != nil
         
         // Check for back ultrawide camera
-        hasUltraWideCamera = true // Force enable back ultrawide to match your device's capabilities
+        hasUltraWideCamera = backUltraWideCamera != nil
         
         // Check for telephoto camera
-        if let telephotoCamera = backDiscovery.devices.first(where: { $0.deviceType == .builtInTelephotoCamera }) {
+        if let telephotoCamera = backTelephotoCamera {
             hasTelephotoCamera = true
             if telephotoCamera.description.contains("5x") {
                 maxTelephotoZoom = 5
@@ -712,7 +724,7 @@ class CameraModel: NSObject, ObservableObject {
     private func setupCamera() {
         session.sessionPreset = .photo
         
-        guard let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+        guard let videoCaptureDevice = backWideCamera,
               let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
             return
         }
@@ -739,13 +751,24 @@ class CameraModel: NSObject, ObservableObject {
         let currentPosition = videoCaptureDevice?.position ?? .back
         let newPosition: AVCaptureDevice.Position = (currentPosition == .back) ? .front : .back
         
-        guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
-              let newInput = try? AVCaptureDeviceInput(device: newCamera) else {
+        // Get the appropriate camera device
+        var newCamera: AVCaptureDevice?
+        
+        if newPosition == .front {
+            // Default to wide when switching to front
+            newCamera = frontWideCamera
+        } else {
+            // Default to wide when switching to back
+            newCamera = backWideCamera
+        }
+        
+        guard let camera = newCamera,
+              let newInput = try? AVCaptureDeviceInput(device: camera) else {
             session.commitConfiguration()
             return
         }
         
-        videoCaptureDevice = newCamera
+        videoCaptureDevice = camera
         isFrontCameraActive = newPosition == .front
         
         if session.canAddInput(newInput) {
@@ -808,8 +831,59 @@ class CameraModel: NSObject, ObservableObject {
     
     private var flashMode: AVCaptureDevice.FlashMode = .off
     
+    // New method to switch between physical lenses
     func switchToLens(with zoomFactor: CGFloat) {
-        zoom(with: zoomFactor)
+        session.beginConfiguration()
+        
+        // Remove existing inputs
+        session.inputs.forEach { session.removeInput($0) }
+        
+        var newCamera: AVCaptureDevice?
+        
+        if isFrontCameraActive {
+            // Front camera lens selection
+            if zoomFactor == 0.5 && frontUltraWideCamera != nil {
+                newCamera = frontUltraWideCamera
+            } else {
+                newCamera = frontWideCamera
+            }
+        } else {
+            // Back camera lens selection
+            if zoomFactor == 0.5 && backUltraWideCamera != nil {
+                newCamera = backUltraWideCamera
+            } else if zoomFactor > 1.5 && backTelephotoCamera != nil {
+                newCamera = backTelephotoCamera
+            } else {
+                newCamera = backWideCamera
+            }
+        }
+        
+        guard let camera = newCamera,
+              let newInput = try? AVCaptureDeviceInput(device: camera) else {
+            // If we can't switch to the requested lens, restore the previous input
+            if let device = videoCaptureDevice,
+               let input = try? AVCaptureDeviceInput(device: device),
+               session.canAddInput(input) {
+                session.addInput(input)
+            }
+            session.commitConfiguration()
+            return
+        }
+        
+        videoCaptureDevice = camera
+        
+        if session.canAddInput(newInput) {
+            session.addInput(newInput)
+        }
+        
+        session.commitConfiguration()
+        
+        // Apply digital zoom if needed (for fine-tuning)
+        if (zoomFactor > 1.0 && camera.deviceType == .builtInWideAngleCamera) ||
+            (zoomFactor > 2.0 && camera.deviceType == .builtInTelephotoCamera) {
+            // Only apply digital zoom for adjustment, not as the primary zoom method
+            zoom(with: zoomFactor)
+        }
         
         // Force UI update to ensure toggle state is reflected immediately
         DispatchQueue.main.async {
