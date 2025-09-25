@@ -9,19 +9,11 @@ import SwiftUI
 import AVFoundation
 import Combine
 
-fileprivate func interfaceOrientationToVideoOrientation(_ orientation: UIInterfaceOrientation) -> AVCaptureVideoOrientation {
-    switch orientation {
-    case .landscapeRight:
-        return .landscapeRight
-    case .landscapeLeft:
-        return .landscapeLeft
-    case .portraitUpsideDown:
-        return .portraitUpsideDown
-    case .portrait, .unknown:
-        return .portrait
-    @unknown default:
-        return .portrait
-    }
+// Camera lens model to represent different lens options
+struct CameraLens {
+    let name: String           // Display name like "0.5×", "1×"
+    let zoomFactor: CGFloat    // Zoom factor (0.5, 1.0, 2.0, etc.)
+    let iconName: String?      // Optional SF Symbol name for the lens
 }
 
 struct SwiftUICameraView: View {
@@ -36,32 +28,57 @@ struct SwiftUICameraView: View {
     @State private var flashMode: AVCaptureDevice.FlashMode = .off
     @State private var deviceOrientation = UIDevice.current.orientation
     
+    // Constants for exposure slider
+    private let sliderMinValue: Float = -2.0
+    private let sliderMaxValue: Float = 2.0
+    private let sliderStep: Float = 0.1
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Camera preview - No scale effect to maintain consistent preview size
-                CameraPreviewView(session: cameraModel.session)
-                    .ignoresSafeArea()
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                let delta = value / currentZoomFactor
-                                currentZoomFactor = delta
-                                cameraModel.zoom(with: currentZoomFactor)
-                            }
-                            .onEnded { _ in
-                                // Normalize zoom factor to available levels
-                                let availableZooms = cameraModel.availableLenses.map { $0.zoomFactor }
-                                
-                                if let closestZoom = availableZooms.min(by: { abs($0 - currentZoomFactor) < abs($1 - currentZoomFactor) }) {
-                                    currentZoomFactor = closestZoom
-                                } else {
-                                    currentZoomFactor = 1.0
-                                }
-                                
-                                cameraModel.switchToLens(with: currentZoomFactor)
-                            }
+                // Camera preview with tap to focus
+                CameraPreviewView(session: cameraModel.session, onTap: { point in
+                    cameraModel.focusAndExpose(at: point)
+                })
+                .ignoresSafeArea()
+//                .gesture(
+//                    MagnificationGesture()
+//                        .onChanged { value in
+//                            let delta = value / currentZoomFactor
+//                            currentZoomFactor = delta
+//                            cameraModel.zoom(with: currentZoomFactor)
+//                        }
+//                        .onEnded { _ in
+//                            let availableZooms = cameraModel.availableLenses.map { $0.zoomFactor }
+//                            // Find the closest lens zoom
+//                            if let closestZoom = availableZooms.min(by: { abs($0 - currentZoomFactor) < abs($1 - currentZoomFactor) }) {
+//                                // Only snap to a new lens if the closest zoom is different (by threshold) from the current zoom factor
+//                                // Here, define a threshold for when to snap (e.g., 0.1)
+//                                let snapThreshold: CGFloat = 0.1
+//                                if abs(closestZoom - currentZoomFactor) <= snapThreshold {
+//                                    // Close enough to a lens: snap and switch to that lens
+//                                    currentZoomFactor = closestZoom
+//                                    cameraModel.switchToLens(with: currentZoomFactor)
+//                                }
+//                            } else {
+//                                // Fallback to 1.0 if no lens found
+//                                currentZoomFactor = 1.0
+//                                cameraModel.switchToLens(with: currentZoomFactor)
+//                            }
+//                        }
+//                )
+                
+                // Replace separate focus and exposure components with the combined FocusExposureView
+                if let point = cameraModel.focusPoint {
+                    FocusExposureView(
+                        point: point,
+                        exposureValue: $cameraModel.exposureValue,
+                        onExposureChange: { bias in
+                            cameraModel.setExposureBias(bias)
+                        },
+                        showExposure: cameraModel.showExposureSlider
                     )
+                }
                 
                 // Camera controls - orientation aware
                 OrientationAwareCameraControls(
@@ -99,6 +116,31 @@ struct SwiftUICameraView: View {
                     }
                 )
             }
+            // Global exposure adjustment gesture - active when slider is visible
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        // Only handle the drag gesture if the exposure slider is visible
+                        guard cameraModel.showExposureSlider else { return }
+                        
+                        // Use only vertical movement for exposure adjustment
+                        let screenHeight = geometry.size.height
+                        
+                        // Calculate the vertical percentage, ignoring horizontal movement
+                        let percent = 1 - (gesture.location.y / screenHeight).clamped(to: 0...1)
+                        
+                        // Map percentage to exposure bias range
+                        let newValue = sliderMinValue + Float(percent) * (sliderMaxValue - sliderMinValue)
+                        let steppedValue = (newValue / sliderStep).rounded() * sliderStep
+                        let finalValue = max(sliderMinValue, min(sliderMaxValue, steppedValue))
+                        
+                        // Update the model in real-time
+                        if cameraModel.exposureValue != finalValue {
+                            cameraModel.exposureValue = finalValue
+                            cameraModel.setExposureBias(finalValue)
+                        }
+                    }
+            )
             .statusBar(hidden: true)
             .onAppear {
                 cameraModel.requestAndCheckPermissions()
@@ -493,18 +535,32 @@ struct OrientationAwareCameraControls: View {
 // Camera preview that displays the actual camera feed
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
+    var onTap: ((CGPoint) -> Void)?
     
     class Coordinator {
         var previewLayer: AVCaptureVideoPreviewLayer?
         let session: AVCaptureSession
+        var onTap: ((CGPoint) -> Void)?
         
-        init(session: AVCaptureSession) {
+        init(session: AVCaptureSession, onTap: ((CGPoint) -> Void)?) {
             self.session = session
+            self.onTap = onTap
+        }
+        
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            guard let previewLayer = previewLayer else { return }
+            
+            let touchPoint = gesture.location(in: gesture.view)
+            // Convert the touch point from the view's coordinate system to the coordinate system of the preview layer
+            let devicePoint = previewLayer.captureDevicePointConverted(fromLayerPoint: touchPoint)
+            
+            // Pass the normalized device point to the handler
+            onTap?(devicePoint)
         }
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(session: session)
+        Coordinator(session: session, onTap: onTap)
     }
     
     func makeUIView(context: Context) -> UIView {
@@ -517,6 +573,10 @@ struct CameraPreviewView: UIViewRepresentable {
         view.layer.addSublayer(previewLayer)
         
         context.coordinator.previewLayer = previewLayer
+        
+        // Add tap gesture recognizer
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        view.addGestureRecognizer(tapGesture)
         
         // Configure initial orientation
         DispatchQueue.main.async {
@@ -543,413 +603,41 @@ struct CameraPreviewView: UIViewRepresentable {
         }
     }
     
+    // Helper to get the current capture device from the session
+    private func currentVideoCaptureDevice(from session: AVCaptureSession) -> AVCaptureDevice? {
+        return (session.inputs.compactMap { $0 as? AVCaptureDeviceInput }.first)?.device
+    }
+    
     private func updateOrientation(for previewLayer: AVCaptureVideoPreviewLayer, in view: UIView) {
         // Get the current device interface orientation
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
         let interfaceOrientation = windowScene.interfaceOrientation
+        let isFrontCamera = currentVideoCaptureDevice(from: session)?.position == .front
         
-        // Set the preview layer's connection to match the current orientation using rotation angle
         if let connection = previewLayer.connection {
-            // Convert interface orientation to rotation angle in degrees
-            let rotationAngle: Float64
+            var rotationAngle: CGFloat
             
             switch interfaceOrientation {
             case .landscapeRight:
-                rotationAngle = 90.0
+                rotationAngle = isFrontCamera ? 180.0 : 0.0
             case .landscapeLeft:
-                rotationAngle = 270.0
+                rotationAngle = isFrontCamera ? 0.0 : 180.0
             case .portraitUpsideDown:
-                rotationAngle = 180.0
+                rotationAngle = 270.0
             case .portrait, .unknown:
-                rotationAngle = 0.0
+                rotationAngle = 90.0
             @unknown default:
                 rotationAngle = 0.0
             }
             
             // Apply rotation angle if the connection supports it
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = interfaceOrientationToVideoOrientation(interfaceOrientation)
+            if connection.isVideoRotationAngleSupported(rotationAngle) {
+                connection.videoRotationAngle = rotationAngle
             }
         }
         
         // Ensure the preview fills the screen properly with correct aspect ratio
         previewLayer.frame = view.bounds
-    }
-}
-
-// Camera model to handle camera functionality
-class CameraModel: NSObject, ObservableObject {
-    @Published var permissionGranted = false
-    @Published var selectedImage: UIImage?
-    
-    let session = AVCaptureSession()
-    private var photoOutput = AVCapturePhotoOutput()
-    private var videoCaptureDevice: AVCaptureDevice?
-    private var completionHandler: ((UIImage?) -> Void)?
-    
-    // Camera capabilities
-    var hasFlash: Bool = false
-    var hasOtherCameras: Bool = false
-    var hasFrontUltraWideCamera: Bool = false
-    var hasUltraWideCamera: Bool = false
-    var hasTelephotoCamera: Bool = false
-    var hasDigitalZoom: Bool = false
-    var maxTelephotoZoom: Int = 2
-    var isFrontCameraActive: Bool = false
-    
-    // Zoom ranges for smooth transitions
-    private let ultraWideZoomRange: ClosedRange<CGFloat> = 0.5...0.9
-    private let wideZoomRange: ClosedRange<CGFloat> = 1.0...1.9
-    private let telephotoZoomRange: ClosedRange<CGFloat> = 2.0...10.0
-    
-    // Available lenses
-    var availableLenses: [CameraLens] = []
-    
-    // Store camera devices by type for quick switching
-    private var backUltraWideCamera: AVCaptureDevice?
-    private var backWideCamera: AVCaptureDevice?
-    private var backTelephotoCamera: AVCaptureDevice?
-    private var frontUltraWideCamera: AVCaptureDevice?
-    private var frontWideCamera: AVCaptureDevice?
-    
-    override init() {
-        super.init()
-        checkCameraCapabilities()
-    }
-    
-    func requestAndCheckPermissions() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            permissionGranted = true
-            setupCamera()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                DispatchQueue.main.async {
-                    self?.permissionGranted = granted
-                    if granted {
-                        self?.setupCamera()
-                    }
-                }
-            }
-        default:
-            permissionGranted = false
-        }
-    }
-    
-    private func checkCameraCapabilities() {
-        // Check back camera capabilities
-        let backDiscovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera, .builtInTelephotoCamera],
-            mediaType: .video,
-            position: .back
-        )
-        
-        // Check front camera capabilities
-        let frontDiscovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
-            mediaType: .video,
-            position: .front
-        )
-        
-        // Store references to available camera devices
-        backWideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
-        backUltraWideCamera = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .back)
-        backTelephotoCamera = AVCaptureDevice.default(.builtInTelephotoCamera, for: .video, position: .back)
-        frontWideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-        frontUltraWideCamera = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .front)
-        
-        hasFlash = backDiscovery.devices.contains { $0.hasFlash }
-        
-        let hasBackCamera = backWideCamera != nil
-        let hasFrontCamera = frontWideCamera != nil
-        hasOtherCameras = hasBackCamera && hasFrontCamera
-        
-        // Check for front ultrawide camera
-        hasFrontUltraWideCamera = frontUltraWideCamera != nil
-        
-        // Check for back ultrawide camera
-        hasUltraWideCamera = backUltraWideCamera != nil
-        
-        // Check for telephoto camera
-        if let telephotoCamera = backTelephotoCamera {
-            hasTelephotoCamera = true
-            if telephotoCamera.description.contains("5x") {
-                maxTelephotoZoom = 5
-            } else if telephotoCamera.description.contains("3x") {
-                maxTelephotoZoom = 3
-            } else {
-                maxTelephotoZoom = 2
-            }
-        } else {
-            // If no telephoto is available, enable digital zoom capabilities
-            hasDigitalZoom = true
-        }
-        
-        // Populate available lenses for both front and back cameras
-        updateAvailableLenses()
-    }
-    
-    private func updateAvailableLenses() {
-        availableLenses.removeAll()
-        
-        if isFrontCameraActive {
-            // Front camera lenses
-            if hasFrontUltraWideCamera {
-                availableLenses.append(CameraLens(
-                    name: "0.5×",
-                    zoomFactor: 0.5,
-                    iconName: "arrow.up.left.and.arrow.down.right"
-                ))
-            }
-            availableLenses.append(CameraLens(
-                name: "1×",
-                zoomFactor: 1.0,
-                iconName: hasFrontUltraWideCamera ? "arrow.down.right.and.arrow.up.left" : nil
-            ))
-        } else {
-            // Back camera lenses
-            if hasUltraWideCamera {
-                availableLenses.append(CameraLens(
-                    name: "0.5×",
-                    zoomFactor: 0.5,
-                    iconName: ""
-                ))
-            }
-            availableLenses.append(CameraLens(
-                name: "1×",
-                zoomFactor: 1.0,
-                iconName: hasUltraWideCamera ? "" : nil
-            ))
-            if hasTelephotoCamera {
-                availableLenses.append(CameraLens(
-                    name: "\(maxTelephotoZoom)×",
-                    zoomFactor: CGFloat(maxTelephotoZoom),
-                    iconName: ""
-                ))
-            } else if hasDigitalZoom {
-                // Add digital 2x option if no telephoto lens available
-                availableLenses.append(CameraLens(
-                    name: "2×",
-                    zoomFactor: 2.0,
-                    iconName: ""
-                ))
-            }
-        }
-    }
-    
-    private func setupCamera() {
-        session.sessionPreset = .photo
-        
-        guard let videoCaptureDevice = backWideCamera,
-              let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
-            return
-        }
-        
-        self.videoCaptureDevice = videoCaptureDevice
-        self.isFrontCameraActive = false
-        
-        if session.canAddInput(videoInput) && session.canAddOutput(photoOutput) {
-            session.addInput(videoInput)
-            session.addOutput(photoOutput)
-            
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                self?.session.startRunning()
-            }
-        }
-    }
-    
-    func switchCamera() {
-        session.beginConfiguration()
-        
-        // Remove existing inputs
-        session.inputs.forEach { session.removeInput($0) }
-        
-        let currentPosition = videoCaptureDevice?.position ?? .back
-        let newPosition: AVCaptureDevice.Position = (currentPosition == .back) ? .front : .back
-        
-        // Get the appropriate camera device
-        var newCamera: AVCaptureDevice?
-        
-        if newPosition == .front {
-            // Default to wide when switching to front
-            newCamera = frontWideCamera
-        } else {
-            // Default to wide when switching to back
-            newCamera = backWideCamera
-        }
-        
-        guard let camera = newCamera,
-              let newInput = try? AVCaptureDeviceInput(device: camera) else {
-            session.commitConfiguration()
-            return
-        }
-        
-        videoCaptureDevice = camera
-        isFrontCameraActive = newPosition == .front
-        
-        if session.canAddInput(newInput) {
-            session.addInput(newInput)
-        }
-        
-        session.commitConfiguration()
-        
-        // Update available lenses for the new camera position
-        updateAvailableLenses()
-        
-        // Force UI update
-        DispatchQueue.main.async {
-            self.objectWillChange.send()
-        }
-    }
-    
-    func zoom(with factor: CGFloat) {
-        guard let device = videoCaptureDevice else { return }
-        
-        do {
-            try device.lockForConfiguration()
-            
-            // Calculate appropriate zoom factor based on device capabilities
-            let maxZoom = device.activeFormat.videoMaxZoomFactor
-            let minZoom = device.minAvailableVideoZoomFactor
-            
-            // Clamp the zoom factor within the device's capabilities
-            let zoomFactor = max(minZoom, min(factor, maxZoom))
-            
-            // Apply the zoom
-            device.videoZoomFactor = zoomFactor
-            
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting zoom: \(error.localizedDescription)")
-        }
-    }
-    
-    func setFlashMode(_ mode: AVCaptureDevice.FlashMode) {
-        self.flashMode = mode
-        // Note: The actual flash will be applied when taking the photo via photoOutput settings
-    }
-    
-    func capturePhoto(completion: @escaping (UIImage?) -> Void) {
-        self.completionHandler = completion
-        
-        // Configure photo settings
-        let settings = AVCapturePhotoSettings()
-        if videoCaptureDevice?.position == .back && videoCaptureDevice?.hasFlash == true {
-            settings.flashMode = flashMode
-        }
-        
-        // Set the correct orientation for the captured photo
-        if let photoOutputConnection = photoOutput.connection(with: .video) {
-            // Get current orientation from UI
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                let interfaceOrientation = windowScene.interfaceOrientation
-                
-                if photoOutputConnection.isVideoOrientationSupported {
-                    // Convert interface orientation to video orientation
-                    photoOutputConnection.videoOrientation = interfaceOrientationToVideoOrientation(interfaceOrientation)
-                }
-            }
-        }
-        
-        // Capture the photo with applied orientation settings
-        photoOutput.capturePhoto(with: settings, delegate: self)
-    }
-    
-    private var flashMode: AVCaptureDevice.FlashMode = .off
-    
-    // New method to switch between physical lenses
-    func switchToLens(with zoomFactor: CGFloat) {
-        session.beginConfiguration()
-        
-        // Determine appropriate camera based on zoom factor
-        let currentPosition = videoCaptureDevice?.position ?? .back
-        var newCamera: AVCaptureDevice?
-        var shouldApplyDigitalZoom = false
-        
-        // Determine which physical camera should be active based on zoom factor
-        if currentPosition == .front {
-            // Front camera lens selection
-            if zoomFactor == 0.5 && frontUltraWideCamera != nil {
-                newCamera = frontUltraWideCamera
-            } else {
-                newCamera = frontWideCamera
-                // Apply digital zoom for front camera if zoom factor > 1.0
-                shouldApplyDigitalZoom = zoomFactor > 1.0
-            }
-        } else {
-            // Back camera lens selection based on zoom ranges
-            if ultraWideZoomRange.contains(zoomFactor) && backUltraWideCamera != nil {
-                // Ultrawide range: 0.5x - 0.9x
-                newCamera = backUltraWideCamera
-            } else if wideZoomRange.contains(zoomFactor) || backWideCamera == nil {
-                // Wide range: 1.0x - 1.9x (or fallback if no other cameras available)
-                newCamera = backWideCamera
-                shouldApplyDigitalZoom = zoomFactor > 1.0
-            } else if telephotoZoomRange.contains(zoomFactor) && backTelephotoCamera != nil {
-                // Telephoto range: 2.0x and above with physical telephoto lens
-                newCamera = backTelephotoCamera
-                shouldApplyDigitalZoom = zoomFactor > CGFloat(maxTelephotoZoom)
-            } else {
-                // Digital zoom on wide lens if no telephoto available
-                newCamera = backWideCamera
-                shouldApplyDigitalZoom = true
-            }
-        }
-        
-        // Safely switch input
-        guard let camera = newCamera,
-              let newInput = try? AVCaptureDeviceInput(device: camera) else {
-            // If we can't switch to the requested lens, restore the previous input
-            if let device = videoCaptureDevice,
-               let input = try? AVCaptureDeviceInput(device: device),
-               session.canAddInput(input) {
-                session.addInput(input)
-            }
-            session.commitConfiguration()
-            return
-        }
-        
-        // Remove existing inputs
-        session.inputs.forEach { session.removeInput($0) }
-        
-        videoCaptureDevice = camera
-        
-        if session.canAddInput(newInput) {
-            session.addInput(newInput)
-        }
-        
-        session.commitConfiguration()
-        
-        // Apply digital zoom if needed
-        if shouldApplyDigitalZoom {
-            zoom(with: zoomFactor)
-        }
-        
-        // Force UI update to ensure toggle state is reflected immediately
-        DispatchQueue.main.async {
-            self.objectWillChange.send()
-        }
-    }
-}
-
-// Implement AVCapturePhotoCaptureDelegate to handle the captured photo
-extension CameraModel: AVCapturePhotoCaptureDelegate {
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        if let error = error {
-            print("Error capturing photo: \(error.localizedDescription)")
-            completionHandler?(nil)
-            return
-        }
-        
-        guard let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else {
-            completionHandler?(nil)
-            return
-        }
-        
-        // We've already set the orientation on the connection before capture,
-        // so the image should already have the correct orientation
-        completionHandler?(image)
     }
 }
 
@@ -959,7 +647,6 @@ struct CameraView: View {
     
     var body: some View {
         SwiftUICameraView(selectedImage: $selectedImage)
-            .edgesIgnoringSafeArea(.all)
             .statusBar(hidden: true)
     }
 }
@@ -973,9 +660,11 @@ struct CameraView_Previews: PreviewProvider {
     }
 }
 
-// Camera lens model to represent different lens options
-struct CameraLens {
-    let name: String           // Display name like "0.5×", "1×"
-    let zoomFactor: CGFloat    // Zoom factor (0.5, 1.0, 2.0, etc.)
-    let iconName: String?      // Optional SF Symbol name for the lens
+// MARK: - Extensions
+// Extension for clamping values within a range
+extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        return min(max(self, limits.lowerBound), limits.upperBound)
+    }
 }
+

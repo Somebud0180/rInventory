@@ -319,7 +319,7 @@ struct InteractiveCreationView: View {
                         selectedImage = newImage
                     }
                 }
-            ))
+            )).statusBar(hidden: true)
         }
         .onChange(of: selectedImage) { _, newValue in
             if newValue != nil {

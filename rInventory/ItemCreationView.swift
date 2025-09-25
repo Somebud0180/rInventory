@@ -254,7 +254,7 @@ struct ItemCreationView: View {
                         imageToCrop = newImage
                     }
                 }
-            ))
+            )).statusBar(hidden: true)
         }
         .onChange(of: imageToCrop) { _, newValue in
             if newValue != nil {
