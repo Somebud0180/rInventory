@@ -17,7 +17,6 @@ struct FocusSquare: View {
 struct ExposureSlider: View {
     @Binding var value: Float
     @Binding var isInactive: Bool
-    var onChange: (Float) -> Void
     
     // Constants for slider
     private let minValue: Float = -2.0
@@ -89,9 +88,9 @@ struct ExposureSlider: View {
 
 // Combined focus and exposure view - uses HStack for reliable positioning
 struct FocusExposureView: View {
-    var point: CGPoint
     @Binding var exposureValue: Float
     var isFrontCamera: Bool
+    var point: CGPoint
     
     @State private var opacity: Double = 1.0
     @State private var isInactive: Bool = true
@@ -106,13 +105,17 @@ struct FocusExposureView: View {
                 // Center the focus square vertically
                 FocusSquare()
                     .opacity(opacity)
+                    .onTapGesture {
+                        resetInactivityTimer() // Reactivate on tap
+                    }
                 
-                ExposureSlider(value: $exposureValue, isInactive: $isInactive, onChange: { _ in
-                    resetInactivityTimer()
-                })
+                ExposureSlider(value: $exposureValue, isInactive: $isInactive)
                 .opacity(opacity)
             }
             .position(x: x, y: y)
+            .onChange(of: exposureValue) {
+                resetInactivityTimer()
+            }
             .onAppear {
                 resetInactivityTimer()
             }
@@ -143,9 +146,9 @@ struct CameraFocusComponents_Previews: PreviewProvider {
             
             // Preview with combined view
             FocusExposureView(
-                point: CGPoint(x: 0.5, y: 0.5),
                 exposureValue: $exampleValue,
-                isFrontCamera: false
+                isFrontCamera: false,
+                point: CGPoint(x: 0.5, y: 0.5)
             )
         }
     }

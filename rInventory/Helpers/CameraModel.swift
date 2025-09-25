@@ -229,8 +229,10 @@ class CameraModel: NSObject, ObservableObject {
         // Update available lenses for the new camera position
         updateAvailableLenses()
         
-        // Force UI update
+        // Clear the focus point when switching cameras
         DispatchQueue.main.async {
+            self.focusPoint = nil
+            self.showExposureSlider = false
             self.objectWillChange.send()
         }
     }
@@ -382,6 +384,7 @@ class CameraModel: NSObject, ObservableObject {
         guard let device = videoCaptureDevice else { return }
         
         do {
+            print("Focus and Exposing")
             try device.lockForConfiguration()
             
             // Check if focus point of interest is supported
@@ -423,6 +426,7 @@ class CameraModel: NSObject, ObservableObject {
         }
         
         do {
+            print("Exposing")
             try device.lockForConfiguration()
             
             // Clamp the exposure bias within the device's supported range

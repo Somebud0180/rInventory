@@ -54,9 +54,9 @@ struct SwiftUICameraView: View {
                 // Replace separate focus and exposure components with the combined FocusExposureView
                 if let point = cameraModel.focusPoint {
                     FocusExposureView(
-                        point: point,
                         exposureValue: $cameraModel.exposureValue,
-                        isFrontCamera: cameraModel.isFrontCameraActive
+                        isFrontCamera: cameraModel.isFrontCameraActive,
+                        point: point
                     )
                 }
                 
