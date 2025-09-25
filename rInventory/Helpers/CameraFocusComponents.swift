@@ -1,36 +1,29 @@
 import SwiftUI
 import AVFoundation
+import Combine
 
 // Focus square view - shows where the camera is focused
 struct FocusSquare: View {
-    var point: CGPoint
-    
     var body: some View {
-        GeometryReader { geometry in
-            let size: CGFloat = 80
-            let x = point.x * geometry.size.width
-            let y = point.y * geometry.size.height
-            
-            Rectangle()
-                .stroke(Color.yellow, lineWidth: 1.5)
-                .frame(width: size, height: size)
-                .position(x: x, y: y)
-        }
-        .allowsHitTesting(false)
+        let size: CGFloat = 80
+        
+        Rectangle()
+            .stroke(Color.yellow, lineWidth: 1.5)
+            .frame(width: size, height: size)
     }
 }
 
 // Exposure slider view - appears when adjusting exposure
 struct ExposureSlider: View {
-    var point: CGPoint
     @Binding var value: Float
+    @Binding var isInactive: Bool
     var onChange: (Float) -> Void
     
     // Constants for slider
     private let minValue: Float = -2.0
     private let maxValue: Float = 2.0
     private let step: Float = 0.1
-    private let sliderHeight: CGFloat = 140
+    private let sliderHeight: CGFloat = 120
     private let trackWidth: CGFloat = 2
     private let thumbSize: CGFloat = 20
     private let maskSize: CGFloat = 24
@@ -43,7 +36,9 @@ struct ExposureSlider: View {
             
             ZStack {
                 // Masked vertical track
-                trackWithThumbMask(yOffset: yOffset, height: height)
+                if !isInactive {
+                    trackWithThumbMask(yOffset: yOffset, height: height)
+                }
                 
                 // Thumb (sun symbol)
                 Image(systemName: "sun.max.fill")
@@ -51,14 +46,12 @@ struct ExposureSlider: View {
                     .foregroundStyle(Color.yellow)
                     .frame(width: thumbSize, height: thumbSize)
                     .offset(y: yOffset)
-                    .animation(.easeInOut(duration: 0.1), value: value)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(width: 30, height: sliderHeight)
             .padding(6)
             .cornerRadius(9)
         }
-        .allowsHitTesting(false)
+        .frame(width: 30, height: sliderHeight)
     }
     
     // Helper: vertical offset for sun thumb
@@ -84,7 +77,7 @@ struct ExposureSlider: View {
                         Spacer(minLength: 0)
                         Rectangle()
                             .frame(height: maskSize)
-                            .opacity(0) // cut out where the thumb goes
+                            .opacity(0)
                         Spacer(minLength: 0)
                         Rectangle()
                             .frame(height: (height/2 - yOffset) - maskSize/2)
@@ -98,30 +91,45 @@ struct ExposureSlider: View {
 struct FocusExposureView: View {
     var point: CGPoint
     @Binding var exposureValue: Float
-    var onExposureChange: (Float) -> Void
-    var showExposure: Bool
+    var isFrontCamera: Bool
+    
+    @State private var opacity: Double = 1.0
+    @State private var isInactive: Bool = true
+    @State private var inactivityTimer: AnyCancellable?
     
     var body: some View {
         GeometryReader { geometry in
             let x = point.x * geometry.size.width
             let y = point.y * geometry.size.height
             
-            HStack(alignment: .center, spacing: 15) {
-                FocusSquare(point: .zero)
-                    .frame(width: 60, height: 60)
+            HStack(alignment: .center, spacing: 4) {
+                // Center the focus square vertically
+                FocusSquare()
+                    .opacity(opacity)
                 
-                if showExposure {
-                    ExposureSlider(
-                        point: .zero,
-                        value: $exposureValue,
-                        onChange: onExposureChange
-                    )
-                    .frame(width: 30, height: 140)
-                }
+                ExposureSlider(value: $exposureValue, isInactive: $isInactive, onChange: { _ in
+                    resetInactivityTimer()
+                })
+                .opacity(opacity)
             }
             .position(x: x, y: y)
+            .onAppear {
+                resetInactivityTimer()
+            }
         }
-        .allowsHitTesting(false)
+    }
+    
+    private func resetInactivityTimer() {
+        inactivityTimer?.cancel()
+        opacity = 1.0
+        isInactive = false
+        
+        inactivityTimer = Just(()).delay(for: .seconds(3), scheduler: RunLoop.main).sink { _ in
+            withAnimation {
+                opacity = 0.5
+                isInactive = true
+            }
+        }
     }
 }
 
@@ -137,8 +145,7 @@ struct CameraFocusComponents_Previews: PreviewProvider {
             FocusExposureView(
                 point: CGPoint(x: 0.5, y: 0.5),
                 exposureValue: $exampleValue,
-                onExposureChange: { _ in },
-                showExposure: true
+                isFrontCamera: false
             )
         }
     }

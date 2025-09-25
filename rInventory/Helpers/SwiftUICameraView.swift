@@ -38,45 +38,25 @@ struct SwiftUICameraView: View {
             ZStack {
                 // Camera preview with tap to focus
                 CameraPreviewView(session: cameraModel.session, onTap: { point in
-                    cameraModel.focusAndExpose(at: point)
+                    // Create an adjusted point for the front camera - flip the Y coordinate
+                    var adjustedPoint = point
+                    if cameraModel.isFrontCameraActive {
+                        // For front camera, we need to flip the Y coordinate (1.0 - y)
+                        // This corrects the vertical position for the front camera
+                        adjustedPoint = CGPoint(x: point.x, y: 1.0 - point.y)
+                    }
+                    
+                    // Use the adjusted point for focus
+                    cameraModel.focusAndExpose(at: adjustedPoint)
                 })
                 .ignoresSafeArea()
-//                .gesture(
-//                    MagnificationGesture()
-//                        .onChanged { value in
-//                            let delta = value / currentZoomFactor
-//                            currentZoomFactor = delta
-//                            cameraModel.zoom(with: currentZoomFactor)
-//                        }
-//                        .onEnded { _ in
-//                            let availableZooms = cameraModel.availableLenses.map { $0.zoomFactor }
-//                            // Find the closest lens zoom
-//                            if let closestZoom = availableZooms.min(by: { abs($0 - currentZoomFactor) < abs($1 - currentZoomFactor) }) {
-//                                // Only snap to a new lens if the closest zoom is different (by threshold) from the current zoom factor
-//                                // Here, define a threshold for when to snap (e.g., 0.1)
-//                                let snapThreshold: CGFloat = 0.1
-//                                if abs(closestZoom - currentZoomFactor) <= snapThreshold {
-//                                    // Close enough to a lens: snap and switch to that lens
-//                                    currentZoomFactor = closestZoom
-//                                    cameraModel.switchToLens(with: currentZoomFactor)
-//                                }
-//                            } else {
-//                                // Fallback to 1.0 if no lens found
-//                                currentZoomFactor = 1.0
-//                                cameraModel.switchToLens(with: currentZoomFactor)
-//                            }
-//                        }
-//                )
                 
                 // Replace separate focus and exposure components with the combined FocusExposureView
                 if let point = cameraModel.focusPoint {
                     FocusExposureView(
                         point: point,
                         exposureValue: $cameraModel.exposureValue,
-                        onExposureChange: { bias in
-                            cameraModel.setExposureBias(bias)
-                        },
-                        showExposure: cameraModel.showExposureSlider
+                        isFrontCamera: cameraModel.isFrontCameraActive
                     )
                 }
                 
@@ -123,21 +103,17 @@ struct SwiftUICameraView: View {
                         // Only handle the drag gesture if the exposure slider is visible
                         guard cameraModel.showExposureSlider else { return }
                         
-                        // Use only vertical movement for exposure adjustment
-                        let screenHeight = geometry.size.height
+                        // Calculate the change in vertical movement relative to the current exposure value
+                        let delta = Float(gesture.translation.height) * -0.001 // Adjust sensitivity as needed
+                        let newValue = cameraModel.exposureValue + delta
                         
-                        // Calculate the vertical percentage, ignoring horizontal movement
-                        let percent = 1 - (gesture.location.y / screenHeight).clamped(to: 0...1)
-                        
-                        // Map percentage to exposure bias range
-                        let newValue = sliderMinValue + Float(percent) * (sliderMaxValue - sliderMinValue)
-                        let steppedValue = (newValue / sliderStep).rounded() * sliderStep
-                        let finalValue = max(sliderMinValue, min(sliderMaxValue, steppedValue))
+                        // Clamp the new value within the slider's range
+                        let clampedValue = max(sliderMinValue, min(sliderMaxValue, newValue))
                         
                         // Update the model in real-time
-                        if cameraModel.exposureValue != finalValue {
-                            cameraModel.exposureValue = finalValue
-                            cameraModel.setExposureBias(finalValue)
+                        if cameraModel.exposureValue != clampedValue {
+                            cameraModel.exposureValue = clampedValue
+                            cameraModel.setExposureBias(clampedValue)
                         }
                     }
             )
@@ -667,4 +643,3 @@ extension Comparable {
         return min(max(self, limits.lowerBound), limits.upperBound)
     }
 }
-

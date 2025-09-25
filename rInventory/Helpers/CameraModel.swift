@@ -406,12 +406,6 @@ class CameraModel: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 self.focusPoint = devicePoint
                 self.showExposureSlider = true
-                
-                // Auto-hide the exposure slider after 4 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                    self.showExposureSlider = false
-                    self.focusPoint = nil
-                }
             }
             
             device.unlockForConfiguration()
