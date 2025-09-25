@@ -86,7 +86,7 @@ struct InventoryApp: App {
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .none
+            cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
         )
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
