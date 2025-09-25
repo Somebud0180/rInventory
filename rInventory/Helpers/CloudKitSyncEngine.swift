@@ -196,6 +196,9 @@ public class CloudKitSyncEngine: ObservableObject {
         // First fetch changes from CloudKit
         try await syncEngine.fetchChanges()
         
+        // Send tombstones to CloudKit to confirm deletions
+        try await sendTombstonesToCloudKit()
+        
         // Then send any local changes to CloudKit
         try await syncEngine.sendChanges()
         
@@ -205,6 +208,29 @@ public class CloudKitSyncEngine: ObservableObject {
         
         syncState = .success
         lastSyncDate = Date()
+    }
+    
+    /// Send tombstones to CloudKit to confirm deletions
+    private func sendTombstonesToCloudKit() async throws {
+        for (recordID, _) in tombstones {
+            let recordID = CKRecord.ID(recordName: recordID, zoneID: itemsZoneID)
+            do {
+                try await database.deleteRecord(withID: recordID)
+                logger.info("Confirmed deletion of record: \(recordID.recordName)")
+            } catch let error as CKError {
+                if error.code != .unknownItem {
+                    logger.error("Failed to delete record: \(recordID.recordName) - \(error.localizedDescription)")
+                    throw error
+                }
+            }
+        }
+    }
+    
+    /// Add a record ID to the tombstone list and delete it locally
+    private func deleteItem(_ item: Item) {
+        addToTombstones(item.id.uuidString)
+        modelContext.delete(item)
+        saveContext("deleteItem")
     }
     
     // MARK: - Record Conversion Methods
