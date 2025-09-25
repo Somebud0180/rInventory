@@ -260,7 +260,7 @@ struct ItemCard: View {
     
     var body: some View {
         ItemCardButton {
-            itemCard(item: item, colorScheme: colorScheme, showCounterForSingleItems: showCounterForSingleItems)
+            itemCard(item: item, colorScheme: colorScheme, simplified: true, showCounterForSingleItems: showCounterForSingleItems)
         } onTap: {
             onTap()
         }
