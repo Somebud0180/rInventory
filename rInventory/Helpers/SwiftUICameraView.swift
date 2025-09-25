@@ -685,14 +685,6 @@ class CameraModel: NSObject, ObservableObject {
             hasDigitalZoom = true
         }
         
-        // Force enable capabilities for devices that might not report them correctly
-        if !hasFrontUltraWideCamera {
-            hasFrontUltraWideCamera = true // Force enable for testing
-        }
-        if !hasUltraWideCamera {
-            hasUltraWideCamera = true // Force enable for testing
-        }
-        
         // Populate available lenses for both front and back cameras
         updateAvailableLenses()
     }
