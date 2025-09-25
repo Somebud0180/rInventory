@@ -310,7 +310,7 @@ struct InteractiveCreationView: View {
             ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            SwiftUICameraView(selectedImage: Binding(
+            CameraView(selectedImage: Binding(
                 get: {
                     nil
                 },

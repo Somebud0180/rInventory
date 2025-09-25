@@ -1,5 +1,5 @@
 //
-//  SwiftUICameraView.swift
+//  CameraView.swift
 //  rInventory
 //
 //  Created by Ethan John Lagera on 9/24/25.
@@ -16,7 +16,7 @@ struct CameraLens {
     let iconName: String?      // Optional SF Symbol name for the lens
 }
 
-struct SwiftUICameraView: View {
+struct CameraView: View {
     @Binding var selectedImage: UIImage?
     @Environment(\.presentationMode) private var presentationMode
     
@@ -83,7 +83,7 @@ struct SwiftUICameraView: View {
                         AnyView(lensButton(lens: lens))
                     },
                     combinedLensButton: { lenses in
-                        AnyView(SwiftUICameraView.combinedFrontLensButton(
+                        AnyView(CameraView.combinedFrontLensButton(
                             availableLenses: lenses,
                             currentZoomFactor: currentZoomFactor,
                             onToggle: { newZoomFactor in
@@ -614,16 +614,6 @@ struct CameraPreviewView: UIViewRepresentable {
         
         // Ensure the preview fills the screen properly with correct aspect ratio
         previewLayer.frame = view.bounds
-    }
-}
-
-// MARK: - Camera view for SwiftUI Integration
-struct CameraView: View {
-    @Binding var selectedImage: UIImage?
-    
-    var body: some View {
-        SwiftUICameraView(selectedImage: $selectedImage)
-            .statusBar(hidden: true)
     }
 }
 

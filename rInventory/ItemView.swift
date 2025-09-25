@@ -272,7 +272,7 @@ struct ItemView: View {
             ), sourceType: .photoLibrary)
         }
         .fullScreenCover(isPresented: $showCamera) {
-            SwiftUICameraView(selectedImage: Binding(
+            CameraView(selectedImage: Binding(
                 get: {
                     if case let .image(data) = background {
                         return UIImage(data: data)
