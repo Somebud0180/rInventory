@@ -384,7 +384,6 @@ class CameraModel: NSObject, ObservableObject {
         guard let device = videoCaptureDevice else { return }
         
         do {
-            print("Focus and Exposing")
             try device.lockForConfiguration()
             
             // Check if focus point of interest is supported
@@ -418,13 +417,9 @@ class CameraModel: NSObject, ObservableObject {
     }
     
     func setExposureBias(_ bias: Float) {
-        guard let device = videoCaptureDevice else {
-            print("Video Capture Device is nil, cannot set exposure bias")
-            return
-        }
+        guard let device = videoCaptureDevice else { return }
         
         do {
-            print("Exposing")
             try device.lockForConfiguration()
             
             // Clamp the exposure bias within the device's supported range
