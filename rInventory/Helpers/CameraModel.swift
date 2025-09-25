@@ -418,10 +418,8 @@ class CameraModel: NSObject, ObservableObject {
     }
     
     func setExposureBias(_ bias: Float) {
-        guard let device = videoCaptureDevice else { return }
-        
-        // Skip if the bias is the same as current value (optimization)
-        if abs(exposureValue - bias) < 0.01 {
+        guard let device = videoCaptureDevice else {
+            print("Video Capture Device is nil, cannot set exposure bias")
             return
         }
         

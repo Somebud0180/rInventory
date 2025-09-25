@@ -72,14 +72,14 @@ struct ExposureSlider: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         Rectangle()
-                            .frame(height: (height/2 + yOffset) - maskSize/2)
+                            .frame(height: max(0, (height/2 + yOffset) - maskSize/2))
                         Spacer(minLength: 0)
                         Rectangle()
                             .frame(height: maskSize)
                             .opacity(0)
                         Spacer(minLength: 0)
                         Rectangle()
-                            .frame(height: (height/2 - yOffset) - maskSize/2)
+                            .frame(height:  max(0, (height/2 - yOffset) - maskSize/2))
                     }
                 )
         }
