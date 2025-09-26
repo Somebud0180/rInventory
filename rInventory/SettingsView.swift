@@ -22,6 +22,7 @@ struct SettingsView: View {
     
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     @State var isActive: Bool
+    @Environment(\.horizontalSizeClass) private var hSizeClass
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
@@ -44,6 +45,20 @@ struct SettingsView: View {
             return ("minus.circle.fill", .gray)
         }
     }
+    
+    struct CreationModeOption: Identifiable {
+        let id = UUID()
+        let title: String
+        let description: String
+        let imageName: String
+        let isInteractive: Bool
+    }
+    
+    // Options for creation mode selection UI
+    private let creationModeOptions = [
+        CreationModeOption(title: "Interactive Item Creation", description: "Create items interactively with a guided approach.", imageName: "InteractiveView", isInteractive: true),
+        CreationModeOption(title: "Form Item Creation", description: "Create items using a classic form-based approach.", imageName: "FormView", isInteractive: false)
+    ]
     
     var body: some View {
         NavigationStack {
@@ -69,7 +84,27 @@ struct SettingsView: View {
                 }
                 Group {
                     Section("Visuals") {
-                        Toggle("Interactive Item Creation", isOn: $appDefaults.useInteractiveCreation)
+                        LazyVGrid(
+                            columns: hSizeClass == .compact ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                            spacing: 16
+                        ) {
+                            ForEach(creationModeOptions) { option in
+                                SelectionCard(
+                                    title: option.title,
+                                    description: option.description,
+                                    imageName: option.imageName,
+                                    isSelected: option.isInteractive == appDefaults.useInteractiveCreation
+                                ) {
+                                    appDefaults.useInteractiveCreation = option.isInteractive
+                                }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(Text(option.title))
+                                .accessibilityHint(Text(option.description))
+                                .accessibilityAddTraits(option.isInteractive == appDefaults.useInteractiveCreation ? .isSelected : [])
+                            }
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        
                         Toggle("Show Counter For Single Items", isOn: $appDefaults.showCounterForSingleItems)
                         Picker("Theme", selection: $appDefaults.themeMode) {
                             Text("System").tag(0)
@@ -122,6 +157,42 @@ struct SettingsView: View {
         .userActivity(settingsActivityType, isActive: isActive) { activity in
             activity.title = "Settings"
             activity.userInfo = ["tabSelection": 1] // 1 = Settings tab
+        }
+    }
+    
+    // MARK: - Selection Card
+    struct SelectionCard: View {
+        let title: String
+        let description: String
+        let imageName: String
+        let isSelected: Bool
+        let onTap: () -> Void
+        
+        var body: some View {
+            Button(action: onTap) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(12)
+                        .padding(8)
+                        .frame(height: 240)
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+            }
+            .buttonStyle(.plain)
         }
     }
     
