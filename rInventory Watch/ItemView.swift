@@ -12,15 +12,25 @@ struct ItemBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
     let background: ItemCardBackground
     let symbolColor: Color?
-    let mask: AnyView
     
     var body: some View {
         switch background {
         case .image(let data):
-                AsyncItemImage(imageData: data)
-                    .id(data)
-                    .scaledToFit()
-                    .mask(mask)
+            AsyncItemImage(imageData: data)
+                .id(data)
+                .scaledToFit()
+                .mask(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: .white, location: 0.2),
+                            .init(color: .white, location: 0.8),
+                            .init(color: .clear, location: 1.0)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ).blur(radius: 12)
+                )
         case .symbol(let symbol):
             Image(systemName: symbol)
                 .resizable()
@@ -47,155 +57,19 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            if #available(watchOS 26, *) {
-                ZStack {
-                    GeometryReader { geometry in
+            ZStack {
+                GeometryReader { geometry in
+                    if #available(watchOS 26, *) {
                         GlassEffectContainer {
-                            ZStack {
-                                if case let .image(data) = background {
-                                    AsyncItemImage(imageData: data)
-                                        .id(data)
-                                        .scaledToFill()
-                                        .ignoresSafeArea(.all)
-                                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                                        .blur(radius: 44)
-                                }
-                                
-                                ItemBackgroundView(
-                                    background: background,
-                                    symbolColor: symbolColor,
-                                    mask: AnyView(
-                                        LinearGradient(
-                                            gradient: Gradient(stops: [
-                                                .init(color: .clear, location: 0.0),
-                                                .init(color: .white, location: 0.2),
-                                                .init(color: .white, location: 0.8),
-                                                .init(color: .clear, location: 1.0)
-                                            ]),
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                        .blur(radius: 12)
-                                    )
-                                )
-                                
-                                Rectangle()
-                                    .fill(.black)
-                                    .mask(
-                                        LinearGradient(
-                                            gradient: Gradient(stops: [
-                                                .init(color: .white, location: 0.0),
-                                                .init(color: .white, location: 0.25),
-                                                .init(color: .clear, location: 0.5)
-                                            ]),
-                                            startPoint: .bottom,
-                                            endPoint: .top
-                                        )
-                                        .blur(radius: 12)
-                                    )
-                                
-                                VStack {
-                                    ZStack {
-                                        categorySection(geometry)
-                                        
-                                        HStack(alignment: .center) {
-                                            Spacer()
-                                            quantitySection
-                                        }
-                                    }.frame(height: 44, alignment: .center)
-                                    
-                                    Spacer()
-                                }
-                                .padding(12)
-                                
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Spacer()
-                                    
-                                    nameSection
-                                    locationSection
-                                    // quantityStepperSection
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(12)
-                            }
+                            content(geometry)
                         }
-                    }.background(backgroundGradient)
+                    } else {
+                        content(geometry)
+                    }
                 }
-                .ignoresSafeArea()
-            } else {
-                ZStack {
-                    GeometryReader { geometry in
-                        ZStack {
-                            if case let .image(data) = background {
-                                AsyncItemImage(imageData: data)
-                                    .id(data)
-                                    .scaledToFill()
-                                    .ignoresSafeArea(.all)
-                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                                    .blur(radius: 44)
-                            }
-                            
-                            ItemBackgroundView(
-                                background: background,
-                                symbolColor: symbolColor,
-                                mask: AnyView(
-                                    LinearGradient(
-                                        gradient: Gradient(stops: [
-                                            .init(color: .clear, location: 0.0),
-                                            .init(color: .white, location: 0.2),
-                                            .init(color: .white, location: 0.8),
-                                            .init(color: .clear, location: 1.0)
-                                        ]),
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                    .blur(radius: 12)
-                                )
-                            )
-                            
-                            Rectangle()
-                                .fill(.black)
-                                .mask(
-                                    LinearGradient(
-                                        gradient: Gradient(stops: [
-                                            .init(color: .white, location: 0.0),
-                                            .init(color: .white, location: 0.25),
-                                            .init(color: .clear, location: 0.5)
-                                        ]),
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                    .blur(radius: 12)
-                                )
-                            
-                            VStack {
-                                ZStack {
-                                    categorySection(geometry)
-                                    
-                                    HStack(alignment: .center) {
-                                        Spacer()
-                                        quantitySection
-                                    }
-                                }.frame(height: 44, alignment: .center)
-                                
-                                Spacer()
-                            }
-                            .padding(12)
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                Spacer()
-                                
-                                nameSection
-                                locationSection
-                                // quantityStepperSection
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                        }
-                    }.background(backgroundGradient)
-                }
-                .ignoresSafeArea()
             }
+            .ignoresSafeArea()
+            .background(backgroundGradient)
         }
         ._statusBarHidden(true)
         .onAppear {
@@ -214,19 +88,19 @@ struct ItemView: View {
     private var backgroundGradient: AnyView {
         return AnyView(
             ZStack {
-                if case let .image(data) = background, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
+                Rectangle()
+                    .foregroundStyle(backgroundLinearGradient)
+                    .ignoresSafeArea()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                if case let .image(data) = background {
+                    AsyncItemImage(imageData: data, maxPixelSize: 400)
                         .scaledToFill()
                         .ignoresSafeArea()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .blur(radius: 44)
                 }
-                
-                Rectangle()
-                    .foregroundStyle(backgroundLinearGradient)
-                    .ignoresSafeArea()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             }
         )
     }
@@ -237,7 +111,54 @@ struct ItemView: View {
         return LinearGradient(colors: [primaryColor, secondaryColor], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     
-    // Extract common sections into computed properties
+    private func content(_ geometry: GeometryProxy) -> some View {
+        ZStack {
+            ItemBackgroundView(
+                background: background,
+                symbolColor: symbolColor
+            )
+            
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .frame(maxWidth: .infinity)
+                .mask(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white, location: 0.25),
+                            .init(color: .clear, location: 0.5)
+                        ]),
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
+            
+            VStack {
+                ZStack {
+                    categorySection(geometry)
+                    
+                    HStack(alignment: .center) {
+                        Spacer()
+                        quantitySection
+                    }
+                }.frame(height: 44, alignment: .center)
+                
+                Spacer()
+            }
+            .padding(12)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Spacer()
+                
+                nameSection
+                locationSection
+                // quantityStepperSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+        }
+    }
+    
     private func categorySection(_ geometry: GeometryProxy) -> some View {
         Group {
             if !category.name.isEmpty {

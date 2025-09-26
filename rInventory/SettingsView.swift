@@ -9,16 +9,19 @@
 import SwiftUI
 import CloudKit
 import SwiftData
+import os // Add this to check for debug builds
 
 let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var appDefaults: AppDefaults
-    
     @StateObject var syncEngine: CloudKitSyncEngine
-    @State var isActive: Bool
+    
+    @Query private var items: [Item]
     
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
+    @State var isActive: Bool
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
@@ -100,6 +103,17 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+#if DEBUG
+                Group {
+                    Section("Debug") {
+                        Button("Optimize Image Backgrounds") {
+                            Task {
+                                await optimizeImageBackgrounds()
+                            }
+                        }
+                    }
+                }
+#endif // DEBUG
             }
             .onAppear {
                 checkiCloudAccountStatus()
@@ -115,6 +129,18 @@ struct SettingsView: View {
         CKContainer.default().accountStatus { status, _ in
             DispatchQueue.main.async {
                 self.iCloudStatus = status
+            }
+        }
+    }
+    
+    private func optimizeImageBackgrounds() async {
+        for item in items {
+            if let imageData = item.imageData, let optimizedData = optimizePNGData(imageData) {
+                await item.updateItem(
+                    background: .image(optimizedData),
+                    context: syncEngine.modelContext,
+                    cloudKitSyncEngine: syncEngine
+                )
             }
         }
     }
