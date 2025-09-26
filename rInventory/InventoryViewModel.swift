@@ -163,23 +163,25 @@ class InventoryViewModel: ObservableObject {
                 )
                 .hidden()
             }
+            .padding(12)
             .onPreferenceChange(CategoryWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 20)
-                measuredWidth = width
-                displayedWidth = measuredWidth
-            }
-            .onChange(of: categoryName) {
-                lastCategoryName = categoryName
-                // Wait until menu is closed before expanding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    if !menuPresented {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    withAnimation {
+                        measuredWidth = width
                         displayedWidth = measuredWidth
                     }
                 }
             }
-            .onChange(of: menuPresented) {
-                if !menuPresented {
-                    displayedWidth = measuredWidth
+            .onChange(of: categoryName) {
+                lastCategoryName = categoryName
+                // Wait until menu is closed before expanding
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    if !menuPresented {
+                        withAnimation {
+                            displayedWidth = measuredWidth
+                        }
+                    }
                 }
             }
             .onAppear {
@@ -198,18 +200,18 @@ class InventoryViewModel: ObservableObject {
     
     /// A label for the sort picker that dynamically adjusts its width based on the selected sort type.
     struct SortPickerLabel: View {
-        let selectedSortType: SortType
-        let symbolName: String
-        @Binding var menuPresented: Bool
         @State private var displayedWidth: CGFloat = 50
         @State private var measuredWidth: CGFloat = 50
         @State private var lastSortType: SortType
+        @Binding var menuPresented: Bool
+        let selectedSortType: SortType
+        let symbolName: String
         
         init(selectedSortType: SortType, symbolName: String, menuPresented: Binding<Bool>) {
+            _lastSortType = State(initialValue: selectedSortType)
+            self._menuPresented = menuPresented
             self.selectedSortType = selectedSortType
             self.symbolName = symbolName
-            self._menuPresented = menuPresented
-            _lastSortType = State(initialValue: selectedSortType)
         }
         
         var body: some View {
@@ -223,12 +225,12 @@ class InventoryViewModel: ObservableObject {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(width: displayedWidth)
                 .frame(minHeight: 44)
                 .foregroundColor(.primary)
-                .background(.white.opacity(0.01), in: Capsule())
+                .adaptiveGlassButton(tintStrength: 0.0)
                 
                 // Hidden label for measurement
                 HStack(spacing: 6) {
@@ -239,7 +241,7 @@ class InventoryViewModel: ObservableObject {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(minHeight: 44)
                 .background(
@@ -250,24 +252,25 @@ class InventoryViewModel: ObservableObject {
                 )
                 .hidden()
             }
-            .adaptiveGlassButton(tintStrength: 0.0)
+            .padding(12)
             .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
-                measuredWidth = width
-                displayedWidth = measuredWidth
-            }
-            .onChange(of: selectedSortType) {
-                lastSortType = selectedSortType
-                // Wait until menu is closed before expanding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    if !menuPresented {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation {
+                        measuredWidth = width
                         displayedWidth = measuredWidth
                     }
                 }
             }
-            .onChange(of: menuPresented) {
-                if !menuPresented {
-                    displayedWidth = measuredWidth
+            .onChange(of: selectedSortType) {
+                lastSortType = selectedSortType
+                // Wait until menu is closed before expanding
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if !menuPresented {
+                        withAnimation {
+                            displayedWidth = measuredWidth
+                        }
+                    }
                 }
             }
             .onAppear {
@@ -304,7 +307,6 @@ class InventoryViewModel: ObservableObject {
                     onCategorySelected(category.name)
                 }) {
                     Text(category.name)
-                        .background(.white.opacity(0.01), in: Capsule())
                 }
             }
         } label: {

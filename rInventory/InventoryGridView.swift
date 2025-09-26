@@ -63,7 +63,7 @@ struct InventoryGridView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                HStack(alignment: .bottom) {
+                HStack {
                     if showCategoryPicker {
                         categoryPicker
                     }
@@ -72,6 +72,7 @@ struct InventoryGridView: View {
                         sortPicker
                     }
                 }
+                .padding(-12)
                 
                 if viewModel.isLoading {
                     ProgressView("Loading items...")
@@ -84,6 +85,7 @@ struct InventoryGridView: View {
                     inventoryGrid
                 }
             }
+            .scrollClipDisabled()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
