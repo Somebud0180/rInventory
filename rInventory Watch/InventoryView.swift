@@ -51,20 +51,19 @@ struct InventoryView: View {
     
     @State private var showSortPicker = false
     
+    // Optimize data handling by limiting the number of items processed
     private var items: [Item] {
+        let filteredItems: [Item]
         switch selectedSortType {
         case .order:
-            return allItems.sorted(by: { (lhs: Item, rhs: Item) -> Bool in
-                lhs.sortOrder < rhs.sortOrder
-            })
+            filteredItems = allItems.sorted(by: { $0.sortOrder < $1.sortOrder })
         case .alphabetical:
-            return allItems.sorted(by: { (lhs: Item, rhs: Item) -> Bool in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            })
+            filteredItems = allItems.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
         case .dateModified:
-            let items = allItems.sorted { $0.itemCreationDate > $1.itemCreationDate }
-            return items.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            filteredItems = allItems.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+                .sorted { $0.itemCreationDate > $1.itemCreationDate }
         }
+        return Array(filteredItems.prefix(100)) // Limit to 100 items for performance
     }
     
     var body: some View {
@@ -76,8 +75,8 @@ struct InventoryView: View {
                             SortPickerLabel(
                                 selectedSortType: selectedSortType,
                                 symbolName: selectedSortType == .order ? "line.3.horizontal.decrease" :
-                                            selectedSortType == .alphabetical ? "textformat.abc" :
-                                            "calendar",
+                                    selectedSortType == .alphabetical ? "textformat.abc" :
+                                    "calendar",
                                 menuPresented: $sortMenuPresented
                             )
                         }
@@ -106,6 +105,7 @@ struct InventoryView: View {
                                         selectedItem = item
                                         showItemView = true
                                     })
+                                    .id(item.id) // Add unique ID to improve rendering performance
                                     .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                                 }
                             }
@@ -139,7 +139,7 @@ struct InventoryView: View {
                                     Image(systemName: sort == .order ? "line.3.horizontal.decrease" :
                                             sort == .alphabetical ? "textformat.abc" :
                                             "calendar")
-                                        .font(.body)
+                                    .font(.body)
                                     Text(sort.rawValue)
                                         .font(.subheadline)
                                         .lineLimit(1)

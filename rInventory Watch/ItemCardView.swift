@@ -106,7 +106,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
         endPoint: .bottomTrailing
     )
     
-    var content: some View {
+    return Group {
         ZStack {
             RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                 .aspectRatio(contentMode: .fill)
@@ -205,14 +205,6 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             .padding(4)
         }
         .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
-    }
-    
-    if #available(watchOS 26, *) {
-        return GlassEffectContainer {
-            content
-        }
-    } else {
-        return content
     }
 }
 

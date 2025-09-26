@@ -71,6 +71,10 @@ struct ItemView: View {
     @State private var animateFocused: ItemField? = nil
     @FocusState private var focusedField: ItemField?
     
+    // State variables for animations
+    @State private var rng = SystemRandomNumberGenerator()
+    @State private var isAnimated: Bool = false
+    
     // State variables for UI
     @State private var showDeleteAlert: Bool = false
     @State private var showDeleteAnimation: Bool = false
@@ -79,7 +83,6 @@ struct ItemView: View {
     @State private var showCamera: Bool = false
     @State private var imageToCrop: UIImage? = nil
     @State private var showCropper: Bool = false
-    @State private var animateBackground: Bool = false
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -212,8 +215,8 @@ struct ItemView: View {
             initializeDisplayVariables()
             // Start breathing animation
             DispatchQueue.main.async {
-                withAnimation {
-                    animateBackground = true
+                withAnimation(.easeInOut(duration: Double.random(in: 10...20, using: &rng)).repeatForever(autoreverses: true)) {
+                    isAnimated = true
                 }
             }
         }
@@ -541,26 +544,21 @@ struct ItemView: View {
     }
     
     private var backgroundGradient: AnyView {
-        // Animate blur and hue for breathing effect
-        let blurRadius: CGFloat = animateBackground ? 60 : 30
-        let hue: Angle = animateBackground ? .degrees(30) : .degrees(0)
         return AnyView(
             ZStack {
-                if case let .image(data) = background, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .blur(radius: blurRadius)
-                        .hueRotation(hue)
-                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: animateBackground)
-                }
-                
                 Rectangle()
                     .foregroundStyle(backgroundLinearGradient)
                     .ignoresSafeArea()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                if case let .image(data) = background {
+                    AsyncItemImage(imageData: data)
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .blur(radius: isAnimated ? 88 : 44)
+                        .hueRotation(isAnimated ? .degrees(15) : .degrees(-15))
+                }
             }
         )
     }
@@ -898,8 +896,8 @@ struct ItemView: View {
     }
     
     // MARK: - Functional Helpers
+    /// Loads current item values into edit variables and enters editing mode with animation.
     private func editItem() {
-        // Load current item values into edit variables
         editName = item.name
         editQuantity = item.quantity
         editLocationName = item.location?.name ?? "The Void"
@@ -920,6 +918,7 @@ struct ItemView: View {
         }
     }
     
+    /// Saves the item asynchronously and updates display variables.
     private func saveItem() async {
         // Save item with updated details using Item instance method
         await item.updateItem(
@@ -947,6 +946,7 @@ struct ItemView: View {
         }
     }
     
+    /// Updates the quantity asynchronously, ensuring it is non-negative.
     private func updateQuantity(_ newValue: Int) async {
         if newValue >= 0 {
             quantity = newValue
