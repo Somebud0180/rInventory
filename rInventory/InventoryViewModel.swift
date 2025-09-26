@@ -166,21 +166,10 @@ class InventoryViewModel: ObservableObject {
             .padding(12)
             .onPreferenceChange(CategoryWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 20)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     withAnimation {
                         measuredWidth = width
                         displayedWidth = measuredWidth
-                    }
-                }
-            }
-            .onChange(of: categoryName) {
-                lastCategoryName = categoryName
-                // Wait until menu is closed before expanding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    if !menuPresented {
-                        withAnimation {
-                            displayedWidth = measuredWidth
-                        }
                     }
                 }
             }
@@ -255,21 +244,10 @@ class InventoryViewModel: ObservableObject {
             .padding(12)
             .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
                 let width = max(newWidth, 50)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
                     withAnimation {
                         measuredWidth = width
                         displayedWidth = measuredWidth
-                    }
-                }
-            }
-            .onChange(of: selectedSortType) {
-                lastSortType = selectedSortType
-                // Wait until menu is closed before expanding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if !menuPresented {
-                        withAnimation {
-                            displayedWidth = measuredWidth
-                        }
                     }
                 }
             }
