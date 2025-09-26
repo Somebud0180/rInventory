@@ -18,6 +18,7 @@ struct ItemBackgroundView: View {
         switch background {
         case .image(let data):
                 AsyncItemImage(imageData: data)
+                    .id(data)
                     .scaledToFit()
                     .mask(mask)
         case .symbol(let symbol):
@@ -53,6 +54,7 @@ struct ItemView: View {
                             ZStack {
                                 if case let .image(data) = background {
                                     AsyncItemImage(imageData: data)
+                                        .id(data)
                                         .scaledToFill()
                                         .ignoresSafeArea(.all)
                                         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
@@ -126,6 +128,7 @@ struct ItemView: View {
                         ZStack {
                             if case let .image(data) = background {
                                 AsyncItemImage(imageData: data)
+                                    .id(data)
                                     .scaledToFill()
                                     .ignoresSafeArea(.all)
                                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)

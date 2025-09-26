@@ -11,42 +11,20 @@ import SwiftData
 
 // MARK: - Constants
 struct ItemCardConstants {
-    static let overlayGradient = LinearGradient(
-        colors: [.clear, .black.opacity(0.75)],
-        startPoint: .center,
-        endPoint: .bottom
-    )
     static let cornerRadius: CGFloat = 20.0
     static let aspectRatio: CGFloat = 1.0
+    static let backgroundGradient = LinearGradient(
+        colors: [Color.accentDark.opacity(0.9), Color.black.opacity(0.9)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 }
 
 // MARK: - Font Configuration
-private struct FontConfig {
-    let titleFont: Font
-    let bodyFont: Font
-    let captionFont: Font
-    
-    init(isLarge: Bool) {
-        titleFont = .system(isLarge ? .title : .title3, design: .rounded)
-        bodyFont = .system(isLarge ? .callout : .footnote, design: .rounded)
-        captionFont = .system(isLarge ? .callout : .footnote, design: .rounded)
-    }
-}
-
-// MARK: - Animation Modifier
-private struct ItemCardAnimationModifier: ViewModifier {
-    let isPressed: Bool
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(scale)
-            .animation(.interactiveSpring(), value: isPressed)
-    }
-    
-    private var scale: Double {
-        if isPressed { return 1.0 }
-        return 0.96
-    }
+struct FontConfig {
+    static let titleFont: Font = .system(.title3, design: .rounded)
+    static let bodyFont: Font = .system(.footnote, design: .rounded)
+    static let captionFont: Font = .system(.footnote, design: .rounded)
 }
 
 // MARK: - Core Item Card Function
@@ -59,26 +37,16 @@ private struct ItemCardAnimationModifier: ViewModifier {
 ///   - background: The background type for the card, either a symbol or an image.
 ///   - symbolColor: The color of the symbol, if applicable.
 ///   - colorScheme: The current color scheme of the app.
-///   - largeFont: Optional boolean to determine if a larger font should be used for the item name.
 ///   - hideQuantity: Optional boolean to hide the quantity label.
 ///   - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
-    let fontConfig = FontConfig(isLarge: largeFont ?? false)
-    let primaryColor = (colorScheme == .dark || (symbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
-    let secondaryColor = (colorScheme == .dark || (symbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
-    let backgroundGradient = LinearGradient(
-        colors: [primaryColor, secondaryColor],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-    
-    return Group {
+func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+    Group {
         ZStack {
             RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                 .aspectRatio(contentMode: .fill)
-                .foregroundStyle(backgroundGradient)
+                .foregroundStyle(ItemCardConstants.backgroundGradient)
             
             GeometryReader { geometry in
                 switch background {
@@ -92,19 +60,12 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                     
                 case .image(let data):
                     AsyncItemImage(imageData: data)
+                        .id(data)
                         .frame(width: geometry.size.width, height: geometry.size.height)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
             
-            ItemCardConstants.overlayGradient
-                .mask(
-                    RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                        .aspectRatio(contentMode: .fill)
-                )
-            
-            RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                .fill(location.color)
+            location.color
                 .mask(
                     LinearGradient(
                         gradient: Gradient(stops: [
@@ -116,14 +77,13 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                         endPoint: .top
                     )
                     .blur(radius: 12)
-                    .aspectRatio(contentMode: .fill)
                 )
             
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     if !category.name.isEmpty {
                         Text(category.name)
-                            .font(fontConfig.bodyFont)
+                            .font(FontConfig.bodyFont)
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .foregroundStyle(.white.opacity(0.95))
@@ -136,7 +96,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                         if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
                             Spacer()
                             Text("\(quantity)")
-                                .font(fontConfig.bodyFont)
+                                .font(FontConfig.bodyFont)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .foregroundStyle(.white.opacity(0.95))
@@ -151,13 +111,13 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                     VStack(alignment: .leading, spacing: 0) {
                         if !name.isEmpty {
                             Text(name)
-                                .font(fontConfig.titleFont)
+                                .font(FontConfig.titleFont)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                         }
                         if !location.name.isEmpty {
                             Text(location.name)
-                                .font(fontConfig.captionFont)
+                                .font(FontConfig.captionFont)
                                 .fontWeight(.medium)
                                 .lineLimit(2)
                         }
@@ -172,6 +132,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
         }
+        .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
         .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
     }
 }
@@ -218,25 +179,11 @@ struct ItemCard: View {
     var showCounterForSingleItems: Bool = true
     var onTap: () -> Void = {}
     
-    @State private var isPressed = false
-    
     var body: some View {
-        Button(action: handleTap) {
+        Button(action: onTap) {
             itemCard(item: item, colorScheme: colorScheme, simplified: true, showCounterForSingleItems: showCounterForSingleItems)
-                .scaleEffect(isPressed ? 0.96 : 1.0)
-                .animation(.interactiveSpring(), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func handleTap() {
-        withAnimation(.spring()) {
-            isPressed = true
-        }
-        withAnimation(.spring().delay(0.1)) {
-            isPressed = false
-        }
-        onTap()
     }
 }
 

@@ -138,6 +138,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
                     
                 case .image(let data):
                     AsyncItemImage(imageData: data)
+                        .id(data)
                         .frame(width: geometry.size.width, height: geometry.size.height)
                 }
             }

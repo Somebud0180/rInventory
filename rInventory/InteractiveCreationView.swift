@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import SwiftyCrop
 import Playgrounds
+import ImageIO // Add this import for ImageIO
 
 struct InteractiveCreationView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -63,13 +64,13 @@ struct InteractiveCreationView: View {
         formatter.maximum = 100
         return formatter
     }
-
+    
     /// Helper to determine if the device is an iPhone in landscape mode
     private var isVerticallyLimited: Bool {
         (UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular) ||
         (UIDevice.current.userInterfaceIdiom == .pad && verticalSizeClass == .compact)
     }
-
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -241,7 +242,7 @@ struct InteractiveCreationView: View {
                         Capsule()
                             .fill(
                                 isCompleted ? .green :
-                                (isCurrent ? .orange : (!isCompleted && isStepTappable(index) ? .orange : .white.opacity(0.4)))
+                                    (isCurrent ? .orange : (!isCompleted && isStepTappable(index) ? .orange : .white.opacity(0.4)))
                             )
                             .frame(height: 8)
                     }
@@ -334,9 +335,9 @@ struct InteractiveCreationView: View {
                     maskShape: .square,
                     configuration: swiftyCropConfiguration,
                     onComplete: { cropped in
-                        if let cropped, let data = cropped.pngData() {
+                        if let cropped, let data = cropped.pngData(), let optimizedData = optimizePNGData(data) {
                             isForward = true
-                            withAnimation { background = .image(data) }
+                            withAnimation { background = .image(optimizedData) }
                         }
                         showCropView = false
                         selectedImage = nil
@@ -865,4 +866,3 @@ extension View {
     
     InteractiveCreationView(isPresented: $isPresented)
 }
-

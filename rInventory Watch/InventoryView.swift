@@ -89,25 +89,13 @@ struct InventoryView: View {
                         emptyItemsView
                     } else {
                         LazyVGrid(columns: gridColumns, spacing: 10) {
-                            if #available(watchOS 26.0, *) {
-                                GlassEffectContainer {
-                                    ForEach(items) { item in
-                                        ItemCard(item: item, colorScheme: colorScheme, onTap: {
-                                            selectedItem = item
-                                            showItemView = true
-                                        })
-                                        .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                                    }
-                                }
-                            } else {
-                                ForEach(items) { item in
-                                    ItemCard(item: item, colorScheme: colorScheme, onTap: {
-                                        selectedItem = item
-                                        showItemView = true
-                                    })
-                                    .id(item.id) // Add unique ID to improve rendering performance
-                                    .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                                }
+                            ForEach(items) { item in
+                                ItemCard(item: item, colorScheme: colorScheme, onTap: {
+                                    selectedItem = item
+                                    showItemView = true
+                                })
+                                .id(item.id) // Add unique ID to improve rendering performance
+                                .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                             }
                         }
                     }

@@ -269,8 +269,8 @@ struct ItemCreationView: View {
                     maskShape: .square,
                     configuration: swiftyCropConfiguration,
                     onComplete: { cropped in
-                        if let cropped, let data = cropped.pngData() {
-                            background = .image(data)
+                        if let cropped, let data = cropped.pngData(), let optimizedData = optimizePNGData(data) {
+                            background = .image(optimizedData)
                         }
                         showCropper = false
                         imageToCrop = nil

@@ -107,3 +107,27 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
     }
 }
+
+func optimizePNGData(_ data: Data) -> Data? {
+    guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
+          let imageType = CGImageSourceGetType(imageSource) else {
+        return nil
+    }
+    
+    let options: [NSString: Any] = [
+        kCGImageDestinationLossyCompressionQuality: 1.0, // Ensure lossless compression
+        kCGImagePropertyPNGCompressionFilter: 0 // Use the fastest filter for PNG
+    ]
+    
+    let outputData = NSMutableData()
+    guard let imageDestination = CGImageDestinationCreateWithData(outputData, imageType, 1, nil) else {
+        return nil
+    }
+    
+    CGImageDestinationAddImageFromSource(imageDestination, imageSource, 0, options as CFDictionary)
+    guard CGImageDestinationFinalize(imageDestination) else {
+        return nil
+    }
+    
+    return outputData as Data
+}

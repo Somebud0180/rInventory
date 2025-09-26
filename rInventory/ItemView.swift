@@ -24,11 +24,13 @@ struct ItemBackgroundView: View {
         case .image(let data):
             if UIDevice.current.userInterfaceIdiom == .pad {
                 AsyncItemImage(imageData: data)
+                    .id(data)
                     .scaledToFit()
                     .ignoresSafeArea(.all)
                     .mask(mask)
             } else {
                 AsyncItemImage(imageData: data)
+                    .id(data)
                     .scaledToFill()
                     .ignoresSafeArea(.all)
                     .mask(mask)
@@ -123,8 +125,8 @@ struct ItemView: View {
         NavigationStack {
             if #available(iOS 26, *) {
                 ZStack {
-                    GeometryReader { geometry in
-                        GlassEffectContainer {
+                    GlassEffectContainer {
+                        GeometryReader { geometry in
                             ZStack(alignment: .top) {
                                 if isPad {
                                     iPadBackground(geometry)
@@ -141,36 +143,34 @@ struct ItemView: View {
                             }
                             .frame(width: geometry.size.width, height: geometry.size.height)
                         }
-                    }
-                    .ignoresSafeArea(.keyboard)
-                    .background(backgroundGradient)
-                    
-                    if isPad {
-                        GeometryReader { geometry in
-                            GlassEffectContainer {
+                        .ignoresSafeArea(.keyboard)
+                        .background(backgroundGradient)
+                        
+                        if isPad {
+                            GeometryReader { geometry in
                                 iPadLayout(geometry)
                             }
                         }
-                    }
-                    
-                    if showDeleteAnimation {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color.red)
-                                .ignoresSafeArea()
-                                .transition(.blurReplace.combined(with: .opacity))
-                            
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 64))
-                                .foregroundStyle(.white.opacity(0.8))
-                                .transition(.scale.combined(with: .opacity))
+                        
+                        if showDeleteAnimation {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(Color.red)
+                                    .ignoresSafeArea()
+                                    .transition(.blurReplace.combined(with: .opacity))
+                                
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 64))
+                                    .foregroundStyle(.white.opacity(0.8))
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
                     }
                 }
             } else {
                 ZStack {
                     GeometryReader { geometry in
-                        ZStack(alignment: .top) { 
+                        ZStack(alignment: .top) {
                             if isPad {
                                 iPadBackground(geometry)
                                     .ignoresSafeArea(.keyboard)
@@ -303,8 +303,8 @@ struct ItemView: View {
                     maskShape: .square,
                     configuration: swiftyCropConfiguration,
                     onComplete: { cropped in
-                        if let cropped, let data = cropped.pngData() {
-                            editBackground = .image(data)
+                        if let cropped, let data = cropped.pngData(), let optimizedData = optimizePNGData(data) {
+                            editBackground = .image(optimizedData)
                         }
                         showCropper = false
                         imageToCrop = nil
@@ -544,15 +544,16 @@ struct ItemView: View {
     }
     
     private var backgroundGradient: AnyView {
+        let imageBackground = isEditing ? editBackground : background
         return AnyView(
             ZStack {
-                Rectangle()
-                    .foregroundStyle(backgroundLinearGradient)
+                backgroundLinearGradient
                     .ignoresSafeArea()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                if case let .image(data) = background {
+                if case let .image(data) = imageBackground {
                     AsyncItemImage(imageData: data)
+                        .id(data)
                         .scaledToFill()
                         .ignoresSafeArea()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -831,14 +832,14 @@ struct ItemView: View {
             } else {
                 saveButton
             }
-
+            
             deleteButton
-
+            
             dismissButton
         }
         .frame(maxWidth: .infinity, maxHeight: 50)
     }
-
+    
     // MARK: - Button Helpers
     private var editButton: some View {
         Button(action: editItem) {
@@ -852,7 +853,7 @@ struct ItemView: View {
         }
         .adaptiveGlassButton()
     }
-
+    
     private var saveButton: some View {
         Button(action: { Task { await saveItem() }}) {
             Label("Save Edits", systemImage: "pencil")
@@ -865,7 +866,7 @@ struct ItemView: View {
         }
         .adaptiveGlassEditButton(isEditing)
     }
-
+    
     private var deleteButton: some View {
         Button(action: {
             showDeleteAlert = true
@@ -880,7 +881,7 @@ struct ItemView: View {
         }
         .adaptiveGlassButton()
     }
-
+    
     private var dismissButton: some View {
         Button(action: { dismiss() }) {
             Label("Dismiss", systemImage: "xmark")

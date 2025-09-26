@@ -94,7 +94,6 @@ struct SearchView: View {
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
             .frame(maxWidth: .infinity)
