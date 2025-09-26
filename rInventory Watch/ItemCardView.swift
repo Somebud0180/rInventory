@@ -49,38 +49,6 @@ private struct ItemCardAnimationModifier: ViewModifier {
     }
 }
 
-// MARK: - Shared Button Behavior
-struct ItemCardButton<Content: View>: View {
-    let content: Content
-    let onTap: () -> Void
-    @State private var isPressed = false
-    
-    init(@ViewBuilder content: () -> Content, onTap: @escaping () -> Void) {
-        self.content = content()
-        self.onTap = onTap
-    }
-    
-    var body: some View {
-        Button(action: handleTap) {
-            content
-        }
-        .buttonStyle(PlainButtonStyle())
-        .modifier(ItemCardAnimationModifier(
-            isPressed: isPressed
-        ))
-    }
-    
-    private func handleTap() {
-        withAnimation(.spring()) {
-            isPressed = true
-        }
-        withAnimation(.spring().delay(0.1)) {
-            isPressed = false
-        }
-        onTap()
-    }
-}
-
 // MARK: - Core Item Card Function
 /// Creates a item card view for displaying item information in a layout.
 /// - Parameters:
@@ -154,14 +122,14 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     if !category.name.isEmpty {
-                    Text(category.name)
-                        .font(fontConfig.bodyFont)
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .foregroundStyle(.white.opacity(0.95))
-                        .padding(4)
-                        .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
-                }
+                        Text(category.name)
+                            .font(fontConfig.bodyFont)
+                            .fontWeight(.bold)
+                            .lineLimit(1)
+                            .foregroundStyle(.white.opacity(0.95))
+                            .padding(4)
+                            .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
+                    }
                     if hideQuantity {
                         Spacer(minLength: 16)
                     } else {
@@ -250,12 +218,25 @@ struct ItemCard: View {
     var showCounterForSingleItems: Bool = true
     var onTap: () -> Void = {}
     
+    @State private var isPressed = false
+    
     var body: some View {
-        ItemCardButton {
+        Button(action: handleTap) {
             itemCard(item: item, colorScheme: colorScheme, simplified: true, showCounterForSingleItems: showCounterForSingleItems)
-        } onTap: {
-            onTap()
+                .scaleEffect(isPressed ? 0.96 : 1.0)
+                .animation(.interactiveSpring(), value: isPressed)
         }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func handleTap() {
+        withAnimation(.spring()) {
+            isPressed = true
+        }
+        withAnimation(.spring().delay(0.1)) {
+            isPressed = false
+        }
+        onTap()
     }
 }
 
@@ -291,4 +272,3 @@ extension Color {
     InventoryView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
-
