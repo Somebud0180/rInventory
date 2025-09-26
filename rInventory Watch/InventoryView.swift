@@ -60,10 +60,9 @@ struct InventoryView: View {
         case .alphabetical:
             filteredItems = allItems.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
         case .dateModified:
-            filteredItems = allItems.filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
-                .sorted { $0.itemCreationDate > $1.itemCreationDate }
+            filteredItems = allItems.sorted(by: { $0.itemCreationDate > $1.itemCreationDate }).filter( { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) })
         }
-        return Array(filteredItems.prefix(100)) // Limit to 100 items for performance
+        return filteredItems
     }
     
     var body: some View {

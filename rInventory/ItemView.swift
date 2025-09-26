@@ -23,13 +23,13 @@ struct ItemBackgroundView: View {
         switch background {
         case .image(let data):
             if UIDevice.current.userInterfaceIdiom == .pad {
-                AsyncItemImage(imageData: data)
+                AsyncItemImage(imageData: data, maxPixelSize: 2048)
                     .id(data)
                     .scaledToFit()
                     .ignoresSafeArea(.all)
                     .mask(mask)
             } else {
-                AsyncItemImage(imageData: data)
+                AsyncItemImage(imageData: data, maxPixelSize: 2048)
                     .id(data)
                     .scaledToFill()
                     .ignoresSafeArea(.all)

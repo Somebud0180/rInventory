@@ -329,6 +329,7 @@ class InventoryViewModel: ObservableObject {
                 Button(action: {
                     onSortTypeSelected(sortType)
                 }) {
+                    Image(systemName: symbolName(for: sortType))
                     Text(sortType.rawValue)
                 }
             }
