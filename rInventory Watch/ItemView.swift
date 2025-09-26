@@ -18,18 +18,19 @@ struct ItemBackgroundView: View {
         case .image(let data):
             AsyncItemImage(imageData: data)
                 .id(data)
-                .scaledToFit()
                 .mask(
                     LinearGradient(
                         gradient: Gradient(stops: [
                             .init(color: .clear, location: 0.0),
+                            .init(color: .clear, location: 0.1),
                             .init(color: .white, location: 0.2),
                             .init(color: .white, location: 0.8),
                             .init(color: .clear, location: 1.0)
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
-                    ).blur(radius: 12)
+                    )
+                    .blur(radius: 12)
                 )
         case .symbol(let symbol):
             Image(systemName: symbol)
@@ -100,7 +101,6 @@ struct ItemView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .blur(radius: 44)
                 }
-
             }
         )
     }
