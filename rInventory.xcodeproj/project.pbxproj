@@ -93,7 +93,6 @@
 				AppIcon.icon,
 				Helpers/AdaptiveGlassStyle.swift,
 				Helpers/AsyncItemImage.swift,
-				Helpers/CloudKitSyncEngine.swift,
 				Helpers/DataModel.swift,
 				Helpers/DataModelExtension.swift,
 			);

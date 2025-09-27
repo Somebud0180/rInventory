@@ -15,6 +15,8 @@ enum ItemCardBackground {
     case image(Data)
 }
 
+// Disable modification functions on watchOS
+#if !os(watchOS)
 extension Item {
     /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
     static func saveItem(
@@ -250,6 +252,7 @@ extension Category {
         try? context.save()
     }
 }
+#endif // !os(watchOS)
 
 extension Color {
     /// Returns the RGBA components packed into Data (8 bits per channel)
