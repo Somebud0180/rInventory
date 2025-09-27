@@ -12,16 +12,17 @@ struct SearchView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
+    @State private var selectedCategoryName: String = ""
+    @State private var selectedLocationName: String = ""
+    @State private var searchText: String = ""
+    
     @Query private var items: [Item]
-    @Query private var locations: [Location]
-    @Query private var categories: [Category]
+    @Query(sort: \Location.name) private var locations: [Location]
+    @Query(sort: \Category.name) private var categories: [Category]
     
     @State var selectedItem: Item?
     @State var showItemView: Bool = false
     
-    @State private var selectedCategoryName: String = ""
-    @State private var selectedLocationName: String = ""
-    @State private var searchText: String = ""
     @State private var categoryFilter: String = ""
     @State private var locationFilter: String = ""
     @State private var categoryMenuPresented: Bool = false
@@ -31,24 +32,17 @@ struct SearchView: View {
     
     private var filteredItems: [Item] {
         var filtered = items
-        
-        // Apply category filter if selected
         if !selectedCategoryName.isEmpty {
             filtered = filtered.filter { $0.category?.name == selectedCategoryName }
         }
-        
-        // Apply location filter if selected
         if !selectedLocationName.isEmpty {
             filtered = filtered.filter { $0.location?.name == selectedLocationName }
         }
-        
-        // Apply search text
         if !searchText.isEmpty {
             filtered = filtered.filter { item in
-                item.name.localizedCaseInsensitiveContains(searchText)
+                item.name.localizedStandardContains(searchText)
             }
         }
-        
         return filtered
     }
     
@@ -139,7 +133,7 @@ struct SearchView: View {
                             HStack(spacing: 8) {
                                 if #available(watchOS 26.0, *) {
                                     GlassEffectContainer {
-                                        ForEach(categories.sorted(by: { $0.name < $1.name }), id: \.self) { category in
+                                        ForEach(categories, id: \.self) { category in
                                             Button(action: {
                                                 withAnimation {
                                                     selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
@@ -154,7 +148,7 @@ struct SearchView: View {
                                         }
                                     }
                                 } else {
-                                    ForEach(categories.sorted(by: { $0.name < $1.name }), id: \.self) { category in
+                                    ForEach(categories, id: \.self) { category in
                                         Button(action: {
                                             withAnimation {
                                                 selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
@@ -223,7 +217,7 @@ struct SearchView: View {
                             HStack(spacing: 8) {
                                 if #available(watchOS 26.0, *) {
                                     GlassEffectContainer {
-                                        ForEach(locations.sorted(by: { $0.name < $1.name }), id: \.self) { location in
+                                        ForEach(locations, id: \.self) { location in
                                             Button(action: {
                                                 withAnimation {
                                                     selectedLocationName = selectedLocationName == location.name ? "" : location.name
@@ -239,7 +233,7 @@ struct SearchView: View {
                                         }
                                     }
                                 } else {
-                                    ForEach(locations.sorted(by: { $0.name < $1.name }), id: \.self) { location in
+                                    ForEach(locations, id: \.self) { location in
                                         Button(action: {
                                             withAnimation {
                                                 selectedLocationName = selectedLocationName == location.name ? "" : location.name
@@ -286,6 +280,7 @@ struct SearchView: View {
 }
 
 #Preview {
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
     SearchView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
