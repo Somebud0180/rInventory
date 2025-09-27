@@ -66,7 +66,7 @@ struct AsyncItemImage: View {
         // Choose a conservative default max pixel size by platform to keep memory in check.
         // Values are in pixels, not points.
 #if os(watchOS)
-        let platformDefault: CGFloat = 200 // small thumbnail for watch grids/cards
+        let platformDefault: CGFloat = 240 // small thumbnail for watch grids/cards
 #else
         let platformDefault: CGFloat = 600 // reasonable thumbnail for phone/iPad lists/cards
 #endif

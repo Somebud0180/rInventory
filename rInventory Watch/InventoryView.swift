@@ -68,41 +68,35 @@ struct InventoryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 8) {
-                    HStack {
-                        Button(action: { showSortPicker = true }) {
-                            SortPickerLabel(
-                                selectedSortType: selectedSortType,
-                                symbolName: selectedSortType == .order ? "line.3.horizontal.decrease" :
-                                    selectedSortType == .alphabetical ? "textformat.abc" :
-                                    "calendar",
-                                menuPresented: $sortMenuPresented
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    
-                    if items.isEmpty {
-                        emptyItemsView
-                    } else {
-                        LazyVGrid(columns: gridColumns, spacing: 10) {
-                            ForEach(items) { item in
-                                ItemCard(item: item, colorScheme: colorScheme, onTap: {
-                                    selectedItem = item
-                                    showItemView = true
-                                })
-                                .id(item.id) // Add unique ID to improve rendering performance
-                                .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                            }
+                if items.isEmpty {
+                    emptyItemsView
+                } else {
+                    LazyVGrid(columns: gridColumns, spacing: 10) {
+                        ForEach(items) { item in
+                            ItemCard(item: item, colorScheme: colorScheme, onTap: {
+                                selectedItem = item
+                                showItemView = true
+                            })
+                            .id(item.id) // Add unique ID to improve rendering performance
+                            .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                         }
                     }
                 }
             }
             .navigationTitle("rInventory")
-            .navigationBarTitleDisplayMode(.large)
             .scrollDisabled(items.isEmpty)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { showSortPicker = true }) {
+                        Image(systemName: selectedSortType == .order ? "line.3.horizontal.decrease" :
+                                selectedSortType == .alphabetical ? "textformat.abc" :
+                                "calendar")
+                        .font(.body)
+                    }
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+                }
+            }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if let selectedItem {
                     ItemView(item: bindingForItem(selectedItem, items))
@@ -176,94 +170,6 @@ struct InventoryView: View {
                     .frame(height: geo.size.height * 0.9)
                 }
             }
-        }
-    }
-    
-    /// A label for the sort picker that dynamically adjusts its width based on the selected sort type.
-    struct SortPickerLabel: View {
-        let selectedSortType: SortType
-        let symbolName: String
-        @Binding var menuPresented: Bool
-        @State private var displayedWidth: CGFloat = 50
-        @State private var measuredWidth: CGFloat = 50
-        @State private var lastSortType: SortType
-        
-        init(selectedSortType: SortType, symbolName: String, menuPresented: Binding<Bool>) {
-            self.selectedSortType = selectedSortType
-            self.symbolName = symbolName
-            self._menuPresented = menuPresented
-            _lastSortType = State(initialValue: selectedSortType)
-        }
-        
-        var body: some View {
-            ZStack {
-                // Visible label
-                HStack(spacing: 6) {
-                    Image(systemName: symbolName)
-                        .font(.body)
-                    Text(selectedSortType.rawValue)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .frame(width: displayedWidth)
-                .frame(minHeight: 44)
-                .foregroundColor(.primary)
-                .background(.white.opacity(0.01), in: Capsule())
-                
-                // Hidden label for measurement
-                HStack(spacing: 6) {
-                    Image(systemName: symbolName)
-                        .font(.body)
-                    Text(selectedSortType.rawValue)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .frame(minHeight: 44)
-                .background(
-                    GeometryReader { geo in
-                        Color.clear
-                            .preference(key: SortWidthPreferenceKey.self, value: geo.size.width)
-                    }
-                )
-                .hidden()
-            }
-            .adaptiveGlassButton(tintStrength: 0.0)
-            .onPreferenceChange(SortWidthPreferenceKey.self) { newWidth in
-                let width = max(newWidth, 50)
-                measuredWidth = width
-                displayedWidth = measuredWidth
-            }
-            .onChange(of: selectedSortType) {
-                lastSortType = selectedSortType
-                // Wait until menu is closed before expanding
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    if !menuPresented {
-                        displayedWidth = measuredWidth
-                    }
-                }
-            }
-            .onChange(of: menuPresented) {
-                if !menuPresented {
-                    displayedWidth = measuredWidth
-                }
-            }
-            .onAppear {
-                displayedWidth = measuredWidth
-            }
-        }
-    }
-    
-    /// Preference key to measure width of the dynamic sort label
-    struct SortWidthPreferenceKey: PreferenceKey {
-        static var defaultValue: CGFloat = 100
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = nextValue()
         }
     }
 }

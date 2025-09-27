@@ -95,7 +95,7 @@ struct ItemView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
                 if case let .image(data) = background {
-                    AsyncItemImage(imageData: data, maxPixelSize: 400)
+                    AsyncItemImage(imageData: data)
                         .scaledToFill()
                         .ignoresSafeArea()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
