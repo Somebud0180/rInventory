@@ -21,16 +21,15 @@ let usesLiquidGlass: Bool = {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
-    @ObservedObject var syncEngine: CloudKitSyncEngine
+    @SceneStorage("ContentView.tabSelection") var tabSelection: Int = TabSelection.home.rawValue
     
     // User Activity & State Restoration support
     private enum TabSelection: Int {
         case home = 0, settings = 1, search = 2
     }
-    
-    @SceneStorage("ContentView.tabSelection") var tabSelection: Int = TabSelection.home.rawValue
     
     private var currentTab: TabSelection {
         get { TabSelection(rawValue: tabSelection) ?? .home }
@@ -43,10 +42,6 @@ struct ContentView: View {
     @State private var showItemCreationView: Bool = false
     @State private var showInteractiveCreationView: Bool = false
     @State private var showItemView: Bool = false
-    
-    init(syncEngine: CloudKitSyncEngine) {
-        self.syncEngine = syncEngine
-    }
     
     var body: some View {
         return tabView()
@@ -166,8 +161,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    let tempContainer = try! ModelContainer(for: Item.self, Location.self, Category.self)
-    let engine = CloudKitSyncEngine(modelContext: tempContainer.mainContext)
-    ContentView(syncEngine: engine)
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    ContentView(syncEngine: syncEngine)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

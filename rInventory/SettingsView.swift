@@ -17,12 +17,11 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
-    
     @Query private var items: [Item]
     
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     @State var isActive: Bool
-    @Environment(\.horizontalSizeClass) private var hSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
@@ -85,7 +84,7 @@ struct SettingsView: View {
                 Group {
                     Section("Visuals") {
                         LazyVGrid(
-                            columns: hSizeClass == .compact ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                            columns: horizontalSizeClass == .compact ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
                             spacing: 16
                         ) {
                             ForEach(creationModeOptions) { option in
@@ -123,19 +122,20 @@ struct SettingsView: View {
                             Text(iCloudStatusDescription)
                                 .foregroundColor(.secondary)
                         }
-                        HStack {
-                            Button("Sync Now") {
-                                Task {
-                                    await syncEngine.manualSync()
+                        Button(action: {
+                            Task {
+                                await syncEngine.manualSync()
+                            }
+                        }) {
+                            HStack {
+                                Text("Sync Now")
+                                Spacer()
+                                if syncEngine.syncState == .syncing {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
                                 }
                             }
-                            Spacer()
-                            if syncEngine.syncState == .syncing {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
                     }
                 }
 #if DEBUG
@@ -144,6 +144,11 @@ struct SettingsView: View {
                         Button("Optimize Image Backgrounds") {
                             Task {
                                 await optimizeImageBackgrounds()
+                            }
+                        }
+                        Button("Purge Nil Location/Ghost Items") {
+                            Task {
+                                await purgeNilOrGhostItems()
                             }
                         }
                     }
@@ -209,6 +214,29 @@ struct SettingsView: View {
             if let imageData = item.imageData, let optimizedData = optimizePNGData(imageData) {
                 await item.updateItem(
                     background: .image(optimizedData),
+                    context: syncEngine.modelContext,
+                    cloudKitSyncEngine: syncEngine
+                )
+            }
+        }
+    }
+    
+    private func purgeNilOrGhostItems() async {
+        // Snapshot current items to avoid mutating while iterating the query collection
+        let allItems = items
+        // Define a conservative ghost heuristic
+        func isGhost(_ item: Item) -> Bool {
+            let nameEmpty = item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let hasNoVisual = item.imageData == nil && ((item.symbol ?? "").isEmpty)
+            let hasNoRelations = item.location == nil && item.category == nil
+            let zeroQty = item.quantity == 0
+            return nameEmpty && hasNoVisual && hasNoRelations && zeroQty
+        }
+        
+        for item in allItems {
+            if isGhost(item) {
+                print("Deleting item \(item.name) (ID: \(item.id))")
+                await item.deleteItem(
                     context: syncEngine.modelContext,
                     cloudKitSyncEngine: syncEngine
                 )

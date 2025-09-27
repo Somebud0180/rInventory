@@ -18,18 +18,19 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
-    @State var tabSelection: Int = 0
+    @ObservedObject var syncEngine: CloudKitSyncEngine
+    @SceneStorage("ContentView.tabSelection") var tabSelection: Int = 0
     
     var body: some View {
         TabView(selection: $tabSelection) {
-            InventoryView()
+            InventoryView(syncEngine: syncEngine)
                 .disabled(tabSelection != 0)
                 .tabItem {
                     Label("Inventory", systemImage: "list.bullet")
                 }
                 .tag(0) // Tag for Home Tab
             
-            SearchView()
+            SearchView(syncEngine: syncEngine)
                 .disabled(tabSelection != 1)
                 .tabItem {
                     Label("Search", systemImage: "magnifyingglass")
@@ -40,6 +41,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    ContentView(syncEngine: syncEngine)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

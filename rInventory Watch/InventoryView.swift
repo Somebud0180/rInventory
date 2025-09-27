@@ -20,6 +20,7 @@ let gridColumns = [
 ]
 
 struct SortPickerView: View {
+    @EnvironmentObject private var appDefaults: AppDefaults
     @Binding var selectedSortType: SortType
     @Binding var showSortPicker: Bool
     
@@ -29,6 +30,7 @@ struct SortPickerView: View {
                 ForEach(SortType.allCases, id: \.self) { sort in
                     Button(action: {
                         selectedSortType = sort
+                        appDefaults.defaultInventorySort = SortType.allCases.firstIndex(of: sort) ?? 0
                         showSortPicker = false
                     }) {
                         HStack {
@@ -57,15 +59,13 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     
     @EnvironmentObject private var appDefaults: AppDefaults
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var allItems: [Item]
     
     @State private var selectedItem: Item? = nil
     @State private var showItemView: Bool = false
-    
-    @State private var selectedSortType: SortType = .order
-    @State private var sortMenuPresented: Bool = false
-    
     @State private var showSortPicker = false
+    @State private var selectedSortType: SortType = .order
     
     // Optimize data handling by limiting the number of items processed
     private var items: [Item] {
@@ -111,6 +111,19 @@ struct InventoryView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: SettingsView(syncEngine: syncEngine)) {
+                        Image(systemName: "gearshape")
+                            .font(.body)
+                    }
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+                }
+            }
+            .onAppear {
+                let sortTypeIndex = AppDefaults.shared.defaultInventorySort
+                selectedSortType =
+                ([SortType.order, .alphabetical, .dateModified, .recentlyAdded].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified, .recentlyAdded][sortTypeIndex] : .order)
             }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if let selectedItem {
@@ -191,6 +204,8 @@ func bindingForItem(_ item: Item, _ items: [Item]) -> Binding<Item> {
 }
 
 #Preview {
-    InventoryView()
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    InventoryView(syncEngine: syncEngine)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

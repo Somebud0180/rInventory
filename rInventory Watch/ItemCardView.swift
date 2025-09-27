@@ -216,6 +216,8 @@ extension Color {
 }
 
 #Preview {
-    InventoryView()
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    InventoryView(syncEngine: syncEngine)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
