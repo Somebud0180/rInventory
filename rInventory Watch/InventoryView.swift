@@ -88,15 +88,14 @@ struct InventoryView: View {
                 if items.isEmpty {
                     emptyItemsView
                 } else {
-                    LazyVGrid(columns: gridColumns, spacing: 10) {
-                        ForEach(filteredItems) { item in
-                            ItemCard(item: item, colorScheme: colorScheme, onTap: {
-                                selectedItem = item
-                                showItemView = true
-                            })
-                            .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                        }
-                    }
+                    ItemGridView(
+                        items: filteredItems,
+                        showCounterForSingleItems: appDefaults.showCounterForSingleItems,
+                        onItemSelected: { item in
+                            selectedItem = item
+                        },
+                        showItemView: $showItemView
+                    )
                 }
             }
             .navigationTitle("rInventory")

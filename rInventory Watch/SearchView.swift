@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct SearchView: View {
+    @EnvironmentObject var appDefaults: AppDefaults
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -51,44 +52,16 @@ struct SearchView: View {
             ScrollView {
                 filterSection
                     .padding(.horizontal)
+                    .padding(.bottom, 6)
                 
-                if filteredItems.isEmpty {
-                    Text("No items found")
-                        .foregroundColor(.gray)
-                        .padding(5)
-                } else {
-                    LazyVGrid(columns: gridColumns) {
-                        if #available(watchOS 26.0, *) {
-                            GlassEffectContainer {
-                                ForEach(filteredItems, id: \.id) { item in
-                                    ItemCard(
-                                        item: item,
-                                        colorScheme: colorScheme,
-                                        showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
-                                        onTap: {
-                                            selectedItem = item
-                                            showItemView = true
-                                        }
-                                    )
-                                    .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                                }
-                            }
-                        } else {
-                            ForEach(filteredItems, id: \.id) { item in
-                                ItemCard(
-                                    item: item,
-                                    colorScheme: colorScheme,
-                                    showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
-                                    onTap: {
-                                        selectedItem = item
-                                        showItemView = true
-                                    }
-                                )
-                                .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
-                            }
-                        }
-                    }
-                }
+                ItemGridView(
+                    items: filteredItems,
+                    showCounterForSingleItems: appDefaults.showCounterForSingleItems,
+                    onItemSelected: { item in
+                        selectedItem = item
+                    },
+                    showItemView: $showItemView
+                )
             }
             .navigationTitle("Search")
             .searchable(text: $searchText, prompt: "Search items")

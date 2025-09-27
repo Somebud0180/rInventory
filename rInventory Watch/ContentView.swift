@@ -25,14 +25,12 @@ struct ContentView: View {
         NavigationStack {
             TabView(selection: $tabSelection) {
                 InventoryView()
-                    .disabled(tabSelection != 0)
                     .tabItem {
                         Label("Inventory", systemImage: "list.bullet")
                     }
                     .tag(0) // Tag for Home Tab
                 
                 SearchView()
-                    .disabled(tabSelection != 1)
                     .tabItem {
                         Label("Search", systemImage: "magnifyingglass")
                     }
