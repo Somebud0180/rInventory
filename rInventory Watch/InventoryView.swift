@@ -59,8 +59,7 @@ struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     
     @EnvironmentObject private var appDefaults: AppDefaults
-    @ObservedObject var syncEngine: CloudKitSyncEngine
-    @Query private var allItems: [Item]
+    @Query private var items: [Item]
     
     @State private var selectedItem: Item? = nil
     @State private var showItemView: Bool = false
@@ -68,17 +67,17 @@ struct InventoryView: View {
     @State private var selectedSortType: SortType = .order
     
     // Optimize data handling by limiting the number of items processed
-    private var items: [Item] {
+    private var filteredItems: [Item] {
         let filteredItems: [Item]
         switch selectedSortType {
         case .order:
-            filteredItems = allItems.sorted(by: { $0.sortOrder < $1.sortOrder })
+            filteredItems = items.sorted(by: { $0.sortOrder < $1.sortOrder })
         case .alphabetical:
-            filteredItems = allItems.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
+            filteredItems = items.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
         case .dateModified:
-            filteredItems = allItems.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
+            filteredItems = items.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
         case .recentlyAdded:
-            filteredItems = allItems.sorted(by: { ($0.itemCreationDate) > ($1.itemCreationDate) }).filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            filteredItems = items.sorted(by: { ($0.itemCreationDate) > ($1.itemCreationDate) }).filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         }
         return filteredItems
     }
@@ -90,7 +89,7 @@ struct InventoryView: View {
                     emptyItemsView
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: 10) {
-                        ForEach(items) { item in
+                        ForEach(filteredItems) { item in
                             ItemCard(item: item, colorScheme: colorScheme, onTap: {
                                 selectedItem = item
                                 showItemView = true
@@ -106,14 +105,6 @@ struct InventoryView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { showSortPicker = true }) {
                         Image(systemName: sortSymbol(for: selectedSortType))
-                            .font(.body)
-                    }
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView(syncEngine: syncEngine)) {
-                        Image(systemName: "gearshape")
                             .font(.body)
                     }
                     .frame(width: 44, height: 44)
@@ -204,8 +195,6 @@ func bindingForItem(_ item: Item, _ items: [Item]) -> Binding<Item> {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
-    
-    InventoryView(syncEngine: syncEngine)
+    InventoryView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

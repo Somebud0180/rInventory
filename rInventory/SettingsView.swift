@@ -25,7 +25,7 @@ struct SettingsView: View {
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
-        case .available: return "Available"
+        case .available: return "Active"
         case .noAccount: return "No Account"
         case .restricted: return "Restricted"
         case .couldNotDetermine: return "Could Not Determine"

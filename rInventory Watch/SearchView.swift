@@ -11,7 +11,6 @@ import SwiftData
 struct SearchView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
-    @ObservedObject var syncEngine: CloudKitSyncEngine
     
     @Query private var items: [Item]
     @Query private var locations: [Location]
@@ -99,16 +98,6 @@ struct SearchView: View {
             }
             .navigationTitle("Search")
             .searchable(text: $searchText, prompt: "Search items")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView(syncEngine: syncEngine)) {
-                        Image(systemName: "gearshape")
-                            .font(.body)
-                    }
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-                }
-            }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if let selectedItem {
                     ItemView(item: bindingForItem(selectedItem, items))
@@ -297,8 +286,6 @@ struct SearchView: View {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
-    
-    SearchView(syncEngine: syncEngine)
+    SearchView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

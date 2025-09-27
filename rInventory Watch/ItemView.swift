@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 /// View for displaying either an image or a symbol background with a mask.
 struct ItemBackgroundView: View {
@@ -76,13 +77,7 @@ struct ItemView: View {
         .onAppear {
             initializeDisplayVariables()
         }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(action : { dismiss() }) {
-                    Image(systemName: "xmark")
-                }
-            }
-        }
+        
     }
     
     //MARK: - Computed Properties
