@@ -96,9 +96,7 @@ struct SearchView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
             .navigationTitle("Search")
-            .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items")
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 if let selectedItem {

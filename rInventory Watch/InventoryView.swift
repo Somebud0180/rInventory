@@ -7,34 +7,50 @@
 
 import SwiftUI
 import SwiftData
-import UniformTypeIdentifiers
-
-/// Represents a unique identifier for an item that can be transferred between devices.
-struct ItemIdentifier: Transferable {
-    let id: UUID
-    
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(contentType: .data) { identifier in
-            identifier.id.uuidString.data(using: .utf8) ?? Data()
-        } importing: { data in
-            guard let string = String(data: data, encoding: .utf8),
-                  let uuid = UUID(uuidString: string) else {
-                throw CocoaError(.fileReadCorruptFile)
-            }
-            return ItemIdentifier(id: uuid)
-        }
-    }
-}
 
 enum SortType: String, CaseIterable {
     case order = "Order"
     case alphabetical = "Alphabetical"
     case dateModified = "Date Modified"
+    case recentlyAdded = "Recently Added"
 }
 
 let gridColumns = [
     GridItem(.adaptive(minimum: 80), spacing: 10)
 ]
+
+struct SortPickerView: View {
+    @Binding var selectedSortType: SortType
+    @Binding var showSortPicker: Bool
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(SortType.allCases, id: \.self) { sort in
+                    Button(action: {
+                        selectedSortType = sort
+                        showSortPicker = false
+                    }) {
+                        HStack {
+                            Image(systemName: sortSymbol(for: sort))
+                                .font(.body)
+                            Text(sort.rawValue)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            if selectedSortType == sort {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Sort Items By")
+        }
+    }
+}
 
 struct InventoryView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -60,7 +76,9 @@ struct InventoryView: View {
         case .alphabetical:
             filteredItems = allItems.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
         case .dateModified:
-            filteredItems = allItems.sorted(by: { $0.itemCreationDate > $1.itemCreationDate }).filter( { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) })
+            filteredItems = allItems.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
+        case .recentlyAdded:
+            filteredItems = allItems.sorted(by: { ($0.itemCreationDate) > ($1.itemCreationDate) }).filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
         }
         return filteredItems
     }
@@ -77,7 +95,6 @@ struct InventoryView: View {
                                 selectedItem = item
                                 showItemView = true
                             })
-                            .id(item.id) // Add unique ID to improve rendering performance
                             .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                         }
                     }
@@ -86,12 +103,10 @@ struct InventoryView: View {
             .navigationTitle("rInventory")
             .scrollDisabled(items.isEmpty)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: { showSortPicker = true }) {
-                        Image(systemName: selectedSortType == .order ? "line.3.horizontal.decrease" :
-                                selectedSortType == .alphabetical ? "textformat.abc" :
-                                "calendar")
-                        .font(.body)
+                        Image(systemName: sortSymbol(for: selectedSortType))
+                            .font(.body)
                     }
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
@@ -106,35 +121,7 @@ struct InventoryView: View {
                 }
             }
             .sheet(isPresented: $showSortPicker) {
-                VStack {
-                    Text("Sort Items By")
-                        .font(.headline)
-                        .padding(.top)
-                    List {
-                        ForEach(SortType.allCases, id: \.self) { sort in
-                            Button(action: {
-                                selectedSortType = sort
-                                showSortPicker = false
-                            }) {
-                                HStack {
-                                    Image(systemName: sort == .order ? "line.3.horizontal.decrease" :
-                                            sort == .alphabetical ? "textformat.abc" :
-                                            "calendar")
-                                    .font(.body)
-                                    Text(sort.rawValue)
-                                        .font(.subheadline)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                    if selectedSortType == sort {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(.accentColor)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                SortPickerView(selectedSortType: $selectedSortType, showSortPicker: $showSortPicker)
             }
         }
     }
@@ -171,6 +158,19 @@ struct InventoryView: View {
                 }
             }
         }
+    }
+}
+
+func sortSymbol(for sortType: SortType) -> String {
+    switch sortType {
+    case .order:
+        return "line.3.horizontal.decrease"
+    case .alphabetical:
+        return "textformat.abc"
+    case .dateModified:
+        return "calendar"
+    case .recentlyAdded:
+        return "calendar.badge.plus"
     }
 }
 
