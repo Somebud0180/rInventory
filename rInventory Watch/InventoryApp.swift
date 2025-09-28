@@ -53,18 +53,13 @@ struct Inventory_WatchApp: App {
         }
     }()
     
-    init() {
-        self._syncEngine = StateObject(wrappedValue: CloudKitSyncEngine(modelContext: Inventory_WatchApp.sharedModelContainer.mainContext))
-    }
-    
-    @StateObject private var syncEngine: CloudKitSyncEngine
     @StateObject private var appDefaults = AppDefaults.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
     var body: some Scene {
         WindowGroup {
-            ContentView(syncEngine: syncEngine)
+            ContentView()
                 .environmentObject(appDefaults)
         }
         .modelContainer(Inventory_WatchApp.sharedModelContainer)

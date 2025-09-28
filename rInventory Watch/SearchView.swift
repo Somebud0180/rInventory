@@ -214,7 +214,6 @@ struct SearchView: View {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
     SearchView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

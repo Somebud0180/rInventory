@@ -18,7 +18,6 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
-    @ObservedObject var syncEngine: CloudKitSyncEngine
     @SceneStorage("ContentView.tabSelection") var tabSelection: Int = 0
     
     var body: some View {
@@ -38,7 +37,7 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView(syncEngine: syncEngine)) {
+                    NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape")
                             .font(.body)
                     }
@@ -51,8 +50,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
-    
-    ContentView(syncEngine: syncEngine)
+    ContentView()
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
