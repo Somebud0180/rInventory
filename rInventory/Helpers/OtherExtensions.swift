@@ -10,27 +10,6 @@ import SwiftUI
 import Combine
 import ImageIO
 
-#if os(iOS)
-/// Extension used in iOS only.
-extension View {
-    /// Applies a modifier to the view conditionally.
-    /// - Parameters:
-    ///  - condition: The condition to evaluate.
-    ///  - transform: The modifier to apply if the condition is true.
-    ///  - Returns: Either the original view or the modified view based on the condition.
-    @ViewBuilder
-    func `if`<Content: View>(
-        _ condition: Bool,
-        transform: (Self) -> Content
-    ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-}
-
 extension Color {
     /// Returns the relative luminance of this color, from 0 (black) to 1 (white).
     func luminance() -> Double {
@@ -59,13 +38,41 @@ extension Color {
     }
 }
 
-extension AsyncItemImage {
-    /// Checks if the image has an alpha channel with actual transparency.
-    /// - Returns: `true` if the image has actual transparency, otherwise `false`.
-    func hasAlphaChannel() -> Bool {
-        return AsyncItemImage.hasAlphaChannel(in: imageData)
+func bindingForItem(_ item: Item, items: [Item]) -> Binding<Item> {
+    Binding(
+        get: {
+            if let item = items.first(where: { $0.id == item.id }) {
+                return item
+            } else {
+                return item
+            }
+        },
+        set: { _ in
+            // Leave blank - we don't need to modify the item here
+        }
+    )
+}
+
+extension View {
+    /// Applies a modifier to the view conditionally.
+    /// - Parameters:
+    ///  - condition: The condition to evaluate.
+    ///  - transform: The modifier to apply if the condition is true.
+    ///  - Returns: Either the original view or the modified view based on the condition.
+    @ViewBuilder
+    func `if`<Content: View>(
+        _ condition: Bool,
+        transform: (Self) -> Content
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
-    
+}
+
+extension AsyncItemImage {
     /// Static method to check if an image has actual transparency.
     /// - Parameter data: The image data to check.
     /// - Returns: `true` if the image has actual transparency, otherwise `false`.
@@ -116,7 +123,7 @@ extension AsyncItemImage {
         
         // Sample a reasonable number of pixels to check for transparency
         // We don't need to check every pixel, just sample across the image
-        let samplingCount = min(width * height, 10000) // Limit to reasonable number of pixels
+        let samplingCount = min(width * height, 360) // Limit to reasonable number of pixels
         let samplingStep = max(1, (width * height) / samplingCount)
         
         for i in stride(from: 3, to: pixelData.count, by: samplingStep * 4) {
@@ -131,22 +138,6 @@ extension AsyncItemImage {
         return false
     }
 }
-
-func bindingForItem(_ item: Item, items: [Item]) -> Binding<Item> {
-    Binding(
-        get: {
-            if let item = items.first(where: { $0.id == item.id }) {
-                return item
-            } else {
-                return item
-            }
-        },
-        set: { _ in
-            // Leave blank - we don't need to modify the item here
-        }
-    )
-}
-#endif // os(iOS)
 
 /// Optimizes PNG image data by re-encoding it with lossless compression.
 /// - Parameter data: The original PNG image data.

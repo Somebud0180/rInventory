@@ -13,26 +13,25 @@ struct ItemBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
     let background: ItemCardBackground
     let symbolColor: Color?
+    let gradientMask: LinearGradient = LinearGradient(
+        gradient: Gradient(stops: [
+            .init(color: .clear, location: 0.0),
+            .init(color: .clear, location: 0.1),
+            .init(color: .white, location: 0.2),
+            .init(color: .white, location: 0.8),
+            .init(color: .clear, location: 1.0)
+        ]),
+        startPoint: .top,
+        endPoint: .bottom
+    )
+        
     
     var body: some View {
         switch background {
         case .image(let data):
             AsyncItemImage(imageData: data)
                 .id(data)
-                .mask(
-                    LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: .clear, location: 0.0),
-                            .init(color: .clear, location: 0.1),
-                            .init(color: .white, location: 0.2),
-                            .init(color: .white, location: 0.8),
-                            .init(color: .clear, location: 1.0)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .blur(radius: 12)
-                )
+                .if(!AsyncItemImage.hasAlphaChannel(in: data)) { $0.mask(gradientMask.blur(radius: 12)) }
         case .symbol(let symbol):
             Image(systemName: symbol)
                 .resizable()
