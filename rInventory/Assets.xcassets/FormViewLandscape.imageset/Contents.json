@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Form (Light).png",
+      "filename" : "Form_Light_Landscape.png",
       "idiom" : "universal"
     },
     {
@@ -11,7 +11,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Form (Dark).png",
+      "filename" : "Form_Dark_Landscape.png",
       "idiom" : "universal"
     }
   ],

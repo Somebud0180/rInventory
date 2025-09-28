@@ -134,11 +134,9 @@ struct ItemView: View {
                                 } else if isLandscape {
                                     landscapeLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
-                                        .preferredColorScheme(.dark)
                                 } else {
                                     portraitLayout(geometry)
                                         .ignoresSafeArea(.keyboard)
-                                        .preferredColorScheme(.dark)
                                 }
                             }
                             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -709,13 +707,14 @@ struct ItemView: View {
     }
     
     private var nameSection: some View {
-        Group {
+        return Group {
             if isEditing {
                 HStack(alignment: .center, spacing: 8) {
                     Image(systemName: "pencil")
                         .foregroundStyle(.secondary)
                     
                     TextField("Name", text: $editName)
+                        .foregroundStyle(nameForegroundColor())
                         .focused($focusedField, equals: .name)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
@@ -732,6 +731,7 @@ struct ItemView: View {
                 }
             } else {
                 Text(name)
+                    .foregroundStyle(nameForegroundColor())
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
@@ -897,6 +897,16 @@ struct ItemView: View {
     }
     
     // MARK: - Functional Helpers
+    /// Grabs the current symbol color and returns the name text's color.
+    private func nameForegroundColor() -> Color {
+        if isPad {
+            return .primary
+        } else {
+            let currentSymbolColor = isEditing ? editSymbolColor : symbolColor
+            return (colorScheme == .dark || (currentSymbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? .white : .black
+        }
+    }
+    
     /// Loads current item values into edit variables and enters editing mode with animation.
     private func editItem() {
         editName = item.name

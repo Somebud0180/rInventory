@@ -14,14 +14,15 @@ import os // Add this to check for debug builds
 let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
 struct SettingsView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
+    // MARK: - iCloud Variables
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     @State var isActive: Bool
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
@@ -45,6 +46,12 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Creation Mode Variables
+    let creationColumns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
     struct CreationModeOption: Identifiable {
         let id = UUID()
         let title: String
@@ -53,13 +60,13 @@ struct SettingsView: View {
         let isInteractive: Bool
     }
     
-    // Options for creation mode selection UI
-    private let creationModeOptions = [
-        CreationModeOption(title: "Interactive Item Creation", description: "Create items interactively with a guided approach.", imageName: "InteractiveView", isInteractive: true),
-        CreationModeOption(title: "Form Item Creation", description: "Create items using a classic form-based approach.", imageName: "FormView", isInteractive: false)
-    ]
-    
     var body: some View {
+        // Options for creation mode selection UI
+        let creationModeOptions = [
+            CreationModeOption(title: "Interactive Item Creation", description: "Create items interactively with a guided approach.", imageName: horizontalSizeClass == .regular ? "InteractiveViewLandscape" : "InteractiveViewPortrait", isInteractive: true),
+            CreationModeOption(title: "Form Item Creation", description: "Create items using a classic form-based approach.", imageName: horizontalSizeClass == .regular ? "FormViewLandscape" : "FormViewPortrait", isInteractive: false)
+        ]
+        
         NavigationStack {
             Form {
                 Group {
@@ -84,7 +91,7 @@ struct SettingsView: View {
                 Group {
                     Section("Visuals") {
                         LazyVGrid(
-                            columns: horizontalSizeClass == .compact ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                            columns: creationColumns,
                             spacing: 16
                         ) {
                             ForEach(creationModeOptions) { option in
