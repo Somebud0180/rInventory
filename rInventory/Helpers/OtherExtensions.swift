@@ -105,33 +105,59 @@ extension AsyncItemImage {
 }
 #endif // os(iOS)
 
-/// Downsamples image data to a specified maximum pixel size.
+
+/// Efficiently creates a downsampled version of an image from the provided data.
+/// This approach uses significantly less memory than loading the full image first.
 /// - Parameters:
-///   - data: The original image data.
-///   - maxPixelSize: The maximum pixel size for the downsampled image.
-///   - scale: The scale factor for the resulting UIImage.
-///   - Returns: A downsampled UIImage, or `nil` if downsampling fails.
+///   - data: The image data to decode
+///   - maxPixelSize: The maximum dimension (width or height) of the resulting image
+///   - scale: The scale factor to apply (typically the screen scale)
+/// - Returns: A downsampled UIImage, or nil if the image couldn't be processed
 func downsampledImage(from data: Data, maxPixelSize: CGFloat, scale: CGFloat) -> UIImage? {
+    // Create an image source
+    guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
+        return nil
+    }
+    
+    // Get original dimensions to calculate aspect ratio
     let options: [CFString: Any] = [
-        kCGImageSourceShouldCache: false,
-        kCGImageSourceShouldCacheImmediately: false
+        kCGImageSourceShouldCache: false
     ]
-    guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
+    
+    guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, options as CFDictionary) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? Int,
+          let height = properties[kCGImagePropertyPixelHeight] as? Int else {
         return nil
     }
-    let maxDimensionInPixels = maxPixelSize // already in pixels
-    let thumbOptions: [CFString: Any] = [
+    
+    // Calculate target size while maintaining aspect ratio
+    let aspectRatio = CGFloat(width) / CGFloat(height)
+    let targetSize: CGSize
+    
+    if width > height {
+        let targetWidth = min(CGFloat(width), maxPixelSize)
+        targetSize = CGSize(width: targetWidth, height: targetWidth / aspectRatio)
+    } else {
+        let targetHeight = min(CGFloat(height), maxPixelSize)
+        targetSize = CGSize(width: targetHeight * aspectRatio, height: targetHeight)
+    }
+    
+    // Create thumbnail options specifying the target size
+    let thumbnailOptions: [CFString: Any] = [
         kCGImageSourceCreateThumbnailFromImageAlways: true,
-        kCGImageSourceShouldCache: false,
-        kCGImageSourceShouldCacheImmediately: false,
+        kCGImageSourceShouldCacheImmediately: true,
         kCGImageSourceCreateThumbnailWithTransform: true,
-        kCGImageSourceThumbnailMaxPixelSize: Int(maxDimensionInPixels)
+        kCGImageSourceThumbnailMaxPixelSize: max(targetSize.width, targetSize.height)
     ]
-    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbOptions as CFDictionary) else {
+    
+    // Create the thumbnail
+    guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbnailOptions as CFDictionary) else {
         return nil
     }
-    return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+    
+    return UIImage(cgImage: thumbnail, scale: scale, orientation: .up)
 }
+
 
 /// Optimizes PNG image data by re-encoding it with lossless compression.
 /// - Parameter data: The original PNG image data.
