@@ -80,6 +80,7 @@ struct SearchView: View {
                                     showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
                                     onTap: {
                                         selectedItem = item
+                                        showItemView = true
                                     }
                                 )}
                         }.padding(.horizontal)

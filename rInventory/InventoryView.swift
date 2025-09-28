@@ -319,6 +319,7 @@ struct InventoryView: View {
                                 showCounterForSingleItems: AppDefaults.shared.showCounterForSingleItems,
                                 onTap: {
                                     selectedItem = item
+                                    showItemView = true
                                 }
                             )
                             .aspectRatio(1.0, contentMode: .fit)

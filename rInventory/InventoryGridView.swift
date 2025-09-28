@@ -188,6 +188,7 @@ struct InventoryGridView: View {
                                 }
                             } else {
                                 selectedItem = item
+                                showItemView = true
                             }
                         },
                         onDragChanged: { isDragging in

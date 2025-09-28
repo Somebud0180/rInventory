@@ -123,7 +123,7 @@ extension AsyncItemImage {
         
         // Sample a reasonable number of pixels to check for transparency
         // We don't need to check every pixel, just sample across the image
-        let samplingCount = min(width * height, 360) // Limit to reasonable number of pixels
+        let samplingCount = min(width * height, 240) // Limit to reasonable number of pixels
         let samplingStep = max(1, (width * height) / samplingCount)
         
         for i in stride(from: 3, to: pixelData.count, by: samplingStep * 4) {

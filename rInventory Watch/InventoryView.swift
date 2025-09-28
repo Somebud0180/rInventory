@@ -93,6 +93,7 @@ struct InventoryView: View {
                         showCounterForSingleItems: appDefaults.showCounterForSingleItems,
                         onItemSelected: { item in
                             selectedItem = item
+                            showItemView = true
                         },
                         showItemView: $showItemView
                     )
