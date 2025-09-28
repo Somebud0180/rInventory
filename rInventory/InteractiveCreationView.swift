@@ -841,18 +841,6 @@ struct InteractiveCreationView: View {
 }
 
 extension View {
-    func glassContain() -> some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer {
-                    self
-                }
-            } else {
-                self
-            }
-        }
-    }
-    
 #if canImport(UIKit)
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)

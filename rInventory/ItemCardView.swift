@@ -120,98 +120,89 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
         endPoint: .bottomTrailing
     )
     
-    var content: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                .aspectRatio(contentMode: .fill)
-                .foregroundStyle(backgroundGradient)
-            
-            GeometryReader { geometry in
-                switch background {
-                case .symbol(let symbol):
-                    Image(systemName: symbol)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(symbolColor ?? .accentColor)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .padding(25)
-                    
-                case .image(let data):
-                    AsyncItemImage(imageData: data)
-                        .id(data)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                }
+    return ZStack {
+        RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+            .aspectRatio(contentMode: .fill)
+            .foregroundStyle(backgroundGradient)
+        
+        GeometryReader { geometry in
+            switch background {
+            case .symbol(let symbol):
+                Image(systemName: symbol)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(symbolColor ?? .accentColor)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .padding(25)
+                
+            case .image(let data):
+                AsyncItemImage(imageData: data)
+                    .id(data)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
-            
-            ItemCardConstants.overlayGradient
-                .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
-                    .aspectRatio(contentMode: .fill))
-            
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    if !category.name.isEmpty {
-                        Text(category.name)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius))
+        
+        ItemCardConstants.overlayGradient
+            .mask(RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
+                .aspectRatio(contentMode: .fill))
+        
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                if !category.name.isEmpty {
+                    Text(category.name)
+                        .font(fontConfig.bodyFont)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(8)
+                        .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
+                }
+                if hideQuantity {
+                    Spacer(minLength: 32)
+                } else {
+                    if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
+                        Spacer()
+                        Text("\(quantity)")
                             .font(fontConfig.bodyFont)
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .foregroundStyle(.white.opacity(0.95))
                             .padding(8)
-                            .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified)
+                            .padding(.horizontal, 4)
+                            .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified, shape: quantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
                     }
-                    if hideQuantity {
-                        Spacer(minLength: 32)
-                    } else {
-                        if quantity > 1 || (showCounterForSingleItems && quantity == 1) {
-                            Spacer()
-                            Text("\(quantity)")
-                                .font(fontConfig.bodyFont)
-                                .fontWeight(.bold)
-                                .lineLimit(1)
-                                .foregroundStyle(.white.opacity(0.95))
-                                .padding(8)
-                                .padding(.horizontal, 4)
-                                .adaptiveGlassBackground(tintStrength: 0.5, simplified: simplified, shape: quantity < 10 ? AnyShape(Circle()) : AnyShape(Capsule()))
-                        }
-                    }
-                }
-                Spacer()
-                if !name.isEmpty || !location.name.isEmpty {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if !name.isEmpty {
-                            Text(name)
-                                .font(fontConfig.titleFont)
-                                .fontWeight(.bold)
-                                .lineLimit(1)
-                        }
-                        if !location.name.isEmpty {
-                            Text(location.name)
-                                .font(fontConfig.captionFont)
-                                .fontWeight(.medium)
-                                .lineLimit(2)
-                        }
-                    }
-                    .foregroundStyle(
-                        (!location.color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
-                        ? .white.opacity(0.95) : .black.opacity(0.95))
-                    .padding(4)
-                    .padding(.horizontal, 4)
-                    .adaptiveGlassBackground(tintStrength: 0.75, tintColor: location.color, simplified: simplified, shape: RoundedRectangle(cornerRadius: 15.0))
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            Spacer()
+            if !name.isEmpty || !location.name.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    if !name.isEmpty {
+                        Text(name)
+                            .font(fontConfig.titleFont)
+                            .fontWeight(.bold)
+                            .lineLimit(1)
+                    }
+                    if !location.name.isEmpty {
+                        Text(location.name)
+                            .font(fontConfig.captionFont)
+                            .fontWeight(.medium)
+                            .lineLimit(2)
+                    }
+                }
+                .foregroundStyle(
+                    (!location.color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
+                    ? .white.opacity(0.95) : .black.opacity(0.95))
+                .padding(4)
+                .padding(.horizontal, 4)
+                .adaptiveGlassBackground(tintStrength: 0.75, tintColor: location.color, simplified: simplified, shape: RoundedRectangle(cornerRadius: 15.0))
+            }
         }
-        .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
     }
-    
-    if #available(iOS 26, *) {
-        return GlassEffectContainer {
-            content
-        }
-    } else {
-        return content
-    }
+    .glassContain()
+    .aspectRatio(ItemCardConstants.aspectRatio, contentMode: .fit)
 }
 
 /// Creates a item card view for displaying the item information in a layout.

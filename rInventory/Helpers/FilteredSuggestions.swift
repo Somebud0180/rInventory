@@ -39,36 +39,24 @@ func filteredSuggestionsPicker<T>(items: [T], keyPath: KeyPath<T, String>, filte
         }
     }()
     
-    var content: some View {
-        HStack {
-            ForEach(suggestions, id: \.self) { suggestion in
-                let color = getColor(suggestion)
-                Button(suggestion) {
-                    filter.wrappedValue = suggestion
+    return AnyView(ScrollView(.horizontal, showsIndicators: false) {
+            HStack {
+                ForEach(suggestions, id: \.self) { suggestion in
+                    let color = getColor(suggestion)
+                    Button(suggestion) {
+                        filter.wrappedValue = suggestion
+                    }
+                    .padding(4)
+                    .padding(.horizontal, 4)
+                    .foregroundColor(
+                        (!color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
+                        ? .white : .black)
+                    .overlay(Capsule().stroke(color.isColorWhite() ? Color.gray : Color.clear, lineWidth: color.isColorWhite() ? 1 : 0))
+                    .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
                 }
-                .padding(4)
-                .padding(.horizontal, 4)
-                .foregroundColor(
-                    (!color.isColorWhite() || (usesLiquidGlass && colorScheme == .dark))
-                    ? .white : .black)
-                .overlay(Capsule().stroke(color.isColorWhite() ? Color.gray : Color.clear, lineWidth: color.isColorWhite() ? 1 : 0))
-                .adaptiveGlassBackground(tintStrength: 0.5, tintColor: color)
             }
+            .glassContain()
+            .padding(1)
         }
-    }
-    
-    return AnyView(
-        ScrollView(.horizontal, showsIndicators: false) {
-            if #available(iOS 26.0, watchOS 26.0, *) {
-                GlassEffectContainer {
-                    content
-                        .padding(1)
-                }
-            } else {
-                content
-                    .padding(1)
-            }
-        }
-            .clipShape(Capsule())
-    )
+        .clipShape(Capsule()))
 }

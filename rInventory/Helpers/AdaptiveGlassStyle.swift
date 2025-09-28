@@ -87,14 +87,45 @@ struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
 }
 
 extension View {
+    /// Wraps the view in a GlassEffectContainer if available (iOS 26+), otherwise returns the view as is.
+    /// - Returns: A view wrapped in a GlassEffectContainer or the original view.
+    func glassContain() -> some View {
+        Group {
+            if #available(iOS 26.0, watchOS 26.0, *) {
+                GlassEffectContainer {
+                    self
+                }
+            } else {
+                self
+            }
+        }
+    }
+    
+    /// Applies an adaptive glass edit button
+    /// - Parameter isEditing: A Boolean value indicating whether the button is in editing mode. Default is false.
+    /// - Returns: A view with the adaptive glass edit button modifier applied.
     func adaptiveGlassEditButton(_ isEditing: Bool = false) -> some View {
         self.modifier(AdaptiveGlassEditButtonModifier(isEditing: isEditing))
     }
     
+    /// Applies an adaptive glass button style
+    /// - Parameters:
+    ///  - tintStrength: The strength of the tint color. Default is 0.
+    ///  - tintColor: The tint color to apply. Default is white.
+    ///  - interactive: A Boolean value indicating whether the button is interactive. Default is true
+    ///  - simplified: A Boolean value indicating whether to use a simplified style similar to older OS versions. Default is false.
+    ///  - Returns: A view with the adaptive glass button modifier applied.
     func adaptiveGlassButton(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white, interactive: Bool = true, simplified: Bool = false) -> some View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, interactive: interactive, simplified: simplified))
     }
     
+    /// Applies an adaptive glass background style
+    /// - Parameters:
+    ///  - tintStrength: The strength of the tint color. Default is 0.
+    ///  - tintColor: The tint color to apply. Default is gray.
+    ///  - simplified: A Boolean value indicating whether to use a simplified style similar to older OS versions. Default is false.
+    ///  - shape: The shape to apply the background to. Default is Capsule().
+    /// - Returns: A view with the adaptive glass background modifier applied.
     func adaptiveGlassBackground<S: Shape>(tintStrength: CGFloat = 0.8, tintColor: Color = Color.gray, simplified: Bool = false, shape: S = Capsule()) -> some View {
         self.modifier(AdaptiveGlassBackground(tintStrength: tintStrength, tint: tintColor, simplified: simplified, shape: shape))
     }

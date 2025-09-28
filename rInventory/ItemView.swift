@@ -22,19 +22,12 @@ struct ItemBackgroundView: View {
     var body: some View {
         switch background {
         case .image(let data):
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                AsyncItemImage(imageData: data, maxPixelSize: 2048)
-                    .id(data)
-                    .scaledToFit()
-                    .ignoresSafeArea(.all)
-                    .mask(mask)
-            } else {
-                AsyncItemImage(imageData: data, maxPixelSize: 2048)
-                    .id(data)
-                    .scaledToFill()
-                    .ignoresSafeArea(.all)
-                    .mask(mask)
-            }
+            AsyncItemImage(imageData: data, maxPixelSize: 2048)
+                .id(data)
+                .if(UIDevice.current.userInterfaceIdiom == .pad) { $0.scaledToFit() }
+                .if(UIDevice.current.userInterfaceIdiom != .pad) { $0.scaledToFill() }
+                .ignoresSafeArea(.all)
+                .if(!AsyncItemImage.hasAlphaChannel(in: data)) { $0.mask(mask) }
         case .symbol(let symbol):
             Image(systemName: symbol)
                 .resizable()
@@ -123,88 +116,43 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            if #available(iOS 26, *) {
-                ZStack {
-                    GlassEffectContainer {
-                        GeometryReader { geometry in
-                            ZStack(alignment: .top) {
-                                if isPad {
-                                    iPadBackground(geometry)
-                                        .ignoresSafeArea(.all)
-                                } else if isLandscape {
-                                    landscapeLayout(geometry)
-                                        .ignoresSafeArea(.keyboard)
-                                } else {
-                                    portraitLayout(geometry)
-                                        .ignoresSafeArea(.keyboard)
-                                }
-                            }
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                        }
-                        .ignoresSafeArea(.keyboard)
-                        .background(backgroundGradient)
-                        
+            ZStack {
+                GeometryReader { geometry in
+                    ZStack(alignment: .top) {
                         if isPad {
-                            GeometryReader { geometry in
-                                iPadLayout(geometry)
-                            }
-                        }
-                        
-                        if showDeleteAnimation {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(Color.red)
-                                    .ignoresSafeArea()
-                                    .transition(.blurReplace.combined(with: .opacity))
-                                
-                                Image(systemName: "trash.fill")
-                                    .font(.system(size: 64))
-                                    .foregroundStyle(.white.opacity(0.8))
-                                    .transition(.scale.combined(with: .opacity))
-                            }
+                            iPadBackground(geometry)
+                                .ignoresSafeArea(.all)
+                        } else if isLandscape {
+                            landscapeLayout(geometry)
+                                .ignoresSafeArea(.keyboard)
+                        } else {
+                            portraitLayout(geometry)
+                                .ignoresSafeArea(.keyboard)
                         }
                     }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-            } else {
-                ZStack {
+                .glassContain()
+                .ignoresSafeArea(.keyboard)
+                .background(backgroundGradient)
+                
+                if isPad {
                     GeometryReader { geometry in
-                        ZStack(alignment: .top) {
-                            if isPad {
-                                iPadBackground(geometry)
-                                    .ignoresSafeArea(.keyboard)
-                            } else if isLandscape {
-                                landscapeLayout(geometry)
-                                    .ignoresSafeArea(.keyboard)
-                                    .preferredColorScheme(.dark)
-                            } else {
-                                portraitLayout(geometry)
-                                    .ignoresSafeArea(.keyboard)
-                                    .preferredColorScheme(.dark)
-                            }
-                        }
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                    }
-                    .ignoresSafeArea(.keyboard)
-                    .background(backgroundGradient)
-                    
-                    if isPad {
-                        GeometryReader { geometry in
-                            iPadLayout(geometry)
-                        }
-                    }
-                    
-                    if showDeleteAnimation {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color.red)
-                                .ignoresSafeArea()
-                                .transition(.blurReplace.combined(with: .opacity))
-                            
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 64))
-                                .foregroundStyle(.white.opacity(0.8))
-                                .transition(.scale.combined(with: .opacity))
-                        }
+                        iPadLayout(geometry)
+                    }.glassContain()
+                }
+                
+                if showDeleteAnimation {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.red)
+                            .ignoresSafeArea()
+                            .transition(.blurReplace.combined(with: .opacity))
+                        
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
             }
@@ -343,18 +291,21 @@ struct ItemView: View {
                 mask: AnyView(
                     LinearGradient(
                         gradient: Gradient(stops: [
-                            .init(color: .white, location: 0.0),
-                            .init(color: .white, location: 0.8),
+                            .init(color: .clear, location: 0.0),
+                            .init(color: .clear, location: 0.1),
+                            .init(color: .white, location: 0.15),
+                            .init(color: .white, location: 0.9),
+                            .init(color: .clear, location: 0.95),
                             .init(color: .clear, location: 1.0)
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
                     .blur(radius: 12)
-                    .frame(maxHeight: geometry.size.height * 0.45)
+                    .frame(maxHeight: geometry.size.height * 0.5)
                 )
             )
-            .frame(maxHeight: geometry.size.height * 0.48)
+            .frame(maxHeight: geometry.size.height * 0.5)
             
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center) {
@@ -369,7 +320,7 @@ struct ItemView: View {
                     
                     VStack(alignment: .leading) {
                         Spacer()
-                            .frame(maxHeight: isEditing ? 296 : 320)
+                            .frame(maxHeight: isEditing ? 320 : 340)
                         
                         nameSection
                         locationSection
@@ -714,7 +665,7 @@ struct ItemView: View {
                         .foregroundStyle(.secondary)
                     
                     TextField("Name", text: $editName)
-                        .foregroundStyle(nameForegroundColor())
+                        .foregroundStyle(.white)
                         .focused($focusedField, equals: .name)
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
@@ -731,7 +682,7 @@ struct ItemView: View {
                 }
             } else {
                 Text(name)
-                    .foregroundStyle(nameForegroundColor())
+                    .foregroundStyle(.white)
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
                     .lineLimit(1)
@@ -897,16 +848,6 @@ struct ItemView: View {
     }
     
     // MARK: - Functional Helpers
-    /// Grabs the current symbol color and returns the name text's color.
-    private func nameForegroundColor() -> Color {
-        if isPad {
-            return .primary
-        } else {
-            let currentSymbolColor = isEditing ? editSymbolColor : symbolColor
-            return (colorScheme == .dark || (currentSymbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? .white : .black
-        }
-    }
-    
     /// Loads current item values into edit variables and enters editing mode with animation.
     private func editItem() {
         editName = item.name
@@ -966,20 +907,6 @@ struct ItemView: View {
     }
 }
 
-extension View {
-    @ViewBuilder
-    func `if`<Content: View>(
-        _ condition: Bool,
-        transform: (Self) -> Content
-    ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-}
-
 #Preview {
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext)
     @Previewable @State var item = Item(
@@ -994,4 +921,3 @@ extension View {
     
     return ItemView(syncEngine:syncEngine, item: $item)
 }
-

@@ -99,26 +99,3 @@ struct AsyncItemImage: View {
             }
     }
 }
-
-// MARK: - Downsampling helper
-private func downsampledImage(from data: Data, maxPixelSize: CGFloat, scale: CGFloat) -> UIImage? {
-    let options: [CFString: Any] = [
-        kCGImageSourceShouldCache: false,
-        kCGImageSourceShouldCacheImmediately: false
-    ]
-    guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
-        return nil
-    }
-    let maxDimensionInPixels = maxPixelSize // already in pixels
-    let thumbOptions: [CFString: Any] = [
-        kCGImageSourceCreateThumbnailFromImageAlways: true,
-        kCGImageSourceShouldCache: false,
-        kCGImageSourceShouldCacheImmediately: false,
-        kCGImageSourceCreateThumbnailWithTransform: true,
-        kCGImageSourceThumbnailMaxPixelSize: Int(maxDimensionInPixels)
-    ]
-    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbOptions as CFDictionary) else {
-        return nil
-    }
-    return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
-}

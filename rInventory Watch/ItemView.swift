@@ -61,13 +61,8 @@ struct ItemView: View {
         NavigationStack {
             ZStack {
                 GeometryReader { geometry in
-                    if #available(watchOS 26, *) {
-                        GlassEffectContainer {
-                            content(geometry)
-                        }
-                    } else {
-                        content(geometry)
-                    }
+                    content(geometry)
+                        .glassContain()
                 }
             }
             .ignoresSafeArea()

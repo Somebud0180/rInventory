@@ -104,39 +104,20 @@ struct SearchView: View {
                     if selectedCategoryName.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                if #available(watchOS 26.0, *) {
-                                    GlassEffectContainer {
-                                        ForEach(categories, id: \.self) { category in
-                                            Button(action: {
-                                                withAnimation {
-                                                    selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
-                                                }
-                                            }) {
-                                                Text(category.name)
-                                                    .padding(.horizontal, 5)
-                                                    .padding(.vertical, 2)
-                                            }
-                                            .buttonStyle(.plain)
-                                            .adaptiveGlassButton(tintStrength: 0.4)
+                                ForEach(categories, id: \.self) { category in
+                                    Button(action: {
+                                        withAnimation {
+                                            selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
                                         }
+                                    }) {
+                                        Text(category.name)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
                                     }
-                                } else {
-                                    ForEach(categories, id: \.self) { category in
-                                        Button(action: {
-                                            withAnimation {
-                                                selectedCategoryName = selectedCategoryName == category.name ? "" : category.name
-                                            }
-                                        }) {
-                                            Text(category.name)
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 2)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .adaptiveGlassButton(tintStrength: 0.4)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
+                                    .buttonStyle(.plain)
+                                    .adaptiveGlassButton(tintStrength: 0.4)
+                                }.glassContain()
+                            }.padding(.vertical, 4)
                         }
                         .clipShape(Capsule())
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -188,41 +169,21 @@ struct SearchView: View {
                     if selectedLocationName.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                if #available(watchOS 26.0, *) {
-                                    GlassEffectContainer {
-                                        ForEach(locations, id: \.self) { location in
-                                            Button(action: {
-                                                withAnimation {
-                                                    selectedLocationName = selectedLocationName == location.name ? "" : location.name
-                                                }
-                                            }) {
-                                                Text(location.name)
-                                                    .padding(.horizontal, 5)
-                                                    .padding(.vertical, 2)
-                                                    .clipShape(Capsule())
-                                            }
-                                            .buttonStyle(.plain)
-                                            .adaptiveGlassButton(tintStrength: 0.4, tintColor: location.color)
+                                ForEach(locations, id: \.self) { location in
+                                    Button(action: {
+                                        withAnimation {
+                                            selectedLocationName = selectedLocationName == location.name ? "" : location.name
                                         }
+                                    }) {
+                                        Text(location.name)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .clipShape(Capsule())
                                     }
-                                } else {
-                                    ForEach(locations, id: \.self) { location in
-                                        Button(action: {
-                                            withAnimation {
-                                                selectedLocationName = selectedLocationName == location.name ? "" : location.name
-                                            }
-                                        }) {
-                                            Text(location.name)
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 2)
-                                                .clipShape(Capsule())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .adaptiveGlassButton(tintStrength: 0.4, tintColor: location.color)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
+                                    .buttonStyle(.plain)
+                                    .adaptiveGlassButton(tintStrength: 0.4, tintColor: location.color)
+                                }.glassContain()
+                            }.padding(.vertical, 4)
                         }
                         .clipShape(Capsule())
                         .transition(.move(edge: .top).combined(with: .opacity))
