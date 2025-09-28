@@ -55,6 +55,7 @@ struct ItemView: View {
     @Query private var items: [Item]
     
     @Binding var item: Item
+    @State private var finishedLoading: Bool = false
     
     // State variables for Editing UI
     private enum ItemField: Hashable {
@@ -116,152 +117,159 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                GeometryReader { geometry in
-                    ZStack(alignment: .top) {
-                        if isPad {
-                            iPadBackground(geometry)
-                                .ignoresSafeArea(.all)
-                        } else if isLandscape {
-                            landscapeLayout(geometry)
-                                .ignoresSafeArea(.keyboard)
-                        } else {
-                            portraitLayout(geometry)
-                                .ignoresSafeArea(.keyboard)
-                        }
+            if !finishedLoading {
+                ProgressView("Loading Item...")
+                    .foregroundStyle(.primary)
+                    .onAppear {
+                        initializeDisplayVariables()
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                }
-                .glassContain()
-                .ignoresSafeArea(.keyboard)
-                .background(backgroundGradient)
-                
-                if isPad {
+            } else {
+                ZStack {
                     GeometryReader { geometry in
-                        iPadLayout(geometry)
-                    }.glassContain()
-                }
-                
-                if showDeleteAnimation {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.red)
-                            .ignoresSafeArea()
-                            .transition(.blurReplace.combined(with: .opacity))
-                        
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.white.opacity(0.8))
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-            }
-        }
-        .onAppear {
-            initializeDisplayVariables()
-            // Start breathing animation
-            DispatchQueue.main.async {
-                withAnimation(.easeInOut(duration: Double.random(in: 10...20, using: &rng)).repeatForever(autoreverses: true)) {
-                    isAnimated = true
-                }
-            }
-        }
-        .alert("Delete Item", isPresented: $showDeleteAlert) {
-            Button("Cancel", role: .cancel) {
-            }
-            
-            Button("Delete", role: .destructive) {
-                Task {
-                    await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
-                    
-                    withAnimation(.smooth(duration: 0.75)) {
-                        showDeleteAnimation = true
-                    }
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        dismiss()
-                    }
-                }
-            }
-        } message: {
-            Text("Are you sure you want to delete this item? This action cannot be undone.")
-        }
-        .sheet(isPresented: $showSymbolPicker) {
-            // Extract the current symbol from editBackground
-            SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: Binding(
-                get: {
-                    if case let .symbol(symbol) = editBackground {
-                        return symbol
-                    } else {
-                        return ""
-                    }
-                },
-                set: { newValue in
-                    if !newValue.isEmpty {
-                        editBackground = .symbol(newValue)
-                        symbolColor = symbolColor ?? .accentColor
-                    }
-                }
-            ))
-        }
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(selection: Binding(
-                get: {
-                    if case let .image(data) = editBackground {
-                        return UIImage(data: data)
-                    } else {
-                        return nil
-                    }
-                },
-                set: { newImage in
-                    if let newImage {
-                        imageToCrop = newImage
-                    }
-                }
-            ), sourceType: .photoLibrary)
-        }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraView(selectedImage: Binding(
-                get: {
-                    if case let .image(data) = background {
-                        return UIImage(data: data)
-                    } else {
-                        return nil
-                    }
-                },
-                set: { newImage in
-                    if let newImage {
-                        imageToCrop = newImage
-                    }
-                }
-            )).statusBar(hidden: true)
-        }
-        .onChange(of: imageToCrop) { _, newValue in
-            if newValue != nil {
-                // Show cropper after image is loaded
-                showCropper = true
-            }
-        }
-        .sheet(isPresented: $showCropper) {
-            if let img = imageToCrop {
-                SwiftyCropView(
-                    imageToCrop: img,
-                    maskShape: .square,
-                    configuration: swiftyCropConfiguration,
-                    onComplete: { cropped in
-                        if let cropped, let data = cropped.pngData(), let optimizedData = optimizePNGData(data) {
-                            editBackground = .image(optimizedData)
+                        ZStack(alignment: .top) {
+                            if isPad {
+                                iPadBackground(geometry)
+                                    .ignoresSafeArea(.all)
+                            } else if isLandscape {
+                                landscapeLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                            } else {
+                                portraitLayout(geometry)
+                                    .ignoresSafeArea(.keyboard)
+                            }
                         }
-                        showCropper = false
-                        imageToCrop = nil
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     }
-                )
-                .interactiveDismissDisabled()
-            }
-        }
-        .onChange(of: focusedField) {
-            withAnimation() {
-                animateFocused = focusedField
+                    .glassContain()
+                    .ignoresSafeArea(.keyboard)
+                    .background(backgroundGradient)
+                    
+                    if isPad {
+                        GeometryReader { geometry in
+                            iPadLayout(geometry)
+                        }.glassContain()
+                    }
+                    
+                    if showDeleteAnimation {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.red)
+                                .ignoresSafeArea()
+                                .transition(.blurReplace.combined(with: .opacity))
+                            
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                }
+                .onAppear {
+                    // Start breathing animation
+                    DispatchQueue.main.async {
+                        withAnimation(.easeInOut(duration: Double.random(in: 10...20, using: &rng)).repeatForever(autoreverses: true)) {
+                            isAnimated = true
+                        }
+                    }
+                }
+                .alert("Delete Item", isPresented: $showDeleteAlert) {
+                    Button("Cancel", role: .cancel) {
+                    }
+                    
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
+                            
+                            withAnimation(.smooth(duration: 0.75)) {
+                                showDeleteAnimation = true
+                            }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                dismiss()
+                            }
+                        }
+                    }
+                } message: {
+                    Text("Are you sure you want to delete this item? This action cannot be undone.")
+                }
+                .sheet(isPresented: $showSymbolPicker) {
+                    // Extract the current symbol from editBackground
+                    SymbolPickerView(viewBehaviour: .tapWithUnselect, selectedSymbol: Binding(
+                        get: {
+                            if case let .symbol(symbol) = editBackground {
+                                return symbol
+                            } else {
+                                return ""
+                            }
+                        },
+                        set: { newValue in
+                            if !newValue.isEmpty {
+                                editBackground = .symbol(newValue)
+                                symbolColor = symbolColor ?? .accentColor
+                            }
+                        }
+                    ))
+                }
+                .sheet(isPresented: $showImagePicker) {
+                    ImagePicker(selection: Binding(
+                        get: {
+                            if case let .image(data) = editBackground {
+                                return UIImage(data: data)
+                            } else {
+                                return nil
+                            }
+                        },
+                        set: { newImage in
+                            if let newImage {
+                                imageToCrop = newImage
+                            }
+                        }
+                    ), sourceType: .photoLibrary)
+                }
+                .fullScreenCover(isPresented: $showCamera) {
+                    CameraView(selectedImage: Binding(
+                        get: {
+                            if case let .image(data) = background {
+                                return UIImage(data: data)
+                            } else {
+                                return nil
+                            }
+                        },
+                        set: { newImage in
+                            if let newImage {
+                                imageToCrop = newImage
+                            }
+                        }
+                    )).statusBar(hidden: true)
+                }
+                .onChange(of: imageToCrop) { _, newValue in
+                    if newValue != nil {
+                        // Show cropper after image is loaded
+                        showCropper = true
+                    }
+                }
+                .sheet(isPresented: $showCropper) {
+                    if let img = imageToCrop {
+                        SwiftyCropView(
+                            imageToCrop: img,
+                            maskShape: .square,
+                            configuration: swiftyCropConfiguration,
+                            onComplete: { cropped in
+                                if let cropped, let data = cropped.pngData(), let optimizedData = optimizePNGData(data) {
+                                    editBackground = .image(optimizedData)
+                                }
+                                showCropper = false
+                                imageToCrop = nil
+                            }
+                        )
+                        .interactiveDismissDisabled()
+                    }
+                }
+                .onChange(of: focusedField) {
+                    withAnimation() {
+                        animateFocused = focusedField
+                    }
+                }
             }
         }
     }
@@ -281,6 +289,8 @@ struct ItemView: View {
         }
         
         symbolColor = item.symbolColor
+        
+        finishedLoading = true
     }
     
     private func portraitLayout(_ geometry: GeometryProxy) -> some View {
@@ -872,7 +882,6 @@ struct ItemView: View {
     
     /// Saves the item asynchronously and updates display variables.
     private func saveItem() async {
-        // Save item with updated details using Item instance method
         await item.updateItem(
             name: editName,
             quantity: editQuantity,
@@ -900,7 +909,7 @@ struct ItemView: View {
     
     /// Updates the quantity asynchronously, ensuring it is non-negative.
     private func updateQuantity(_ newValue: Int) async {
-        if newValue >= 0 {
+        if newValue != quantity, newValue != 0, newValue <= 1000, newValue >= 0 {
             quantity = newValue
             await item.updateItem(quantity: newValue, context: modelContext, cloudKitSyncEngine: syncEngine)
         }
@@ -919,5 +928,5 @@ struct ItemView: View {
         symbolColor: .yellow
     )
     
-    return ItemView(syncEngine:syncEngine, item: $item)
+    ItemView(syncEngine:syncEngine, item: $item)
 }

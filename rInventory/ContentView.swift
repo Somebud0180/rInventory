@@ -37,11 +37,11 @@ struct ContentView: View {
     }
     
     @State private var continuedActivity: NSUserActivity? = nil
-    @State private var selectedItem: Item? = nil
     @State private var showInventoryGridView: Bool = false
     @State private var showItemCreationView: Bool = false
     @State private var showInteractiveCreationView: Bool = false
     @State private var showItemView: Bool = false
+    @State private var selectedItem: Item? = nil
     
     var body: some View {
         return tabView()
@@ -50,12 +50,11 @@ struct ContentView: View {
                     showItemView = true
                 }
             }
-            .sheet(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
-                if !(selectedItem == nil), let selectedItem = selectedItem {
-                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem))
-                        .transition(.blurReplace)
-                } else {
-                    ProgressView("Loading item...")
+            .sheet(isPresented: $showItemView, onDismiss: {
+                selectedItem = nil
+            }) {
+                if let selectedItem = selectedItem {
+                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: items))
                 }
             }
             .sheet(isPresented: $showItemCreationView) {
@@ -72,7 +71,6 @@ struct ContentView: View {
                         predicate: activity.userInfo?[inventoryGridPredicateKey] as? String,
                         showCategoryPicker: activity.userInfo?[inventoryGridCategoryKey] as? Bool ?? false,
                         showSortPicker: activity.userInfo?[inventoryGridSortKey] as? Bool ?? false,
-                        selectedItem: $selectedItem,
                         isInventoryActive: .constant(false),
                         isInventoryGridActive: .constant(false)
                     )
@@ -104,7 +102,10 @@ struct ContentView: View {
             return TabView(selection: $tabSelection) {
                 // Home Tab
                 Tab("Home", systemImage: "house", value: 0) {
-                    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
+                    InventoryView(syncEngine: syncEngine,
+                                  showItemCreationView: $showItemCreationView,
+                                  showInteractiveCreationView: $showInteractiveCreationView,
+                                  isActive: currentTab == .home)
                 }
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
@@ -112,17 +113,20 @@ struct ContentView: View {
                 }
                 // Search Action
                 Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
-                    SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
+                    SearchView(syncEngine: syncEngine, isActive: currentTab == .search)
                 }
             }
         } else {
             return TabView(selection: $tabSelection) {
                 // Home Tab
-                InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .home)
-                    .tabItem {
-                        Label("Home", systemImage: "house")
-                    }
-                    .tag(0) // Tag for Home Tab
+                InventoryView(syncEngine: syncEngine,
+                              showItemCreationView: $showItemCreationView,
+                              showInteractiveCreationView: $showInteractiveCreationView,
+                              isActive: currentTab == .home)
+                .tabItem {
+                    Label("Home", systemImage: "house")
+                }
+                .tag(0) // Tag for Home Tab
                 // Settings Tab
                 SettingsView(syncEngine: syncEngine, isActive: currentTab == .settings)
                     .tabItem {
@@ -130,33 +134,13 @@ struct ContentView: View {
                     }
                     .tag(1) // Tag for Settings Tab
                 // Search Tab
-                SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: currentTab == .search)
-                    .tabItem {
-                        Label("Search", systemImage: "magnifyingglass")
-                    }
-                    .tag(2) // Tag for Search Tab
+                SearchView(syncEngine: syncEngine, isActive: currentTab == .search)
+                .tabItem {
+                    Label("Search", systemImage: "magnifyingglass")
+                }
+                .tag(2) // Tag for Search Tab
             }
         }
-    }
-    
-    private func bindingForItem(_ item: Item) -> Binding<Item> {
-        return Binding(
-            get: {
-                // Fetch the item from the model context
-                if let fetchedItem = items.first(where: { $0.id == item.id }) {
-                    return fetchedItem
-                }
-                return item
-            },
-            set: { newValue in
-                // Changes are automatically persisted through SwiftData's model context
-                // No explicit save needed as SwiftData handles this automatically
-            }
-        )
-    }
-    
-    private func addItem() {
-        showItemCreationView = true
     }
 }
 

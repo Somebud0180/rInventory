@@ -46,22 +46,20 @@ struct InventoryView: View {
     @StateObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
     @Binding var showInteractiveCreationView: Bool
-    @Binding var showItemView: Bool
-    @Binding var selectedItem: Item?
     @State var isActive: Bool
     @State var isInventoryGridActive: Bool = false
     
     @StateObject private var viewModel: InventoryViewModel
+    @State private var selectedItem: Item? = nil
+    @State private var showItemView: Bool = false
     @State private var showInventoryOptionsView: Bool = false
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
-    init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showInteractiveCreationView: Binding<Bool>, showItemView: Binding<Bool>, selectedItem: Binding<Item?>, isActive: Bool) {
+    init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showInteractiveCreationView: Binding<Bool>, isActive: Bool) {
         self._syncEngine = StateObject(wrappedValue: syncEngine)
         self._showItemCreationView = showItemCreationView
         self._showInteractiveCreationView = showInteractiveCreationView
-        self._showItemView = showItemView
-        self._selectedItem = selectedItem
         self._isActive = State(initialValue: isActive)
         self._viewModel = StateObject(wrappedValue: InventoryViewModel(appDefaults: AppDefaults.shared))
     }
@@ -143,7 +141,7 @@ struct InventoryView: View {
                             }
                             
                             // Grid view for items
-                            InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                            InventoryGridView(syncEngine: syncEngine, title: "rInventory", predicate: "InventoryView", showCategoryPicker: true, showSortPicker: true, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                                 .padding(.horizontal, -16)
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -154,6 +152,13 @@ struct InventoryView: View {
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showItemView, onDismiss: {
+                selectedItem = nil
+            }) {
+                if let selectedItem = selectedItem {
+                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: items))
+                }
+            }
             .sheet(isPresented: $showInventoryOptionsView, onDismiss: { Task { await syncEngine.manualSync() } }) {
                 InventoryOptionsView()
             }
@@ -291,7 +296,7 @@ struct InventoryView: View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {
-                    InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                    InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                 } label: {
                     HStack {
                         Text(title)
@@ -324,7 +329,7 @@ struct InventoryView: View {
                             Spacer()
                         } else if filteredItems.count > itemAmount {
                             NavigationLink {
-                                InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, selectedItem: $selectedItem, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
+                                InventoryGridView(syncEngine: syncEngine, title: title, predicate: predicate, showCategoryPicker: showCategoryPicker, showSortPicker: showSortPicker, isInventoryActive: $isActive, isInventoryGridActive: $isInventoryGridActive)
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
@@ -439,11 +444,9 @@ struct InventoryView: View {
 #Preview {
     @Previewable @State var showItemCreationView: Bool = false
     @Previewable @State var showInteractiveCreationView: Bool = false
-    @Previewable @State var showItemView: Bool = false
-    @Previewable @State var selectedItem: Item? = nil
     @Previewable @State var isActive: Bool = true
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
     
-    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
+    InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

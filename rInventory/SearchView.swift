@@ -21,8 +21,7 @@ struct SearchView: View {
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     
-    @Binding var showItemView: Bool
-    @Binding var selectedItem: Item?
+    @StateObject var syncEngine: CloudKitSyncEngine
     @State var isActive: Bool
     
     @SceneStorage("SearchView.selectedCategory") private var selectedCategoryName: String = ""
@@ -30,8 +29,10 @@ struct SearchView: View {
     @State private var searchText: String = ""
     @State private var categoryFilter: String = ""
     @State private var locationFilter: String = ""
-    @State private var categoryMenuPresented: Bool = false
-    @State private var locationMenuPresented: Bool = false
+    @State private var showItemView: Bool = false
+    @State private var selectedItem: Item? = nil
+    @State private var showCategoryMenu: Bool = false
+    @State private var showLocationMenu: Bool = false
     @State private var isCategoriesExpanded: Bool = true
     @State private var isLocationsExpanded: Bool = true
     
@@ -88,6 +89,13 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items")
+            .sheet(isPresented: $showItemView, onDismiss: {
+                selectedItem = nil
+            }) {
+                if let selectedItem = selectedItem {
+                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: items))
+                }
+            }
         }
         // User activity for continuing search state in inventory tab
         .userActivity(searchActivityType, isActive: isActive) { activity in
@@ -277,11 +285,11 @@ struct SearchView: View {
 }
 
 #Preview {
-    @Previewable @State var showItemView: Bool = false
-    @Previewable @State var selectedItem: Item? = nil
-    @Previewable @State var isActive: Bool = true
     // Provide a constant true for isActive to represent the view being active in preview
-    SearchView(showItemView: $showItemView, selectedItem: $selectedItem, isActive: isActive)
+    @Previewable @State var isActive: Bool = true
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    
+    SearchView(syncEngine: syncEngine, isActive: isActive)
         .modelContainer(for: Item.self)
         .modelContainer(for: Location.self)
         .modelContainer(for: Category.self)

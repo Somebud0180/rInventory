@@ -31,6 +31,34 @@ extension View {
     }
 }
 
+extension Color {
+    /// Returns the relative luminance of this color, from 0 (black) to 1 (white).
+    func luminance() -> Double {
+        // Convert the color to UIColor/NSColor and extract components
+#if canImport(UIKit)
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+#else
+        let nsColor = NSColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        nsColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+#endif
+        
+        // Calculate luminance (perceptual brightness)
+        func channel(_ c: CGFloat) -> Double {
+            let c = Double(c)
+            return (c <= 0.03928) ? (c/12.92) : pow((c+0.055)/1.055, 2.4)
+        }
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+    }
+    
+    /// Determines if the color is considered "white" based on its luminance.
+    func isColorWhite(sensitivity: CGFloat = 0.75) -> Bool {
+        return self.luminance() >= sensitivity
+    }
+}
+
 extension AsyncItemImage {
     /// Checks if the image has an alpha channel with actual transparency.
     /// - Returns: `true` if the image has actual transparency, otherwise `false`.
@@ -102,6 +130,21 @@ extension AsyncItemImage {
         // No transparent pixels found in our sample
         return false
     }
+}
+
+func bindingForItem(_ item: Item, items: [Item]) -> Binding<Item> {
+    Binding(
+        get: {
+            if let item = items.first(where: { $0.id == item.id }) {
+                return item
+            } else {
+                return item
+            }
+        },
+        set: { _ in
+            // Leave blank - we don't need to modify the item here
+        }
+    )
 }
 #endif // os(iOS)
 

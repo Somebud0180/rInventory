@@ -46,7 +46,6 @@ struct InventoryGridView: View {
     @State var showDeleteAlert: Bool = false
     @State var showCategoryPicker: Bool = false
     @State var showSortPicker: Bool = false
-    @Binding var selectedItem: Item?
     @Binding var isInventoryActive: Bool
     @Binding var isInventoryGridActive: Bool
     
@@ -54,8 +53,10 @@ struct InventoryGridView: View {
     
     // State variable for UI
     @State private var draggedItem: Item? = nil
-    @State private var categoryMenuPresented = false
-    @State private var sortMenuPresented = false
+    @State private var selectedItem: Item? = nil
+    @State private var showItemView: Bool = false
+    @State private var showCategoryMenu = false
+    @State private var showSortMenu = false
     
     // Clean up viewModel on disappear
     @State private var hasAppeared = false
@@ -85,9 +86,19 @@ struct InventoryGridView: View {
                     inventoryGrid
                 }
             }
-            .scrollClipDisabled()
+            .padding(.horizontal, 16)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showItemView, onDismiss: {
+                selectedItem = nil
+            }) {
+                if let selectedItem = selectedItem {
+                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: modelItems))
+                }
+            }
+            .refreshable {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
             .toolbar {
                 if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -101,65 +112,61 @@ struct InventoryGridView: View {
                     EditButton()
                 }
             }
-        }
-        .padding(.horizontal, 16)
-        .refreshable {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
-        }
-        .alert("Delete \(viewModel.selectedItemIDs.count) Item\(viewModel.selectedItemIDs.count > 1 ? "s" : "")", isPresented: $showDeleteAlert) {
-            Button("Cancel", role: .cancel) {
+            .alert("Delete \(viewModel.selectedItemIDs.count) Item\(viewModel.selectedItemIDs.count > 1 ? "s" : "")", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) {
+                }
+                
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await viewModel.deleteSelectedItems(modelContext: modelContext, cloudKitSyncEngine: syncEngine, allItems: modelItems)
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete \(viewModel.selectedItemIDs.count > 1 ? "these items" : "this item")? This action cannot be undone.")
             }
-            
-            Button("Delete", role: .destructive) {
-                Task {
-                    await viewModel.deleteSelectedItems(modelContext: modelContext, cloudKitSyncEngine: syncEngine, allItems: modelItems)
+            .onAppear {
+                if !hasAppeared {
+                    hasAppeared = true
+                    isInventoryGridActive = true
+                    let sortTypeIndex = AppDefaults.shared.defaultInventorySort
+                    viewModel.selectedSortType =
+                    ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
+                    viewModel.isLoading = true
+                    Task {
+                        viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+                    }
                 }
             }
-        } message: {
-            Text("Are you sure you want to delete \(viewModel.selectedItemIDs.count > 1 ? "these items" : "this item")? This action cannot be undone.")
-        }
-        .onAppear {
-            if !hasAppeared {
-                hasAppeared = true
-                isInventoryGridActive = true
-                let sortTypeIndex = AppDefaults.shared.defaultInventorySort
-                viewModel.selectedSortType =
-                ([SortType.order, .alphabetical, .dateModified].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified][sortTypeIndex] : .order)
-                viewModel.isLoading = true
-                Task {
-                    viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            .onDisappear {
+                hasAppeared = false
+            }
+            .onChange(of: editMode?.wrappedValue.isEditing == true) {
+                if editMode?.wrappedValue.isEditing == false && !showDeleteAlert {
+                    viewModel.selectedItemIDs.removeAll()
                 }
             }
-        }
-        .onDisappear {
-            hasAppeared = false
-        }
-        .onChange(of: editMode?.wrappedValue.isEditing == true) {
-            if editMode?.wrappedValue.isEditing == false && !showDeleteAlert {
-                viewModel.selectedItemIDs.removeAll()
+            .onChange(of: isInventoryActive) {
+                if isInventoryActive {
+                    isInventoryGridActive = true
+                } else {
+                    isInventoryGridActive = false
+                }
             }
-        }
-        .onChange(of: isInventoryActive) {
-            if isInventoryActive {
-                isInventoryGridActive = true
-            } else {
-                isInventoryGridActive = false
+            .onChange(of: modelLocations.filter { $0.displayInRow == true }) {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
             }
-        }
-        .onChange(of: modelLocations.filter { $0.displayInRow == true }) {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
-        }
-        .onChange(of: modelCategories.filter { $0.displayInRow == true }) {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
-        }
-        .onChange(of: viewModel.filteredItems(from: modelItems)) {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
-        }
-        .onChange(of: "\(viewModel.appDefaults.showHiddenLocationsInGrid)-\(viewModel.appDefaults.showHiddenCategoriesInGrid)") {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
-        }
-        .onChange(of: "\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {
-            viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            .onChange(of: modelCategories.filter { $0.displayInRow == true }) {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
+            .onChange(of: viewModel.filteredItems(from: modelItems)) {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
+            .onChange(of: "\(viewModel.appDefaults.showHiddenLocationsInGrid)-\(viewModel.appDefaults.showHiddenCategoriesInGrid)") {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
+            .onChange(of: "\(viewModel.selectedSortType)-\(viewModel.selectedCategory)") {
+                viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
         }
     }
     
@@ -203,7 +210,7 @@ struct InventoryGridView: View {
         InventoryViewModel.categoryPicker(
             selectedCategory: viewModel.selectedCategory,
             categories: categories,
-            menuPresented: $categoryMenuPresented
+            menuPresented: $showCategoryMenu
         ) { selected in
             withAnimation(.easeInOut(duration: 0.3)) {
                 viewModel.selectedCategory = selected
@@ -215,7 +222,7 @@ struct InventoryGridView: View {
     private var sortPicker: some View {
         InventoryViewModel.sortPicker(
             selectedSortType: viewModel.selectedSortType,
-            menuPresented: $sortMenuPresented
+            menuPresented: $showSortMenu
         ) { selected in
             withAnimation(.easeInOut(duration: 0.3)) {
                 viewModel.selectedSortType = selected
@@ -247,9 +254,8 @@ struct InventoryGridView: View {
 #Preview {
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext)
     @Previewable @State var title: String = "All Items"
-    @Previewable @State var selectedItem: Item? = nil
     @Previewable @State var isInventoryActive: Bool = true
     @Previewable @State var isInventoryGridActive: Bool = true
     
-    InventoryGridView(syncEngine: syncEngine, title: title, selectedItem: $selectedItem, isInventoryActive: $isInventoryActive, isInventoryGridActive: $isInventoryGridActive)
+    InventoryGridView(syncEngine: syncEngine, title: title, isInventoryActive: $isInventoryActive, isInventoryGridActive: $isInventoryGridActive)
 }

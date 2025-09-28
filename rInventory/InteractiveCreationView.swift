@@ -278,6 +278,7 @@ struct InteractiveCreationView: View {
                         .padding(8)
                     if case .symbol = background {
                         ColorPicker("Symbol Color:", selection: $symbolColor, supportsOpacity: false)
+                            .foregroundStyle(symbolColor.isColorWhite() ? .black : .white)
                             .bold()
                             .frame(maxWidth: 200)
                             .padding(10)
