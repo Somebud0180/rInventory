@@ -125,6 +125,7 @@ struct AsyncItemImage: View {
 }
 
 /// Disk-based persistent cache manager for processed images
+@MainActor
 class ImageDiskCache {
     private let cacheDirectoryName = "com.rinventory.imagecache"
     private let fileManager = FileManager.default
@@ -135,7 +136,13 @@ class ImageDiskCache {
         return fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent(cacheDirectoryName)
     }
     
+    // Store these values in memory for access from background threads
+    private let cachedDirectoryPath: String
+    private let cacheNamespace: String
+    
     init() {
+        self.cachedDirectoryPath = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?.path ?? ""
+        self.cacheNamespace = cacheDirectoryName
         createCacheDirectoryIfNeeded()
         cleanExpiredItems()
     }
@@ -155,7 +162,6 @@ class ImageDiskCache {
     /// Store image to disk cache
     func storeImage(_ image: UIImage, forKey key: String) async {
         guard let cacheDirectory = cacheDirectory else { return }
-        let fileURL = cacheDirectory.appendingPathComponent(key)
         
         // Convert key hash to filename-safe string
         let safeKey = key.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? key
@@ -173,9 +179,16 @@ class ImageDiskCache {
                 ]
                 try JSONSerialization.data(withJSONObject: metadata).write(to: metadataURL)
                 
-                // Check if we need to trim the cache
-                Task.detached { [weak self] in
-                    self?.trimCacheIfNeeded()
+                // Create a safe copy of needed values before detached task
+                let cacheDirPath = self.cachedDirectoryPath
+                let namespace = self.cacheNamespace
+                let limit = self.cacheSizeLimit
+                
+                // Use detached task with explicitly captured values instead of self
+                Task.detached {
+                    await trimCacheIfNeeded(cacheDirPath: cacheDirPath,
+                                            namespace: namespace,
+                                            sizeLimit: limit)
                 }
             }
         } catch {
@@ -205,82 +218,14 @@ class ImageDiskCache {
     
     /// Clean expired items from the cache
     private func cleanExpiredItems() {
-        Task.detached { [weak self] in
-            guard let self = self,
-                  let cacheDirectory = self.cacheDirectory,
-                  let contents = try? self.fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil) else { return }
-            
-            let now = Date().timeIntervalSince1970
-            let expirationInterval = self.expirationDays * 24 * 60 * 60 // days to seconds
-            
-            for fileURL in contents where fileURL.pathExtension == "metadata" {
-                do {
-                    let data = try Data(contentsOf: fileURL)
-                    if let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let creationDate = metadata["creationDate"] as? TimeInterval,
-                       (now - creationDate) > expirationInterval {
-                        
-                        // Remove the image file
-                        let imageURL = fileURL.deletingPathExtension()
-                        try? self.fileManager.removeItem(at: imageURL)
-                        
-                        // Remove the metadata file
-                        try? self.fileManager.removeItem(at: fileURL)
-                    }
-                } catch {
-                    print("Error processing cache metadata: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-    
-    /// Trim the cache if it exceeds the size limit
-    private func trimCacheIfNeeded() {
-        guard let cacheDirectory = cacheDirectory,
-              let contents = try? fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil) else { return }
+        let cacheDirPath = self.cachedDirectoryPath
+        let namespace = self.cacheNamespace
+        let expirationTime = self.expirationDays
         
-        var cacheFiles: [(url: URL, metadata: URL, date: TimeInterval, size: Int)] = []
-        
-        // Collect files with their metadata
-        for fileURL in contents where !fileURL.pathExtension.contains("metadata") {
-            let metadataURL = fileURL.appendingPathExtension("metadata")
-            
-            if fileManager.fileExists(atPath: metadataURL.path) {
-                do {
-                    let data = try Data(contentsOf: metadataURL)
-                    if let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let creationDate = metadata["creationDate"] as? TimeInterval,
-                       let size = metadata["size"] as? Int {
-                        cacheFiles.append((fileURL, metadataURL, creationDate, size))
-                    }
-                } catch {
-                    // Skip files with unreadable metadata
-                }
-            }
-        }
-        
-        // Calculate total size
-        let totalSize = cacheFiles.reduce(0) { $0 + UInt64($1.size) }
-        
-        // If exceeding size limit, remove oldest files first until under limit
-        if totalSize > cacheSizeLimit {
-            // Sort by date (oldest first)
-            let sortedFiles = cacheFiles.sorted { $0.date < $1.date }
-            
-            var currentSize = totalSize
-            for file in sortedFiles {
-                if currentSize <= cacheSizeLimit {
-                    break
-                }
-                
-                do {
-                    try fileManager.removeItem(at: file.url)
-                    try fileManager.removeItem(at: file.metadata)
-                    currentSize -= UInt64(file.size)
-                } catch {
-                    print("Failed to remove cache file: \(error.localizedDescription)")
-                }
-            }
+        Task.detached {
+            await cleanExpiredCacheItems(cacheDirPath: cacheDirPath,
+                                         namespace: namespace,
+                                         expirationDays: expirationTime)
         }
     }
     
@@ -295,4 +240,142 @@ class ImageDiskCache {
             print("Failed to clear image cache: \(error.localizedDescription)")
         }
     }
+}
+
+// Helper functions that are isolated from the main actor and can run in background
+
+/// Trims cache if it exceeds the size limit
+@Sendable
+private func trimCacheIfNeeded(cacheDirPath: String, namespace: String, sizeLimit: UInt64) async {
+    let fileManager = FileManager.default
+    let cacheDirURL = URL(fileURLWithPath: cacheDirPath).appendingPathComponent(namespace)
+    
+    guard let contents = try? fileManager.contentsOfDirectory(at: cacheDirURL, includingPropertiesForKeys: nil) else { return }
+    
+    var cacheFiles: [(url: URL, metadata: URL, date: TimeInterval, size: Int)] = []
+    
+    // Collect files with their metadata
+    for fileURL in contents where !fileURL.pathExtension.contains("metadata") {
+        let metadataURL = fileURL.appendingPathExtension("metadata")
+        
+        if fileManager.fileExists(atPath: metadataURL.path) {
+            do {
+                let data = try Data(contentsOf: metadataURL)
+                if let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let creationDate = metadata["creationDate"] as? TimeInterval,
+                   let size = metadata["size"] as? Int {
+                    cacheFiles.append((fileURL, metadataURL, creationDate, size))
+                }
+            } catch {
+                // Skip files with unreadable metadata
+            }
+        }
+    }
+    
+    // Calculate total size
+    let totalSize = cacheFiles.reduce(0) { $0 + UInt64($1.size) }
+    
+    // If exceeding size limit, remove oldest files first until under limit
+    if totalSize > sizeLimit {
+        // Sort by date (oldest first)
+        let sortedFiles = cacheFiles.sorted { $0.date < $1.date }
+        
+        var currentSize = totalSize
+        for file in sortedFiles {
+            if currentSize <= sizeLimit {
+                break
+            }
+            
+            do {
+                try fileManager.removeItem(at: file.url)
+                try fileManager.removeItem(at: file.metadata)
+                currentSize -= UInt64(file.size)
+            } catch {
+                print("Failed to remove cache file: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+/// Cleans expired cache items
+@Sendable
+private func cleanExpiredCacheItems(cacheDirPath: String, namespace: String, expirationDays: TimeInterval) async {
+    let fileManager = FileManager.default
+    let cacheDirURL = URL(fileURLWithPath: cacheDirPath).appendingPathComponent(namespace)
+    
+    guard let contents = try? fileManager.contentsOfDirectory(at: cacheDirURL, includingPropertiesForKeys: nil) else { return }
+    
+    let now = Date().timeIntervalSince1970
+    let expirationInterval = expirationDays * 24 * 60 * 60 // days to seconds
+    
+    for fileURL in contents where fileURL.pathExtension == "metadata" {
+        do {
+            let data = try Data(contentsOf: fileURL)
+            if let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let creationDate = metadata["creationDate"] as? TimeInterval,
+               (now - creationDate) > expirationInterval {
+                
+                // Remove the image file
+                let imageURL = fileURL.deletingPathExtension()
+                try? fileManager.removeItem(at: imageURL)
+                
+                // Remove the metadata file
+                try? fileManager.removeItem(at: fileURL)
+            }
+        } catch {
+            print("Error processing cache metadata: \(error.localizedDescription)")
+        }
+    }
+}
+
+/// Efficiently creates a downsampled version of an image from the provided data.
+/// This approach uses significantly less memory than loading the full image first.
+/// - Parameters:
+///   - data: The image data to decode
+///   - maxPixelSize: The maximum dimension (width or height) of the resulting image
+///   - scale: The scale factor to apply (typically the screen scale)
+/// - Returns: A downsampled UIImage, or nil if the image couldn't be processed
+private func downsampledImage(from data: Data, maxPixelSize: CGFloat, scale: CGFloat) -> UIImage? {
+    // Create an image source
+    guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
+        return nil
+    }
+    
+    // Get original dimensions to calculate aspect ratio
+    let options: [CFString: Any] = [
+        kCGImageSourceShouldCache: false
+    ]
+    
+    guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, options as CFDictionary) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? Int,
+          let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+        return nil
+    }
+    
+    // Calculate target size while maintaining aspect ratio
+    let aspectRatio = CGFloat(width) / CGFloat(height)
+    let targetSize: CGSize
+    
+    if width > height {
+        let targetWidth = min(CGFloat(width), maxPixelSize)
+        targetSize = CGSize(width: targetWidth, height: targetWidth / aspectRatio)
+    } else {
+        let targetHeight = min(CGFloat(height), maxPixelSize)
+        targetSize = CGSize(width: targetHeight * aspectRatio, height: targetHeight)
+    }
+    
+    // Create thumbnail options specifying the target size
+    let thumbnailOptions: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: max(targetSize.width, targetSize.height)
+    ]
+    
+    // Create the thumbnail
+    guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbnailOptions as CFDictionary) else {
+        return nil
+    }
+    
+    return UIImage(cgImage: thumbnail, scale: scale, orientation: .up)
 }
