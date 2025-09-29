@@ -15,9 +15,19 @@ enum ItemCardBackground {
     case image(Data)
 }
 
-// Disable modification functions on watchOS
-#if !os(watchOS)
 extension Item {
+    /// Returns the background type for the item card, either symbol or image.
+    func getBackgroundType() -> ItemCardBackground {
+        if let imageData = self.imageData, !imageData.isEmpty {
+            return .image(imageData)
+        } else if let symbol = self.symbol {
+            return .symbol(symbol)
+        } else {
+            return .symbol("questionmark")
+        }
+    }
+    
+#if !os(watchOS) // Disable modification functions on watchOS
     /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
     static func saveItem(
         name: String,
@@ -171,8 +181,10 @@ extension Item {
         
         try? context.save()
     }
+#endif // !os(watchOS)
 }
 
+#if !os(watchOS) // Disable modification functions on watchOS
 extension Location {
     /// Finds an existing location by name or creates a new one with the specified color and next available sort order.
     /// - If a location with the given name exists, it updates its color and returns it.

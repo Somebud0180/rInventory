@@ -15,6 +15,8 @@ struct ItemGridView: View {
     let showCounterForSingleItems: Bool
     let onItemSelected: (Item) -> Void
     @Binding var showItemView: Bool
+    var onItemAppear: ((Item) -> Void)? = nil
+    var onItemDisappear: ((Item) -> Void)? = nil
     
     var body: some View {
         LazyVGrid(columns: gridColumns, spacing: 10) {
@@ -33,6 +35,12 @@ struct ItemGridView: View {
                             showItemView = true
                         }
                     )
+                    .onAppear {
+                        onItemAppear?(item)
+                    }
+                    .onDisappear {
+                        onItemDisappear?(item)
+                    }
                     .sensoryFeedback(.impact(flexibility: .soft), trigger: showItemView == true)
                 }
             }

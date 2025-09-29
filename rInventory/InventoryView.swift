@@ -56,6 +56,11 @@ struct InventoryView: View {
     @State private var showingSyncError = false
     @State private var showingSyncSpinner = false
     
+    // State for image prefetching
+    @State private var visibleItemIDsMap = [String: Set<UUID>]()
+    @State private var prefetchingEnabled = true
+    private let prefetchBatchSize = 8 // Number of items to prefetch ahead in each row
+    
     init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showInteractiveCreationView: Binding<Bool>, isActive: Bool) {
         self._syncEngine = StateObject(wrappedValue: syncEngine)
         self._showItemCreationView = showItemCreationView
@@ -193,6 +198,13 @@ struct InventoryView: View {
                     syncEngine.updateModelContext(modelContext)
                 }
             }
+            .onDisappear {
+                // Cancel all prefetching operations when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                    visibleItemIDsMap.removeAll()
+                }
+            }
             .onChange(of: syncEngine.syncState) {
                 if case .error = syncEngine.syncState {
                     showingSyncError = true
@@ -288,6 +300,10 @@ struct InventoryView: View {
     private func inventoryRow(predicate: String? = nil, itemAmount: Int? = nil, title: String, color: Color = Color.gray, showCategoryPicker: Bool = false, showSortPicker: Bool = false) -> some View {
         let itemAmount = itemAmount ?? 4
         let filteredItems = filteredItems(for: predicate).uniqued(by: \.id)
+        let predicateKey = predicate ?? "AllItems"
+        
+        // Calculate upcoming items for prefetching
+        let upcomingItems = predicateCalculateUpcomingItems(filteredItems, predicateKey: predicateKey)
         
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
@@ -320,6 +336,17 @@ struct InventoryView: View {
                             )
                             .aspectRatio(1.0, contentMode: .fit)
                             .frame(minWidth: 150, maxWidth: 300, minHeight: 150, maxHeight: 300)
+                            .onAppear {
+                                // Track which items are visible in this row
+                                if visibleItemIDsMap[predicateKey] == nil {
+                                    visibleItemIDsMap[predicateKey] = Set<UUID>()
+                                }
+                                visibleItemIDsMap[predicateKey]?.insert(item.id)
+                            }
+                            .onDisappear {
+                                // Remove from visible tracking when item disappears
+                                visibleItemIDsMap[predicateKey]?.remove(item.id)
+                            }
                         }
                         
                         if filteredItems.count < itemAmount {
@@ -349,6 +376,16 @@ struct InventoryView: View {
                     }
                 }
                 .scrollClipDisabled()
+                .prefetchImages(
+                    for: filteredItems.prefix(itemAmount).filter { visibleItemIDsMap[predicateKey]?.contains($0.id) ?? false },
+                    upcomingItems: upcomingItems,
+                    imageDataProvider: { item in
+                        if case .image(let imageData) = item.getBackgroundType() {
+                            return imageData
+                        }
+                        return nil
+                    }
+                )
             }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
@@ -435,6 +472,33 @@ struct InventoryView: View {
         activity.isEligibleForHandoff = true
         activity.isEligibleForPrediction = true
         activity.isEligibleForSearch = true
+    }
+    
+    /// Calculates which items are likely to appear next during horizontal scrolling for a row
+    private func predicateCalculateUpcomingItems(_ items: [Item], predicateKey: String) -> [Item] {
+        // Use the predicate key to get the visible items for this specific row
+        guard let visibleIDs = visibleItemIDsMap[predicateKey] else {
+            // If we have no visible items yet (initial load), return the first few items
+            if items.isEmpty {
+                return []
+            }
+            return Array(items.prefix(min(prefetchBatchSize, items.count)))
+        }
+        
+        // For horizontal scrolling, we want to find the rightmost visible item index
+        if let maxVisibleIndex = items.indices.filter({ visibleIDs.contains(items[$0].id) }).max() {
+            // Calculate the next batch of items that will appear during scrolling
+            let startIndex = min(maxVisibleIndex + 1, items.count - 1)
+            let endIndex = min(startIndex + prefetchBatchSize, items.count - 1)
+            
+            // If we have a valid range, return those upcoming items
+            if startIndex <= endIndex {
+                return Array(items[startIndex...endIndex])
+            }
+        }
+        
+        // Fall back to returning first few items if no visible items or all already visible
+        return Array(items.prefix(min(prefetchBatchSize, items.count)))
     }
 }
 

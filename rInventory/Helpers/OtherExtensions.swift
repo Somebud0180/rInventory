@@ -124,6 +124,28 @@ extension AsyncItemImage {
     }
 }
 
+/// Calculates which items are likely to appear next during scrolling
+func calculateUpcomingItems(_ items: [Item], visibleItemIDs: Set<Item.ID>, prefetchBatchSize: Int) -> [Item] {
+    // Find the highest (furthest down) visible item index
+    if let maxVisibleIndex = items.indices.filter({ visibleItemIDs.contains(items[$0].id) }).max() {
+        // Calculate the next batch of items that will appear during scrolling
+        let startIndex = min(maxVisibleIndex + 1, items.count - 1)
+        let endIndex = min(startIndex + prefetchBatchSize, items.count - 1)
+        
+        // If we have a valid range, return those upcoming items
+        if startIndex <= endIndex {
+            return Array(items[startIndex...endIndex])
+        }
+    }
+    
+    // If we have no visible items yet (initial load) or all items are already visible,
+    // return the first few items or an empty array
+    if items.isEmpty {
+        return []
+    }
+    return Array(items.prefix(min(prefetchBatchSize, items.count)))
+}
+
 /// Optimizes PNG image data by re-encoding it with lossless compression.
 /// - Parameter data: The original PNG image data.
 /// - Returns: The optimized PNG image data, or `nil` if optimization fails.

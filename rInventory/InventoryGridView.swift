@@ -58,6 +58,11 @@ struct InventoryGridView: View {
     @State private var showCategoryMenu = false
     @State private var showSortMenu = false
     
+    // State for image prefetching
+    @State private var visibleItemIDs = Set<UUID>()
+    @State private var prefetchingEnabled = true
+    private let prefetchBatchSize = 12 // Number of items to prefetch ahead
+    
     // Clean up viewModel on disappear
     @State private var hasAppeared = false
     
@@ -135,6 +140,10 @@ struct InventoryGridView: View {
             }
             .onDisappear {
                 hasAppeared = false
+                // Cancel prefetching when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                }
             }
             .onChange(of: editMode?.wrappedValue.isEditing == true) {
                 if editMode?.wrappedValue.isEditing == false && !showDeleteAlert {
@@ -167,9 +176,14 @@ struct InventoryGridView: View {
     }
     
     private var inventoryGrid: some View {
-        VStack {
+        let displayedItems = viewModel.filteredItems(from: viewModel.displayedItems)
+        
+        // Calculate upcoming items for prefetching - items that will appear next during scrolling
+        let upcomingItems: [Item] = calculateUpcomingItems(displayedItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
+        
+        return VStack {
             LazyVGrid(columns: itemColumns) {
-                ForEach(viewModel.filteredItems(from: viewModel.displayedItems), id: \.id) { item in
+                ForEach(displayedItems, id: \.id) { item in
                     DraggableItemCard(
                         item: item,
                         colorScheme: colorScheme,
@@ -191,15 +205,33 @@ struct InventoryGridView: View {
                             draggedItem = isDragging ? item : nil
                         },
                         onDrop: { droppedItemId in
-                            handleDrop(modelItems, filteredItems: viewModel.filteredItems(from: viewModel.displayedItems), draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
+                            handleDrop(modelItems, filteredItems: displayedItems, draggedItem: $draggedItem, droppedItemId: droppedItemId, target: item)
                         },
                         isEditing: editMode?.wrappedValue.isEditing ?? false,
                         isSelected: editMode?.wrappedValue.isEditing == true && viewModel.selectedItemIDs.contains(item.id)
                     )
+                    .onAppear {
+                        // Track which items are visible
+                        visibleItemIDs.insert(item.id)
+                    }
+                    .onDisappear {
+                        // Remove from visible tracking when item disappears
+                        visibleItemIDs.remove(item.id)
+                    }
                 }
             }
             Spacer()
         }
+        .prefetchImages(
+            for: displayedItems.filter { visibleItemIDs.contains($0.id) },
+            upcomingItems: upcomingItems,
+            imageDataProvider: { item in
+                if case .image(let imageData) = item.getBackgroundType() {
+                    return imageData
+                }
+                return nil
+            }
+        )
     }
     
     /// Returns a category picker menu for selecting inventory categories.

@@ -95,6 +95,7 @@
 				Helpers/AsyncItemImage.swift,
 				Helpers/DataModel.swift,
 				Helpers/DataModelExtension.swift,
+				Helpers/ItemCardPrefetchHelper.swift,
 				Helpers/OtherExtensions.swift,
 			);
 			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;

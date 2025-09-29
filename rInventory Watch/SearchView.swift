@@ -31,6 +31,11 @@ struct SearchView: View {
     @State private var isCategoriesExpanded: Bool = true
     @State private var isLocationsExpanded: Bool = true
     
+    // State for image prefetching
+    @State private var visibleItemIDs = Set<UUID>()
+    @State private var prefetchingEnabled = true
+    private let prefetchBatchSize = 6 // Smaller batch size for watch
+    
     private var filteredItems: [Item] {
         var filtered = items
         if !selectedCategoryName.isEmpty {
@@ -48,6 +53,8 @@ struct SearchView: View {
     }
     
     var body: some View {
+        let upcomingItems = calculateUpcomingItems(filteredItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
+        
         NavigationStack {
             ScrollView {
                 filterSection
@@ -59,14 +66,54 @@ struct SearchView: View {
                     showCounterForSingleItems: appDefaults.showCounterForSingleItems,
                     onItemSelected: { item in
                         selectedItem = item
+                        showItemView = true
                     },
-                    showItemView: $showItemView
+                    showItemView: $showItemView,
+                    onItemAppear: { item in
+                        if prefetchingEnabled {
+                            visibleItemIDs.insert(item.id)
+                        }
+                    },
+                    onItemDisappear: { item in
+                        if prefetchingEnabled {
+                            visibleItemIDs.remove(item.id)
+                        }
+                    }
+                )
+                .prefetchImages(
+                    for: filteredItems.filter { visibleItemIDs.contains($0.id) },
+                    upcomingItems: upcomingItems,
+                    imageDataProvider: { item in
+                        if case .image(let imageData) = item.getBackgroundType() {
+                            return imageData
+                        }
+                        return nil
+                    }
                 )
             }
             .navigationTitle("Search")
             .searchable(text: $searchText, prompt: "Search items")
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 ItemView(item: $selectedItem)
+            }
+            .onAppear {
+                // Prime prefetching with initial items
+                if prefetchingEnabled && !filteredItems.isEmpty {
+                    let initialItems = Array(filteredItems.prefix(min(prefetchBatchSize, filteredItems.count)))
+                    ItemImagePrefetcher.prefetchImagesForItems(initialItems) { item in
+                        if case .image(let imageData) = item.getBackgroundType() {
+                            return imageData
+                        }
+                        return nil
+                    }
+                }
+            }
+            .onDisappear {
+                // Cancel all prefetching when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                    visibleItemIDs.removeAll()
+                }
             }
         }
     }

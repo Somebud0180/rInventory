@@ -36,6 +36,11 @@ struct SearchView: View {
     @State private var isCategoriesExpanded: Bool = true
     @State private var isLocationsExpanded: Bool = true
     
+    // State for image prefetching
+    @State private var visibleItemIDs = Set<UUID>()
+    @State private var prefetchingEnabled = true
+    private let prefetchBatchSize = 12 // Number of items to prefetch ahead
+    
     private var filteredItems: [Item] {
         var filtered = items
         
@@ -72,8 +77,12 @@ struct SearchView: View {
                             .foregroundColor(.gray)
                             .padding(10)
                     } else {
+                        // Calculate upcoming items for prefetching
+                        let displayItems = filteredItems
+                        let upcomingItems = calculateUpcomingItems(displayItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
+                        
                         LazyVGrid(columns: itemColumns) {
-                            ForEach(filteredItems, id: \.id) { item in
+                            ForEach(displayItems, id: \.id) { item in
                                 ItemCard(
                                     item: item,
                                     colorScheme: colorScheme,
@@ -82,8 +91,28 @@ struct SearchView: View {
                                         selectedItem = item
                                         showItemView = true
                                     }
-                                )}
-                        }.padding(.horizontal)
+                                )
+                                .onAppear {
+                                    // Track which items are visible
+                                    visibleItemIDs.insert(item.id)
+                                }
+                                .onDisappear {
+                                    // Remove from visible tracking when item disappears
+                                    visibleItemIDs.remove(item.id)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                        .prefetchImages(
+                            for: displayItems.filter { visibleItemIDs.contains($0.id) },
+                            upcomingItems: upcomingItems,
+                            imageDataProvider: { item in
+                                if case .image(let imageData) = item.getBackgroundType() {
+                                    return imageData
+                                }
+                                return nil
+                            }
+                        )
                     }
                 }
             }
@@ -97,6 +126,25 @@ struct SearchView: View {
         // User activity for continuing search state in inventory tab
         .userActivity(searchActivityType, isActive: isActive) { activity in
             updateUserActivity(activity)
+        }
+        .onAppear {
+            // Prime prefetching on initial appearance
+            if prefetchingEnabled && !filteredItems.isEmpty {
+                let initialItems = Array(filteredItems.prefix(min(prefetchBatchSize, filteredItems.count)))
+                ItemImagePrefetcher.prefetchImagesForItems(initialItems) { item in
+                    if case .image(let imageData) = item.getBackgroundType() {
+                        return imageData
+                    }
+                    return nil
+                }
+            }
+        }
+        .onDisappear {
+            // Cancel all prefetching operations when view disappears
+            if prefetchingEnabled {
+                ItemImagePrefetcher.cancelAllPrefetching()
+                visibleItemIDs.removeAll()
+            }
         }
         .onContinueUserActivity(searchActivityType) { activity in
             if let info = activity.userInfo {

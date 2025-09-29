@@ -66,7 +66,11 @@ struct InventoryView: View {
     @State private var showSortPicker = false
     @State private var selectedSortType: SortType = .order
     
-    // Optimize data handling by limiting the number of items processed
+    // State for image prefetching
+    @State private var visibleItemIDs = Set<UUID>()
+    @State private var prefetchingEnabled = true
+    private let prefetchBatchSize = 6 // Smaller batch size for watch
+    
     private var filteredItems: [Item] {
         let filteredItems: [Item]
         switch selectedSortType {
@@ -88,6 +92,8 @@ struct InventoryView: View {
                 if items.isEmpty {
                     emptyItemsView
                 } else {
+                    let upcomingItems = calculateUpcomingItems(filteredItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
+                    
                     ItemGridView(
                         items: filteredItems,
                         showCounterForSingleItems: appDefaults.showCounterForSingleItems,
@@ -95,7 +101,27 @@ struct InventoryView: View {
                             selectedItem = item
                             showItemView = true
                         },
-                        showItemView: $showItemView
+                        showItemView: $showItemView,
+                        onItemAppear: { item in
+                            if prefetchingEnabled {
+                                visibleItemIDs.insert(item.id)
+                            }
+                        },
+                        onItemDisappear: { item in
+                            if prefetchingEnabled {
+                                visibleItemIDs.remove(item.id)
+                            }
+                        }
+                    )
+                    .prefetchImages(
+                        for: filteredItems.filter { visibleItemIDs.contains($0.id) },
+                        upcomingItems: upcomingItems,
+                        imageDataProvider: { item in
+                            if case .image(let imageData) = item.getBackgroundType() {
+                                return imageData
+                            }
+                            return nil
+                        }
                     )
                 }
             }
@@ -115,6 +141,24 @@ struct InventoryView: View {
                 let sortTypeIndex = AppDefaults.shared.defaultInventorySort
                 selectedSortType =
                 ([SortType.order, .alphabetical, .dateModified, .recentlyAdded].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified, .recentlyAdded][sortTypeIndex] : .order)
+                
+                // Prime prefetching with initial items
+                if prefetchingEnabled && !filteredItems.isEmpty {
+                    let initialItems = Array(filteredItems.prefix(min(prefetchBatchSize, filteredItems.count)))
+                    ItemImagePrefetcher.prefetchImagesForItems(initialItems) { item in
+                        if case .image(let imageData) = item.getBackgroundType() {
+                            return imageData
+                        }
+                        return nil
+                    }
+                }
+            }
+            .onDisappear {
+                // Cancel all prefetching when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                    visibleItemIDs.removeAll()
+                }
             }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
                 ItemView(item: $selectedItem)
@@ -171,22 +215,6 @@ func sortSymbol(for sortType: SortType) -> String {
     case .recentlyAdded:
         return "calendar.badge.plus"
     }
-}
-
-func bindingForItem(_ item: Item, _ items: [Item]) -> Binding<Item> {
-    return Binding(
-        get: {
-            // Fetch the item from the model context
-            if let fetchedItem = items.first(where: { $0.id == item.id }) {
-                return fetchedItem
-            }
-            return item
-        },
-        set: { newValue in
-            // Changes are automatically persisted through SwiftData's model context
-            // No explicit save needed as SwiftData handles this automatically
-        }
-    )
 }
 
 #Preview {
