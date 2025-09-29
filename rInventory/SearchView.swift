@@ -90,9 +90,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search items")
-            .sheet(isPresented: $showItemView, onDismiss: {
-                selectedItem = nil
-            }) {
+            .sheet(isPresented: $showItemView) {
                 ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
         }

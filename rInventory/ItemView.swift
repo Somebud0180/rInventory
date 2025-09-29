@@ -274,6 +274,15 @@ struct ItemView: View {
                 }
             }
         }
+        .onDisappear {
+            item = nil
+        }
+        .onChange(of: item) {
+            if item != nil {
+                finishedLoading = false
+                initializeDisplayVariables()
+            }
+        }
     }
     
     private func initializeDisplayVariables() {

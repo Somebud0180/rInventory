@@ -152,9 +152,7 @@ struct InventoryView: View {
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showItemView, onDismiss: {
-                selectedItem = nil
-            }) {
+            .sheet(isPresented: $showItemView) {
                 ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .sheet(isPresented: $showInventoryOptionsView, onDismiss: { Task { await syncEngine.manualSync() } }) {

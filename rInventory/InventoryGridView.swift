@@ -89,9 +89,7 @@ struct InventoryGridView: View {
             .padding(.horizontal, 16)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showItemView, onDismiss: {
-                selectedItem = nil
-            }) {
+            .sheet(isPresented: $showItemView) {
                 ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .refreshable {
