@@ -87,10 +87,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA8087322E73155F003A56A3 /* Exceptions for "rInventory" folder in "rInventory Watch" target */ = {
+		AA0E244C2E8AE02D00051DBA /* Exceptions for "Shared" folder in "rInventory Watch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AppIcon.icon,
 				Helpers/AdaptiveGlassStyle.swift,
 				Helpers/AsyncItemImage.swift,
 				Helpers/DataModel.swift,
@@ -100,6 +99,13 @@
 				Helpers/ImagePrefetcher.swift,
 				Helpers/ItemCardPrefetchHelper.swift,
 				Helpers/SharedCode.swift,
+			);
+			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;
+		};
+		AA8087322E73155F003A56A3 /* Exceptions for "rInventory" folder in "rInventory Watch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AppIcon.icon,
 			);
 			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;
 		};
@@ -113,6 +119,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AA0E244B2E8AE01900051DBA /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0E244C2E8AE02D00051DBA /* Exceptions for "Shared" folder in "rInventory Watch" target */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		AABFF4C52E4A325E000B491E /* rInventory Watch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "rInventory Watch";
@@ -200,6 +214,7 @@
 		AAC9D58A2E16056A0066997C = {
 			isa = PBXGroup;
 			children = (
+				AA0E244B2E8AE01900051DBA /* Shared */,
 				AAC9D5952E16056A0066997C /* rInventory */,
 				AAC9D5A72E16056D0066997C /* rInventoryTests */,
 				AAC9D5B12E16056D0066997C /* rInventoryUITests */,
@@ -321,6 +336,7 @@
 				AABFF4E32E4A3260000B491E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				AA0E244B2E8AE01900051DBA /* Shared */,
 				AAC9D5952E16056A0066997C /* rInventory */,
 			);
 			name = rInventory;
