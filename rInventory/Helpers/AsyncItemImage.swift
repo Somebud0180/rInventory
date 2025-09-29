@@ -29,7 +29,7 @@ struct AsyncItemImage: View {
     private static let cache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
 #if os(watchOS)
-        c.totalCostLimit = 12 * 1024 * 1024 // ~12MB cap on watch
+        c.totalCostLimit = 8 * 1024 * 1024 // ~8MB cap on watch
         c.countLimit = 150
 #else
         c.totalCostLimit = 64 * 1024 * 1024 // ~64MB on iPhone/iPad
