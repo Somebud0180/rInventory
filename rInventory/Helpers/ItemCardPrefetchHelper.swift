@@ -13,7 +13,7 @@ import SwiftUI
 /// Helper for managing prefetching of item images
 struct ItemImagePrefetcher {
     /// Start prefetching images for a collection of items that will appear soon
-    static func prefetchImagesForItems<T: Identifiable>(_ items: [T], imageDataProvider: (T) -> Data?) {
+    static func prefetchImagesForItems<T: Identifiable>(_ items: [T], imageDataProvider: @escaping (T) -> Data?) {
         for item in items {
             if let imageData = imageDataProvider(item) {
                 AsyncItemImage.prefetcher.prefetchImage(imageData: imageData)
@@ -22,7 +22,7 @@ struct ItemImagePrefetcher {
     }
     
     /// Cancel prefetching for items that are no longer needed
-    static func cancelPrefetchingForItems<T: Identifiable>(_ items: [T], imageDataProvider: (T) -> Data?) {
+    static func cancelPrefetchingForItems<T: Identifiable>(_ items: [T], imageDataProvider: @escaping (T) -> Data?) {
         for item in items {
             if let imageData = imageDataProvider(item) {
                 AsyncItemImage.prefetcher.cancelPrefetching(imageData: imageData)

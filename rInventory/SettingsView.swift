@@ -13,9 +13,7 @@ import os // Add this to check for debug builds
 
 let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
-struct SettingsView: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.modelContext) private var modelContext
+struct SettingsView: View {    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var appDefaults: AppDefaults
     @StateObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
@@ -52,6 +50,12 @@ struct SettingsView: View {
         GridItem(.flexible(), spacing: 16)
     ]
     
+    // Options for creation mode selection UI
+    let creationModeOptions = [
+        CreationModeOption(title: "Interactive Item Creation", description: "Create items interactively with a guided approach.", imageName: "InteractiveView", isInteractive: true),
+        CreationModeOption(title: "Form Item Creation", description: "Create items using a classic form-based approach.", imageName: "FormView", isInteractive: false)
+    ]
+    
     struct CreationModeOption: Identifiable {
         let id = UUID()
         let title: String
@@ -61,11 +65,6 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        // Options for creation mode selection UI
-        let creationModeOptions = [
-            CreationModeOption(title: "Interactive Item Creation", description: "Create items interactively with a guided approach.", imageName: horizontalSizeClass == .regular ? "InteractiveViewLandscape" : "InteractiveViewPortrait", isInteractive: true),
-            CreationModeOption(title: "Form Item Creation", description: "Create items using a classic form-based approach.", imageName: horizontalSizeClass == .regular ? "FormViewLandscape" : "FormViewPortrait", isInteractive: false)
-        ]
         
         NavigationStack {
             Form {
