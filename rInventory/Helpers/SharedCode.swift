@@ -1,14 +1,34 @@
 //
-//  OtherExtensions.swift
+//  SharedCode.swift
 //  rInventory
 //
 //  Created by Ethan John Lagera on 9/28/25.
 //
-//  Contains other uncategorized extensions used in the app.
+//  Contains other uncategorized shared code used in the app.
 
 import SwiftUI
 import Combine
 import ImageIO
+
+// MARK: - View and Color Code
+extension View {
+    /// Applies a modifier to the view conditionally.
+    /// - Parameters:
+    ///  - condition: The condition to evaluate.
+    ///  - transform: The modifier to apply if the condition is true.
+    ///  - Returns: Either the original view or the modified view based on the condition.
+    @ViewBuilder
+    func `if`<Content: View>(
+        _ condition: Bool,
+        transform: (Self) -> Content
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
 
 extension Color {
     /// Returns the relative luminance of this color, from 0 (black) to 1 (white).
@@ -38,22 +58,14 @@ extension Color {
     }
 }
 
-extension View {
-    /// Applies a modifier to the view conditionally.
-    /// - Parameters:
-    ///  - condition: The condition to evaluate.
-    ///  - transform: The modifier to apply if the condition is true.
-    ///  - Returns: Either the original view or the modified view based on the condition.
-    @ViewBuilder
-    func `if`<Content: View>(
-        _ condition: Bool,
-        transform: (Self) -> Content
-    ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
+// MARK: - Image Code
+extension UIImage {
+    /// Check if the image has an alpha channel (transparency)
+    var hasAlphaChannel: Bool {
+        guard let cgImage = self.cgImage else { return false }
+        
+        let alphaInfo = cgImage.alphaInfo
+        return alphaInfo == .premultipliedLast || alphaInfo == .premultipliedFirst || alphaInfo == .last || alphaInfo == .first
     }
 }
 
