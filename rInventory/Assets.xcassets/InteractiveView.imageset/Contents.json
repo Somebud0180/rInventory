@@ -3,6 +3,11 @@
     {
       "filename" : "Interactive_Landscape.png",
       "idiom" : "universal"
+    },
+    {
+      "filename" : "Interactive_Portrait 1.png",
+      "idiom" : "universal",
+      "width-class" : "compact"
     }
   ],
   "info" : {

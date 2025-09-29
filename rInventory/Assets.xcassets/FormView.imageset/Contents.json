@@ -13,6 +13,22 @@
       ],
       "filename" : "Form_Dark_Landscape.png",
       "idiom" : "universal"
+    },
+    {
+      "filename" : "Form_Light_Portrait 1.png",
+      "idiom" : "universal",
+      "width-class" : "compact"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "Form_Dark_Portrait 1.png",
+      "idiom" : "universal",
+      "width-class" : "compact"
     }
   ],
   "info" : {
