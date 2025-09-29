@@ -38,21 +38,6 @@ extension Color {
     }
 }
 
-func bindingForItem(_ item: Item, items: [Item]) -> Binding<Item> {
-    Binding(
-        get: {
-            if let item = items.first(where: { $0.id == item.id }) {
-                return item
-            } else {
-                return item
-            }
-        },
-        set: { _ in
-            // Leave blank - we don't need to modify the item here
-        }
-    )
-}
-
 extension View {
     /// Applies a modifier to the view conditionally.
     /// - Parameters:

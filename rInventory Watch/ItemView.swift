@@ -46,7 +46,9 @@ struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
-    @Binding var item: Item
+    @Binding var item: Item?
+    
+    @State private var isFinishedLoading: Bool = false
     
     // Item display variables - Original values
     @State private var name: String = ""
@@ -58,19 +60,23 @@ struct ItemView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                GeometryReader { geometry in
-                    content(geometry)
-                        .glassContain()
+            if !isFinishedLoading {
+                ProgressView("Loading Item...")
+                    .onAppear {
+                        initializeDisplayVariables()
+                    }
+            } else {
+                ZStack {
+                    GeometryReader { geometry in
+                        content(geometry)
+                            .glassContain()
+                    }
                 }
+                .ignoresSafeArea()
+                .background(backgroundGradient)
             }
-            .ignoresSafeArea()
-            .background(backgroundGradient)
         }
         ._statusBarHidden(true)
-        .onAppear {
-            initializeDisplayVariables()
-        }
         
     }
     
@@ -216,25 +222,28 @@ struct ItemView: View {
     
     //MARK: - Functions
     private func initializeDisplayVariables() {
-        name = item.name
-        quantity = item.quantity
-        location = item.location ?? Location(name: "The Void", color: .gray)
-        category = item.category ?? Category(name: "")
-        
-        if let imageData = item.imageData, !imageData.isEmpty {
-            background = .image(imageData)
-        } else if let symbol = item.symbol {
-            background = .symbol(symbol)
-        } else {
-            background = .symbol("questionmark")
+        if let item = item {
+            name = item.name
+            quantity = item.quantity
+            location = item.location ?? Location(name: "The Void", color: .gray)
+            category = item.category ?? Category(name: "")
+            
+            if let imageData = item.imageData, !imageData.isEmpty {
+                background = .image(imageData)
+            } else if let symbol = item.symbol {
+                background = .symbol(symbol)
+            } else {
+                background = .symbol("questionmark")
+            }
+            
+            symbolColor = item.symbolColor
+            isFinishedLoading = true
         }
-        
-        symbolColor = item.symbolColor
     }
 }
 
 #Preview {
-    @Previewable @State var item = Item(
+    @Previewable @State var item: Item? = Item(
         name: "Sample Item",
         quantity: 1,
         location: Location(name: "Sample Location", color: .blue),

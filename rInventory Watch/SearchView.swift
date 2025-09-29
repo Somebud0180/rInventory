@@ -66,12 +66,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .searchable(text: $searchText, prompt: "Search items")
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
-                if let selectedItem {
-                    ItemView(item: bindingForItem(selectedItem, items))
-                        .transition(.blurReplace)
-                } else {
-                    ProgressView("Loading item...")
-                }
+                ItemView(item: $selectedItem)
             }
         }
     }

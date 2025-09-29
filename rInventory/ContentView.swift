@@ -53,9 +53,7 @@ struct ContentView: View {
             .sheet(isPresented: $showItemView, onDismiss: {
                 selectedItem = nil
             }) {
-                if let selectedItem = selectedItem {
-                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: items))
-                }
+                ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .sheet(isPresented: $showItemCreationView) {
                 ItemCreationView()

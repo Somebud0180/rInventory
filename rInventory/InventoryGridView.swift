@@ -92,9 +92,7 @@ struct InventoryGridView: View {
             .sheet(isPresented: $showItemView, onDismiss: {
                 selectedItem = nil
             }) {
-                if let selectedItem = selectedItem {
-                    ItemView(syncEngine: syncEngine, item: bindingForItem(selectedItem, items: modelItems))
-                }
+                ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .refreshable {
                 viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)

@@ -50,19 +50,14 @@ struct ItemView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @ObservedObject var syncEngine: CloudKitSyncEngine
+    @Binding var item: Item?
+    
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     @Query private var items: [Item]
     
-    @Binding var item: Item
     @State private var finishedLoading: Bool = false
-    
-    // State variables for Editing UI
-    private enum ItemField: Hashable {
-        case name, category, location
-    }
-    
-    @State var isEditing: Bool = false
+    @State private var isEditing: Bool = false
     @State private var isCollapsed: Bool = false
     @State private var animateFocused: ItemField? = nil
     @FocusState private var focusedField: ItemField?
@@ -96,6 +91,11 @@ struct ItemView: View {
     @State private var editLocationColor: Color = .white
     @State private var editBackground: ItemCardBackground = .symbol("questionmark")
     @State private var editSymbolColor: Color? = nil
+    
+    // State variables for Editing UI
+    private enum ItemField: Hashable {
+        case name, category, location
+    }
     
     /// Helper to determine if the device is in landscape mode
     private var isLandscape: Bool {
@@ -177,15 +177,17 @@ struct ItemView: View {
                     }
                     
                     Button("Delete", role: .destructive) {
-                        Task {
-                            await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
-                            
-                            withAnimation(.smooth(duration: 0.75)) {
-                                showDeleteAnimation = true
-                            }
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                                dismiss()
+                        if let item = item {
+                            Task {
+                                await item.deleteItem(context: modelContext, cloudKitSyncEngine: syncEngine)
+                                
+                                withAnimation(.smooth(duration: 0.75)) {
+                                    showDeleteAnimation = true
+                                }
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                    dismiss()
+                                }
                             }
                         }
                     }
@@ -275,22 +277,24 @@ struct ItemView: View {
     }
     
     private func initializeDisplayVariables() {
-        name = item.name
-        quantity = item.quantity
-        location = item.location ?? Location(name: "The Void", color: .gray)
-        category = item.category ?? Category(name: "")
-        
-        if let imageData = item.imageData, !imageData.isEmpty {
-            background = .image(imageData)
-        } else if let symbol = item.symbol {
-            background = .symbol(symbol)
-        } else {
-            background = .symbol("questionmark")
+        if let item = item {
+            name = item.name
+            quantity = item.quantity
+            location = item.location ?? Location(name: "The Void", color: .gray)
+            category = item.category ?? Category(name: "")
+            
+            if let imageData = item.imageData, !imageData.isEmpty {
+                background = .image(imageData)
+            } else if let symbol = item.symbol {
+                background = .symbol(symbol)
+            } else {
+                background = .symbol("questionmark")
+            }
+            
+            symbolColor = item.symbolColor
+            
+            finishedLoading = true
         }
-        
-        symbolColor = item.symbolColor
-        
-        finishedLoading = true
     }
     
     private func portraitLayout(_ geometry: GeometryProxy) -> some View {
@@ -860,56 +864,60 @@ struct ItemView: View {
     // MARK: - Functional Helpers
     /// Loads current item values into edit variables and enters editing mode with animation.
     private func editItem() {
-        editName = item.name
-        editQuantity = item.quantity
-        editLocationName = item.location?.name ?? "The Void"
-        editLocationColor = item.location?.color ?? .gray
-        editCategoryName = item.category?.name ?? ""
-        switch background {
-        case .symbol(let symbol):
-            editBackground = .symbol(symbol)
-            editSymbolColor = symbolColor ?? .accentColor
-        case .image(let data):
-            editBackground = .image(data)
-            editSymbolColor = nil
-        }
-        
-        withAnimation() {
-            isEditing = true
-            isCollapsed = false
+        if let item = item {
+            editName = item.name
+            editQuantity = item.quantity
+            editLocationName = item.location?.name ?? "The Void"
+            editLocationColor = item.location?.color ?? .gray
+            editCategoryName = item.category?.name ?? ""
+            switch background {
+            case .symbol(let symbol):
+                editBackground = .symbol(symbol)
+                editSymbolColor = symbolColor ?? .accentColor
+            case .image(let data):
+                editBackground = .image(data)
+                editSymbolColor = nil
+            }
+            
+            withAnimation() {
+                isEditing = true
+                isCollapsed = false
+            }
         }
     }
     
     /// Saves the item asynchronously and updates display variables.
     private func saveItem() async {
-        await item.updateItem(
-            name: editName,
-            quantity: editQuantity,
-            locationName: editLocationName,
-            locationColor: editLocationColor,
-            categoryName: editCategoryName,
-            background: editBackground,
-            symbolColor: editSymbolColor,
-            context: modelContext,
-            cloudKitSyncEngine: syncEngine
-        )
-        
-        // Update display variables from saved data
-        name = editName
-        quantity = max(editQuantity, 0) // Ensure quantity is non-negative
-        location = Location(name: editLocationName, color: editLocationColor)
-        category = Category(name: editCategoryName)
-        background = editBackground
-        symbolColor = editSymbolColor
-        
-        withAnimation() {
-            isEditing = false
+        if let item = item {
+            await item.updateItem(
+                name: editName,
+                quantity: editQuantity,
+                locationName: editLocationName,
+                locationColor: editLocationColor,
+                categoryName: editCategoryName,
+                background: editBackground,
+                symbolColor: editSymbolColor,
+                context: modelContext,
+                cloudKitSyncEngine: syncEngine
+            )
+            
+            // Update display variables from saved data
+            name = editName
+            quantity = max(editQuantity, 0) // Ensure quantity is non-negative
+            location = Location(name: editLocationName, color: editLocationColor)
+            category = Category(name: editCategoryName)
+            background = editBackground
+            symbolColor = editSymbolColor
+            
+            withAnimation() {
+                isEditing = false
+            }
         }
     }
     
     /// Updates the quantity asynchronously, ensuring it is non-negative.
     private func updateQuantity(_ newValue: Int) async {
-        if newValue != quantity, newValue != 0, newValue <= 1000, newValue >= 0 {
+        if let item = item, newValue != quantity, newValue != 0, newValue <= 1000, newValue >= 0 {
             quantity = newValue
             await item.updateItem(quantity: newValue, context: modelContext, cloudKitSyncEngine: syncEngine)
         }
@@ -918,7 +926,7 @@ struct ItemView: View {
 
 #Preview {
     @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext)
-    @Previewable @State var item = Item(
+    @Previewable @State var item: Item? = Item(
         name: "Sample Item",
         quantity: 1,
         location: Location(name: "Sample Location", color: .blue),

@@ -117,12 +117,7 @@ struct InventoryView: View {
                 ([SortType.order, .alphabetical, .dateModified, .recentlyAdded].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified, .recentlyAdded][sortTypeIndex] : .order)
             }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
-                if let selectedItem {
-                    ItemView(item: bindingForItem(selectedItem, items))
-                        .transition(.blurReplace)
-                } else {
-                    ProgressView("Loading item...")
-                }
+                ItemView(item: $selectedItem)
             }
             .sheet(isPresented: $showSortPicker) {
                 SortPickerView(selectedSortType: $selectedSortType, showSortPicker: $showSortPicker)

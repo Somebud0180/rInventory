@@ -168,7 +168,7 @@ class ImageDiskCache {
         let imageURL = cacheDirectory.appendingPathComponent(safeKey)
         
         do {
-            if let data = image.jpegData(compressionQuality: 0.8) {
+            if let data = image.pngData() {
                 try data.write(to: imageURL)
                 
                 // Add metadata for expiration
