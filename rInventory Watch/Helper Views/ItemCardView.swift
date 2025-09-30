@@ -188,6 +188,8 @@ struct ItemCard: View {
 }
 
 #Preview {
-    InventoryView()
+    @Previewable @State var isActive: Bool = true
+    
+    InventoryView(isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

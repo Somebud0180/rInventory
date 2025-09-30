@@ -61,6 +61,8 @@ struct InventoryView: View {
     @EnvironmentObject private var appDefaults: AppDefaults
     @Query private var items: [Item]
     
+    @State var isActive: Bool
+    
     @State private var selectedItem: Item? = nil
     @State private var showItemView: Bool = false
     @State private var showSortPicker = false
@@ -125,8 +127,8 @@ struct InventoryView: View {
                     )
                 }
             }
-            .navigationTitle("rInventory")
             .scrollDisabled(items.isEmpty)
+            .navigationTitle("rInventory")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { showSortPicker = true }) {
@@ -153,11 +155,13 @@ struct InventoryView: View {
                     }
                 }
             }
-            .onDisappear {
-                // Cancel all prefetching when view disappears
-                if prefetchingEnabled {
-                    ItemImagePrefetcher.cancelAllPrefetching()
-                    visibleItemIDs.removeAll()
+            .onChange(of: isActive) {
+                if !isActive {
+                    // Cancel all prefetching when view disappears
+                    if prefetchingEnabled {
+                        ItemImagePrefetcher.cancelAllPrefetching()
+                        visibleItemIDs.removeAll()
+                    }
                 }
             }
             .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
@@ -218,6 +222,8 @@ func sortSymbol(for sortType: SortType) -> String {
 }
 
 #Preview {
-    InventoryView()
+    @Previewable @State var isActive: Bool = true
+    
+    InventoryView(isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

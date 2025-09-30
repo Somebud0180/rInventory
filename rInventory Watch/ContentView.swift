@@ -23,13 +23,13 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             TabView(selection: $tabSelection) {
-                InventoryView()
+                InventoryView(isActive: tabSelection == 0)
                     .tabItem {
                         Label("Inventory", systemImage: "list.bullet")
                     }
                     .tag(0) // Tag for Home Tab
                 
-                SearchView()
+                SearchView(isActive: tabSelection == 1)
                     .tabItem {
                         Label("Search", systemImage: "magnifyingglass")
                     }

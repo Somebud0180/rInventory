@@ -21,8 +21,10 @@ struct SearchView: View {
     @Query(sort: \Location.name) private var locations: [Location]
     @Query(sort: \Category.name) private var categories: [Category]
     
-    @State var selectedItem: Item?
-    @State var showItemView: Bool = false
+    @State var isActive: Bool
+    
+    @State private var selectedItem: Item?
+    @State private var showItemView: Bool = false
     
     @State private var categoryFilter: String = ""
     @State private var locationFilter: String = ""
@@ -108,11 +110,13 @@ struct SearchView: View {
                     }
                 }
             }
-            .onDisappear {
-                // Cancel all prefetching when view disappears
-                if prefetchingEnabled {
-                    ItemImagePrefetcher.cancelAllPrefetching()
-                    visibleItemIDs.removeAll()
+            .onChange(of: isActive) {
+                if !isActive {
+                    // Cancel all prefetching when view disappears
+                    if prefetchingEnabled {
+                        ItemImagePrefetcher.cancelAllPrefetching()
+                        visibleItemIDs.removeAll()
+                    }
                 }
             }
         }
@@ -256,6 +260,8 @@ struct SearchView: View {
 }
 
 #Preview {
-    SearchView()
+    @Previewable @State var isActive = true
+    
+    SearchView(isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }
