@@ -350,7 +350,7 @@ struct InventoryView: View {
                                     // Remove from visible tracking when item disappears
                                     visibleItemIDsMap[predicateKey]?.remove(item.id)
                                 }
-                            } 
+                            }
                         }
                         
                         if filteredItems.count < itemAmount {

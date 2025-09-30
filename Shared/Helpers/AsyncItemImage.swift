@@ -24,6 +24,11 @@ actor InFlightRequestsStore {
     func get(key: String) -> AnyCancellable? { requests[key] }
     func set(key: String, value: AnyCancellable) { requests[key] = value }
     func remove(key: String) { requests.removeValue(forKey: key) }
+    
+    func cancelAll() {
+        requests.values.forEach { $0.cancel() }
+        requests.removeAll()
+    }
 }
 
 /// A view that asynchronously loads and displays images from Data.
