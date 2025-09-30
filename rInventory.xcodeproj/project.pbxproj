@@ -94,6 +94,7 @@
 				Helpers/AsyncItemImage.swift,
 				Helpers/DataModel.swift,
 				Helpers/DataModelExtension.swift,
+				Helpers/ImageCaches.swift,
 				Helpers/ImageDiskCache.swift,
 				Helpers/ImageFunctions.swift,
 				Helpers/ImagePrefetcher.swift,

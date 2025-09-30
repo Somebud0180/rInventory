@@ -77,7 +77,6 @@ struct ItemView: View {
             }
         }
         ._statusBarHidden(true)
-        
     }
     
     //MARK: - Computed Properties

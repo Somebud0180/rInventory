@@ -176,4 +176,3 @@ struct AsyncItemImage: View {
         }
     }
 }
-

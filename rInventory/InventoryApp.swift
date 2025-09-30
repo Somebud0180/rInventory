@@ -101,6 +101,7 @@ struct InventoryApp: App {
     
     @StateObject private var syncEngine: CloudKitSyncEngine
     @StateObject private var appDefaults = AppDefaults.shared
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -112,6 +113,12 @@ struct InventoryApp: App {
                 .preferredColorScheme(appDefaults.resolvedColorScheme())
         }
         .modelContainer(InventoryApp.sharedModelContainer)
+        .onChange(of: scenePhase) {
+            if scenePhase == .background {
+                // Clear memory caches when app is backgrounded
+                ImageCaches.purgeMemoryCaches()
+            }
+        }
     }
 }
 
