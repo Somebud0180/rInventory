@@ -198,11 +198,13 @@ struct InventoryView: View {
                     syncEngine.updateModelContext(modelContext)
                 }
             }
-            .onDisappear {
-                // Cancel all prefetching operations when view disappears
-                if prefetchingEnabled {
-                    ItemImagePrefetcher.cancelAllPrefetching()
-                    visibleItemIDsMap.removeAll()
+            .onChange(of: isActive) {
+                if !isActive {
+                    // Cancel all prefetching operations when view disappears
+                    if prefetchingEnabled {
+                        ItemImagePrefetcher.cancelAllPrefetching()
+                        visibleItemIDsMap.removeAll()
+                    }
                 }
             }
             .onChange(of: syncEngine.syncState) {
@@ -343,10 +345,12 @@ struct InventoryView: View {
                                 }
                                 visibleItemIDsMap[predicateKey]?.insert(item.id)
                             }
-                            .onDisappear {
-                                // Remove from visible tracking when item disappears
-                                visibleItemIDsMap[predicateKey]?.remove(item.id)
-                            }
+                            .onChange(of: isActive) {
+                                if !isActive {
+                                    // Remove from visible tracking when item disappears
+                                    visibleItemIDsMap[predicateKey]?.remove(item.id)
+                                }
+                            } 
                         }
                         
                         if filteredItems.count < itemAmount {

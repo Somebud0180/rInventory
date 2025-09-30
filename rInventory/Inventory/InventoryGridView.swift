@@ -138,11 +138,13 @@ struct InventoryGridView: View {
                     }
                 }
             }
-            .onDisappear {
-                hasAppeared = false
-                // Cancel prefetching when view disappears
-                if prefetchingEnabled {
-                    ItemImagePrefetcher.cancelAllPrefetching()
+            .onChange(of: isInventoryGridActive) {
+                if !isInventoryGridActive {
+                    hasAppeared = false
+                    // Cancel prefetching when view disappears
+                    if prefetchingEnabled {
+                        ItemImagePrefetcher.cancelAllPrefetching()
+                    }
                 }
             }
             .onChange(of: editMode?.wrappedValue.isEditing == true) {
@@ -214,9 +216,11 @@ struct InventoryGridView: View {
                         // Track which items are visible
                         visibleItemIDs.insert(item.id)
                     }
-                    .onDisappear {
-                        // Remove from visible tracking when item disappears
-                        visibleItemIDs.remove(item.id)
+                    .onChange(of: isInventoryGridActive) {
+                        if !isInventoryGridActive {
+                            // Remove from visible tracking when item disappears
+                            visibleItemIDs.remove(item.id)
+                        }
                     }
                 }
             }

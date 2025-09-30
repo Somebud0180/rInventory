@@ -96,9 +96,11 @@ struct SearchView: View {
                                     // Track which items are visible
                                     visibleItemIDs.insert(item.id)
                                 }
-                                .onDisappear {
-                                    // Remove from visible tracking when item disappears
-                                    visibleItemIDs.remove(item.id)
+                                .onChange(of: isActive) {
+                                    if !isActive {
+                                        // Remove from visible tracking when item disappears
+                                        visibleItemIDs.remove(item.id)
+                                    }
                                 }
                             }
                         }
@@ -139,11 +141,13 @@ struct SearchView: View {
                 }
             }
         }
-        .onDisappear {
-            // Cancel all prefetching operations when view disappears
-            if prefetchingEnabled {
-                ItemImagePrefetcher.cancelAllPrefetching()
-                visibleItemIDs.removeAll()
+        .onChange(of: isActive) {
+            if !isActive {
+                // Cancel all prefetching operations when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                    visibleItemIDs.removeAll()
+                }
             }
         }
         .onContinueUserActivity(searchActivityType) { activity in
