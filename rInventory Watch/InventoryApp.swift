@@ -16,19 +16,27 @@ class AppDefaults: ObservableObject {
     
     @Published var showCounterForSingleItems: Bool
     @Published var defaultInventorySort: Int
+    @Published var showHiddenCategories: Bool = true
+    @Published var showHiddenLocations: Bool = true
     
     private enum Keys {
         static let showCounterForSingleItems = "showCounterForSingleItems"
         static let defaultInventorySort = "defaultInventorySort"
+        static let showHiddenCategories = "showHiddenCategories"
+        static let showHiddenLocations = "showHiddenLocations"
     }
     
     private init() {
         showCounterForSingleItems = defaults.object(forKey: Keys.showCounterForSingleItems) as? Bool ?? true
         defaultInventorySort = defaults.integer(forKey: Keys.defaultInventorySort)
+        showHiddenCategories = defaults.object(forKey: Keys.showHiddenCategories) as? Bool ?? false
+        showHiddenLocations = defaults.object(forKey: Keys.showHiddenLocations) as? Bool ?? false
         
         // Add observers to save on change
         $showCounterForSingleItems.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCounterForSingleItems) }.store(in: &cancellables)
         $defaultInventorySort.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.defaultInventorySort) }.store(in: &cancellables)
+        $showHiddenCategories.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showHiddenCategories) }.store(in: &cancellables)
+        $showHiddenLocations.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showHiddenLocations) }.store(in: &cancellables)
     }
     
     private var cancellables = Set<AnyCancellable>()
@@ -54,9 +62,9 @@ struct Inventory_WatchApp: App {
     }()
     
     @StateObject private var appDefaults = AppDefaults.shared
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
         WindowGroup {

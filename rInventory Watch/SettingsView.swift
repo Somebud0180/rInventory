@@ -11,7 +11,6 @@ import CloudKit
 
 struct SettingsView: View {
     @EnvironmentObject var appDefaults: AppDefaults
-    @Query private var items: [Item]
     
     var body: some View {
         NavigationStack {
@@ -19,12 +18,81 @@ struct SettingsView: View {
                 Group {
                     Section(header: Text("Visuals")) {
                         Toggle("Show Counter for Single Items", isOn: $appDefaults.showCounterForSingleItems)
-                        // Add InventoryOptionsView from the main app here
+                    }
+                }
+                
+                Group {
+                    Section(header: Text("Locations & Categories")) {
+                        Toggle("Show Hidden Categories", isOn: $appDefaults.showHiddenCategories)
+                        Toggle("Show Hidden Locations", isOn: $appDefaults.showHiddenLocations)
+                    }
+                    
+                    Section {
+                        NavigationLink(destination: CategoriesSettingsView()) {
+                            HStack {
+                                Text("Categories")
+                                Spacer()
+                            }
+                        }
+                        
+                        NavigationLink(destination: LocationsSettingsView()) {
+                            HStack {
+                                Text("Locations")
+                                Spacer()
+                            }
+                        }
                     }
                 }
             }
-            .navigationTitle("Settings")
         }
+    }
+}
+
+struct CategoriesSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Category.sortOrder, order: .forward) private var categories: [Category]
+    
+    var body: some View {
+        List {
+            ForEach(categories, id: \.id) { category in
+                Button(action: {
+                    // Toggle visibility for just this category
+                    category.displayInRow.toggle()
+                }) {
+                    HStack {
+                        Text(category.name)
+                        Spacer()
+                        Image(systemName: category.displayInRow ? "checkmark.circle.fill" : "circle")
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .navigationTitle("Categories")
+    }
+}
+
+struct LocationsSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Location.sortOrder, order: .forward) private var locations: [Location]
+    
+    var body: some View {
+        List {
+            ForEach(locations, id: \.id) { location in
+                Button(action: {
+                    // Toggle visibility for just this location
+                    location.displayInRow.toggle()
+                }) {
+                    HStack {
+                        Text(location.name)
+                        Spacer()
+                        Image(systemName: location.displayInRow ? "checkmark.circle.fill" : "circle")
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .navigationTitle("Locations")
     }
 }
 

@@ -99,11 +99,11 @@ struct InventoryApp: App {
         self._syncEngine = StateObject(wrappedValue: CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext))
     }
     
-    @StateObject private var syncEngine: CloudKitSyncEngine
     @StateObject private var appDefaults = AppDefaults.shared
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var syncEngine: CloudKitSyncEngine
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
         WindowGroup {

@@ -74,7 +74,8 @@ struct InventoryView: View {
     private let prefetchBatchSize = 6 // Smaller batch size for watch
     
     private var filteredItems: [Item] {
-        let filteredItems: [Item]
+        // First sort the items
+        var filteredItems: [Item]
         switch selectedSortType {
         case .order:
             filteredItems = items.sorted(by: { $0.sortOrder < $1.sortOrder })
@@ -84,7 +85,27 @@ struct InventoryView: View {
             filteredItems = items.sorted(by: { ($0.modifiedDate) > ($1.modifiedDate) })
         case .recentlyAdded:
             filteredItems = items.sorted(by: { ($0.itemCreationDate) > ($1.itemCreationDate) }).filter { $0.itemCreationDate > Date().addingTimeInterval(-7 * 24 * 60 * 60) }
+            // Don't filter out hidden categories/locations for recently added items
+            return filteredItems
         }
+        
+        // Now filter by visibility of categories and locations unless user has chosen to show hidden items
+        if !appDefaults.showHiddenCategories {
+            filteredItems = filteredItems.filter { item in
+                // Keep items that either have no category or have a category with displayInRow = true
+                guard let category = item.category else { return true }
+                return category.displayInRow
+            }
+        }
+        
+        if !appDefaults.showHiddenLocations {
+            filteredItems = filteredItems.filter { item in
+                // Keep items that either have no location or have a location with displayInRow = true
+                guard let location = item.location else { return true }
+                return location.displayInRow
+            }
+        }
+        
         return filteredItems
     }
     
@@ -128,7 +149,6 @@ struct InventoryView: View {
                 }
             }
             .scrollDisabled(items.isEmpty)
-            .navigationTitle("rInventory")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { showSortPicker = true }) {

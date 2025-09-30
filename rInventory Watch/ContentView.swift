@@ -18,14 +18,16 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
-    @SceneStorage("ContentView.tabSelection") var tabSelection: Int = 0
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @State var tabSelection: Int = 0
     
     var body: some View {
         NavigationStack {
             TabView(selection: $tabSelection) {
                 InventoryView(isActive: tabSelection == 0)
                     .tabItem {
-                        Label("Inventory", systemImage: "list.bullet")
+                        Label("rInventory", systemImage: "list.bullet")
                     }
                     .tag(0) // Tag for Home Tab
                 
@@ -35,6 +37,7 @@ struct ContentView: View {
                     }
                     .tag(1) // Tag for Search Tab
             }
+            .navigationTitle(tabSelection == 0 ? "rInventory" : "Search")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(destination: SettingsView()) {
@@ -43,6 +46,11 @@ struct ContentView: View {
                     }
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
+                }
+            }
+            .onChange(of: scenePhase) {
+                if scenePhase == .background {
+                    try? modelContext.save()
                 }
             }
         }
