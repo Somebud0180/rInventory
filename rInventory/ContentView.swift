@@ -103,10 +103,12 @@ struct ContentView: View {
                                   showInteractiveCreationView: $showInteractiveCreationView,
                                   isActive: currentTab == .home)
                 }
+                
                 // Settings Tab
                 Tab("Settings", systemImage: "gearshape", value: 1) {
                     SettingsView(syncEngine: syncEngine, isActive: currentTab == .settings)
                 }
+                
                 // Search Action
                 Tab("Search", systemImage: "magnifyingglass", value: 2, role: .search) {
                     SearchView(syncEngine: syncEngine, isActive: currentTab == .search)
@@ -123,12 +125,14 @@ struct ContentView: View {
                     Label("Home", systemImage: "house")
                 }
                 .tag(0) // Tag for Home Tab
+                
                 // Settings Tab
                 SettingsView(syncEngine: syncEngine, isActive: currentTab == .settings)
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }
                     .tag(1) // Tag for Settings Tab
+                
                 // Search Tab
                 SearchView(syncEngine: syncEngine, isActive: currentTab == .search)
                 .tabItem {

@@ -21,8 +21,8 @@ let gridColumns = [
 
 struct SortPickerView: View {
     @EnvironmentObject private var appDefaults: AppDefaults
+    @Environment(\.dismiss) private var dismiss
     @Binding var selectedSortType: SortType
-    @Binding var showSortPicker: Bool
     
     var body: some View {
         NavigationStack {
@@ -31,7 +31,7 @@ struct SortPickerView: View {
                     Button(action: {
                         selectedSortType = sort
                         appDefaults.defaultInventorySort = SortType.allCases.firstIndex(of: sort) ?? 0
-                        showSortPicker = false
+                        dismiss()
                     }) {
                         HStack {
                             Image(systemName: sortSymbol(for: sort))
@@ -61,12 +61,13 @@ struct InventoryView: View {
     @EnvironmentObject private var appDefaults: AppDefaults
     @Query private var items: [Item]
     
+    @Binding var selectedSortType: SortType
+    @Binding var showSortPicker: Bool
     @State var isActive: Bool
     
     @State private var selectedItem: Item? = nil
     @State private var showItemView: Bool = false
-    @State private var showSortPicker = false
-    @State private var selectedSortType: SortType = .order
+    
     
     // State for image prefetching
     @State private var visibleItemIDs = Set<UUID>()
@@ -110,86 +111,55 @@ struct InventoryView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if items.isEmpty {
-                    emptyItemsView
-                } else {
-                    let upcomingItems = calculateUpcomingItems(filteredItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
-                    
-                    ItemGridView(
-                        items: filteredItems,
-                        showCounterForSingleItems: appDefaults.showCounterForSingleItems,
-                        onItemSelected: { item in
-                            selectedItem = item
-                            showItemView = true
-                        },
-                        showItemView: $showItemView,
-                        onItemAppear: { item in
-                            if prefetchingEnabled {
-                                visibleItemIDs.insert(item.id)
-                            }
-                        },
-                        onItemDisappear: { item in
-                            if prefetchingEnabled {
-                                visibleItemIDs.remove(item.id)
-                            }
-                        }
-                    )
-                    .prefetchImages(
-                        for: filteredItems.filter { visibleItemIDs.contains($0.id) },
-                        upcomingItems: upcomingItems,
-                        imageDataProvider: { item in
-                            if case .image(let imageData) = item.getBackgroundType() {
-                                return imageData
-                            }
-                            return nil
-                        }
-                    )
-                }
-            }
-            .scrollDisabled(items.isEmpty)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { showSortPicker = true }) {
-                        Image(systemName: sortSymbol(for: selectedSortType))
-                            .font(.body)
-                    }
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-                }
-            }
-            .onAppear {
-                let sortTypeIndex = AppDefaults.shared.defaultInventorySort
-                selectedSortType =
-                ([SortType.order, .alphabetical, .dateModified, .recentlyAdded].indices.contains(sortTypeIndex) ? [SortType.order, .alphabetical, .dateModified, .recentlyAdded][sortTypeIndex] : .order)
+        ScrollView {
+            if items.isEmpty {
+                emptyItemsView
+            } else {
+                let upcomingItems = calculateUpcomingItems(filteredItems, visibleItemIDs: visibleItemIDs, prefetchBatchSize: prefetchBatchSize)
                 
-                // Prime prefetching with initial items
-                if prefetchingEnabled && !filteredItems.isEmpty {
-                    let initialItems = Array(filteredItems.prefix(min(prefetchBatchSize, filteredItems.count)))
-                    ItemImagePrefetcher.prefetchImagesForItems(initialItems) { item in
+                ItemGridView(
+                    items: filteredItems,
+                    showCounterForSingleItems: appDefaults.showCounterForSingleItems,
+                    onItemSelected: { item in
+                        selectedItem = item
+                        showItemView = true
+                    },
+                    showItemView: $showItemView,
+                    onItemAppear: { item in
+                        if prefetchingEnabled {
+                            visibleItemIDs.insert(item.id)
+                        }
+                    },
+                    onItemDisappear: { item in
+                        if prefetchingEnabled {
+                            visibleItemIDs.remove(item.id)
+                        }
+                    }
+                )
+                .prefetchImages(
+                    for: filteredItems.filter { visibleItemIDs.contains($0.id) },
+                    upcomingItems: upcomingItems,
+                    imageDataProvider: { item in
                         if case .image(let imageData) = item.getBackgroundType() {
                             return imageData
                         }
                         return nil
                     }
+                )
+            }
+        }
+        .scrollDisabled(items.isEmpty)
+        .onChange(of: isActive) {
+            if !isActive {
+                // Cancel all prefetching when view disappears
+                if prefetchingEnabled {
+                    ItemImagePrefetcher.cancelAllPrefetching()
+                    visibleItemIDs.removeAll()
                 }
             }
-            .onChange(of: isActive) {
-                if !isActive {
-                    // Cancel all prefetching when view disappears
-                    if prefetchingEnabled {
-                        ItemImagePrefetcher.cancelAllPrefetching()
-                        visibleItemIDs.removeAll()
-                    }
-                }
-            }
-            .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
-                ItemView(item: $selectedItem)
-            }
-            .sheet(isPresented: $showSortPicker) {
-                SortPickerView(selectedSortType: $selectedSortType, showSortPicker: $showSortPicker)
-            }
+        }
+        .fullScreenCover(isPresented: $showItemView, onDismiss: { selectedItem = nil }) {
+            ItemView(item: $selectedItem)
         }
     }
     
@@ -242,8 +212,10 @@ func sortSymbol(for sortType: SortType) -> String {
 }
 
 #Preview {
+    @Previewable @State var selectedSortType: SortType = .order
+    @Previewable @State var showSortPicker: Bool = true
     @Previewable @State var isActive: Bool = true
     
-    InventoryView(isActive: isActive)
+    InventoryView(selectedSortType: $selectedSortType, showSortPicker: $showSortPicker, isActive: isActive)
         .modelContainer(for: [Item.self, Location.self, Category.self])
 }

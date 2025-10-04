@@ -186,10 +186,3 @@ struct ItemCard: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
-#Preview {
-    @Previewable @State var isActive: Bool = true
-    
-    InventoryView(isActive: isActive)
-        .modelContainer(for: [Item.self, Location.self, Category.self])
-}
