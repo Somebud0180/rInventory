@@ -216,20 +216,32 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Send tombstones to CloudKit to confirm deletions
     private func sendTombstonesToCloudKit() async throws {
+        var tombstonesToRemove: [String] = []
         for (recordID, _) in tombstones {
-            let recordID = CKRecord.ID(recordName: recordID, zoneID: itemsZoneID)
+            let ckRecordID = CKRecord.ID(recordName: recordID, zoneID: itemsZoneID)
             do {
-                try await database.deleteRecord(withID: recordID)
+                try await database.deleteRecord(withID: ckRecordID)
                 #if DEBUG
-                logger.info("Confirmed deletion of record: \(recordID.recordName)")
+                logger.info("Confirmed deletion of record: \(recordID)")
                 #endif
+                tombstonesToRemove.append(recordID)
             } catch let error as CKError {
-                if error.code != .unknownItem {
-                    logger.error("Failed to delete record: \(recordID.recordName) - \(error.localizedDescription)")
+                if error.code == .unknownItem {
+                    #if DEBUG
+                    logger.info("Confirmed deletion of record (already gone): \(recordID)")
+                    #endif
+                    tombstonesToRemove.append(recordID)
+                } else {
+                    logger.error("Failed to delete record: \(recordID) - \(error.localizedDescription)")
                     throw error
                 }
             }
         }
+        // Remove all cleared tombstones at once and persist
+        for recordID in tombstonesToRemove {
+            tombstones.removeValue(forKey: recordID)
+        }
+        saveTombstones()
     }
     
     /// Add a record ID to the tombstone list and delete it locally
@@ -874,11 +886,11 @@ public enum CloudKitSyncError: LocalizedError {
         case .syncInProgress:
             return "Synchronization is already in progress"
         case .recordNotFound:
-            return "Record not found in CloudKit"
+            return "Data not found in iCloud"
         case .invalidData:
-            return "Invalid data format"
+            return "Invalid data encountered"
         case .syncEngineNotInitialized:
-            return "Sync engine not initialized"
+            return "Syncing is not yet initialized"
         }
     }
 }
