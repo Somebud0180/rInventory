@@ -140,7 +140,9 @@ public class CloudKitSyncEngine: ObservableObject {
         
         do {
             _ = try await database.modifyRecordZones(saving: zones, deleting: [])
+            #if DEBUG
             logger.info("Successfully created/verified record zones")
+            #endif
         } catch let error as CKError {
             // Ignore benign cases where zones are not yet present or a referenced item is missing
             if error.code != .zoneNotFound && error.code != .unknownItem {
@@ -159,7 +161,9 @@ public class CloudKitSyncEngine: ObservableObject {
         )
         
         syncEngine = CKSyncEngine(configuration)
+        #if DEBUG
         logger.info("Initialized sync engine")
+        #endif
     }
     
     /// Start automatic synchronization
@@ -216,7 +220,9 @@ public class CloudKitSyncEngine: ObservableObject {
             let recordID = CKRecord.ID(recordName: recordID, zoneID: itemsZoneID)
             do {
                 try await database.deleteRecord(withID: recordID)
+                #if DEBUG
                 logger.info("Confirmed deletion of record: \(recordID.recordName)")
+                #endif
             } catch let error as CKError {
                 if error.code != .unknownItem {
                     logger.error("Failed to delete record: \(recordID.recordName) - \(error.localizedDescription)")
@@ -639,17 +645,23 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Comprehensive cleanup of orphaned relationships and invalid data
     private func cleanupOrphanedData() async {
+        #if DEBUG
         logger.info("Performing safe orphaned data cleanup")
+        #endif
         
         // IMPORTANT: Don't clean up when not synced properly
         guard isAccountAvailable else {
+            #if DEBUG
             logger.info("Skipping cleanup - CloudKit account not available")
+            #endif
             return
         }
         
         // Only clean up if we've had at least one successful sync
         guard lastSyncDate != nil else {
+            #if DEBUG
             logger.info("Skipping cleanup - No successful sync yet")
+            #endif
             return
         }
         
@@ -688,7 +700,9 @@ public class CloudKitSyncEngine: ObservableObject {
 
 extension CloudKitSyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+        #if DEBUG
         logger.debug("Handling event: \(String(describing: event))")
+        #endif
         
         switch event {
         case .accountChange(let event):
@@ -810,7 +824,9 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
     }
     
     public func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
+        #if DEBUG
         logger.info("Preparing next record change batch")
+        #endif
         
         // Fetch all entities from the model context
         let itemDescriptor = FetchDescriptor<Item>()
