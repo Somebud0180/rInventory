@@ -14,7 +14,7 @@ import Combine
 
 let inventoryActivityType = "com.lagera.Inventory.viewingInventory"
 let rowColumns = [
-    GridItem(.adaptive(minimum: 500), spacing: 16)
+    GridItem(.adaptive(minimum: 410), spacing: 16)
 ]
 
 /// Represents a unique identifier for an item that can be transferred between devices.

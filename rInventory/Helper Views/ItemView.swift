@@ -280,6 +280,7 @@ struct ItemView: View {
         .onChange(of: item) {
             if item != nil {
                 finishedLoading = false
+                isEditing = false
                 initializeDisplayVariables()
             }
         }
@@ -291,6 +292,7 @@ struct ItemView: View {
             quantity = item.quantity
             location = item.location ?? Location(name: "The Void", color: .gray)
             category = item.category ?? Category(name: "")
+            symbolColor = item.symbolColor
             
             if let imageData = item.imageData, !imageData.isEmpty {
                 background = .image(imageData)
@@ -299,8 +301,6 @@ struct ItemView: View {
             } else {
                 background = .symbol("questionmark")
             }
-            
-            symbolColor = item.symbolColor
             
             finishedLoading = true
         }
@@ -409,8 +409,8 @@ struct ItemView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: geometry.size.width * 0.52, maxHeight: geometry.size.height)
         }
-        .padding(.leading, geometry.safeAreaInsets.leading * 0.25)
-        .padding(.trailing, geometry.safeAreaInsets.trailing * 0.25)
+        .padding(.leading, geometry.safeAreaInsets.leading * 0.2)
+        .padding(.trailing, geometry.safeAreaInsets.trailing * 0.2)
         .frame(height: geometry.size.height)
     }
     
