@@ -314,9 +314,7 @@ struct ItemView: View {
                 mask: AnyView(
                     LinearGradient(
                         gradient: Gradient(stops: [
-                            .init(color: .clear, location: 0.0),
-                            .init(color: .clear, location: 0.1),
-                            .init(color: .white, location: 0.15),
+                            .init(color: .white, location: 0.0),
                             .init(color: .white, location: 0.9),
                             .init(color: .clear, location: 0.95),
                             .init(color: .clear, location: 1.0)
