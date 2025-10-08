@@ -21,6 +21,8 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
     // MARK: - iCloud Variables
     @State private var iCloudStatus: CKAccountStatus = .couldNotDetermine
     @State var isActive: Bool
+    let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    let build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     
     private var iCloudStatusDescription: String {
         switch iCloudStatus {
@@ -65,101 +67,109 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
     }
     
     var body: some View {
-        
         NavigationStack {
             Form {
-                Group {
-                    VStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.ultraThickMaterial)
-                                .frame(width: 64, height: 64)
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 32))
-                                .foregroundStyle(.secondary)
-                        }
-                        Text("Settings")
-                            .font(.title)
-                            .bold()
-                            .foregroundColor(.primary)
-                        Text("Customize the app and manage syncing options.")
-                            .font(.subheadline)
+                VStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.ultraThickMaterial)
+                            .frame(width: 64, height: 64)
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity)
+                    Text("Settings")
+                        .font(.title)
+                        .bold()
+                        .foregroundColor(.primary)
+                    Text("Customize the app and manage syncing options.")
+                        .font(.subheadline)
                 }
-                Group {
-                    Section("Visuals") {
-                        LazyVGrid(
-                            columns: creationColumns,
-                            spacing: 16
-                        ) {
-                            ForEach(creationModeOptions) { option in
-                                SelectionCard(
-                                    title: option.title,
-                                    description: option.description,
-                                    imageName: option.imageName,
-                                    isSelected: option.isInteractive == appDefaults.useInteractiveCreation
-                                ) {
-                                    appDefaults.useInteractiveCreation = option.isInteractive
-                                }
-                                .accessibilityElement(children: .combine)
-                                .accessibilityLabel(Text(option.title))
-                                .accessibilityHint(Text(option.description))
-                                .accessibilityAddTraits(option.isInteractive == appDefaults.useInteractiveCreation ? .isSelected : [])
+                .frame(maxWidth: .infinity)
+                
+                Section("Visuals") {
+                    LazyVGrid(
+                        columns: creationColumns,
+                        spacing: 16
+                    ) {
+                        ForEach(creationModeOptions) { option in
+                            SelectionCard(
+                                title: option.title,
+                                description: option.description,
+                                imageName: option.imageName,
+                                isSelected: option.isInteractive == appDefaults.useInteractiveCreation
+                            ) {
+                                appDefaults.useInteractiveCreation = option.isInteractive
                             }
-                        }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        
-                        Toggle("Show Counter For Single Items", isOn: $appDefaults.showCounterForSingleItems)
-                        Picker("Theme", selection: $appDefaults.themeMode) {
-                            Text("System").tag(0)
-                            Text("Light").tag(1)
-                            Text("Dark").tag(2)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(Text(option.title))
+                            .accessibilityHint(Text(option.description))
+                            .accessibilityAddTraits(option.isInteractive == appDefaults.useInteractiveCreation ? .isSelected : [])
                         }
                     }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    
+                    Toggle("Show Counter For Single Items", isOn: $appDefaults.showCounterForSingleItems)
+                    Picker("Theme", selection: $appDefaults.themeMode) {
+                        Text("System").tag(0)
+                        Text("Light").tag(1)
+                        Text("Dark").tag(2)
+                    }
                 }
-                Group {
-                    Section(header: Text("iCloud Sync"), footer: Text("Sync your inventory across all devices using iCloud.")) {
+                
+                Section(header: Text("iCloud Sync"), footer: Text("Sync your inventory across all devices using iCloud.")) {
+                    HStack {
+                        Text("iCloud Status:")
+                        Spacer()
+                        Image(systemName: iCloudStatusSymbol.name)
+                            .foregroundColor(iCloudStatusSymbol.color)
+                        Text(iCloudStatusDescription)
+                            .foregroundColor(.secondary)
+                    }
+                    Button(action: {
+                        Task {
+                            await syncEngine.manualSync()
+                        }
+                    }) {
                         HStack {
-                            Text("iCloud Status:")
+                            Text("Sync Now")
                             Spacer()
-                            Image(systemName: iCloudStatusSymbol.name)
-                                .foregroundColor(iCloudStatusSymbol.color)
-                            Text(iCloudStatusDescription)
-                                .foregroundColor(.secondary)
+                            if syncEngine.syncState == .syncing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            }
                         }
-                        Button(action: {
-                            Task {
-                                await syncEngine.manualSync()
-                            }
-                        }) {
-                            HStack {
-                                Text("Sync Now")
-                                Spacer()
-                                if syncEngine.syncState == .syncing {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                }
-                            }
-                        }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
-                    }
+                    }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
                 }
 #if DEBUG
-                Group {
-                    Section("Debug") {
-                        Button("Optimize Image Backgrounds") {
-                            Task {
-                                await optimizeImageBackgrounds()
-                            }
+                Section("Debug") {
+                    Button("Optimize Image Backgrounds") {
+                        Task {
+                            await optimizeImageBackgrounds()
                         }
-                        Button("Purge Nil Location/Ghost Items") {
-                            Task {
-                                await purgeNilOrGhostItems()
-                            }
+                    }
+                    Button("Purge Nil Location/Ghost Items") {
+                        Task {
+                            await purgeNilOrGhostItems()
                         }
                     }
                 }
 #endif // DEBUG
+                Section(footer:
+                            VStack {
+                    Link("Made with ❤️ Hack Club", destination: URL(string: "https://hackclub.com/")!)
+                    Link("Source Code on GitHub", destination: URL(string: "https://github.com/Somebud0180/rInventory")!)
+                    HStack {
+                        Text("Version \(version) (\(build))")
+                    }
+                    .accessibilityLabel("Version")
+                    .accessibilityValue(Text("\(version) (\(build))"))
+                }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .foregroundStyle(.secondary)
+                ) {
+                }
+                .padding(.bottom)
             }
             .onAppear {
                 checkiCloudAccountStatus()
