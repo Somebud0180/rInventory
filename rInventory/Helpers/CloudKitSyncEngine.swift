@@ -67,6 +67,9 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     private var pendingItemRelationships: [UUID: PendingRefs] = [:]
     
+    // Buffer for items pending relationship resolution
+    private var bufferedItems: [UUID: CKRecord] = [:]
+    
     // MARK: - Initialization
     public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.lagera.Inventory") {
         self.modelContext = modelContext
@@ -333,6 +336,20 @@ public class CloudKitSyncEngine: ObservableObject {
             return nil
         }
         
+        // Check if record has location and/or category references that must be resolved
+        let locationRef = record["CD_location"] as? CKRecord.Reference
+        let categoryRef = record["CD_category"] as? CKRecord.Reference
+        
+        // If location or category references exist, check if they are locally available
+        if locationRef != nil || categoryRef != nil {
+            // If any referenced relationship is missing, buffer the record and return nil
+            if !checkRelationshipsAvailable(for: record) {
+                // Store in bufferedItems for later resolution
+                bufferedItems[id] = record
+                return nil
+            }
+        }
+        
         // Stash desired relationships for later resolution as well
         updatePendingRelationships(from: record)
         
@@ -358,12 +375,12 @@ public class CloudKitSyncEngine: ObservableObject {
             }
             
             // Handle relationships (only set if found; don't overwrite with nil)
-            if let locationReference = record["CD_location"] as? CKRecord.Reference,
+            if let locationReference = locationRef,
                let uuid = UUID(uuidString: locationReference.recordID.recordName),
                let location = fetchLocation(id: uuid) {
                 existingItem.location = location
             }
-            if let categoryReference = record["CD_category"] as? CKRecord.Reference,
+            if let categoryReference = categoryRef,
                let uuid = UUID(uuidString: categoryReference.recordID.recordName),
                let category = fetchCategory(id: uuid) {
                 existingItem.category = category
@@ -396,6 +413,49 @@ public class CloudKitSyncEngine: ObservableObject {
             modelContext.insert(newItem)
             return newItem
         }
+    }
+    
+    /// Check if all relationships for this item record are available locally
+    private func checkRelationshipsAvailable(for record: CKRecord) -> Bool {
+        var ok = true
+        if let locationRef = record["CD_location"] as? CKRecord.Reference {
+            let locID = UUID(uuidString: locationRef.recordID.recordName)
+            ok = ok && (locID != nil && fetchLocation(id: locID!) != nil)
+        }
+        if let categoryRef = record["CD_category"] as? CKRecord.Reference {
+            let catID = UUID(uuidString: categoryRef.recordID.recordName)
+            ok = ok && (catID != nil && fetchCategory(id: catID!) != nil)
+        }
+        return ok
+    }
+    
+    /// Try to resolve any buffered items whose relationships are now available
+    private func processBufferedItems() async {
+        guard !bufferedItems.isEmpty else { return }
+        var resolved: [UUID] = []
+        for (uuid, record) in bufferedItems {
+            if let item = await recordToItem(record),
+               checkItemRelationshipsAvailable(for: item, record: record) {
+                resolved.append(uuid)
+            }
+        }
+        for uuid in resolved { bufferedItems.removeValue(forKey: uuid) }
+        if !resolved.isEmpty { saveContext("processBufferedItems") }
+    }
+    
+    /// Check if all relationships for this item are available
+    private func checkItemRelationshipsAvailable(for item: Item, record: CKRecord) -> Bool {
+        // If the record has location/category references, ensure they are satisfied locally
+        var ok = true
+        if let locationRef = record["CD_location"] as? CKRecord.Reference {
+            let locID = UUID(uuidString: locationRef.recordID.recordName)
+            ok = ok && (locID != nil && fetchLocation(id: locID!) != nil)
+        }
+        if let categoryRef = record["CD_category"] as? CKRecord.Reference {
+            let catID = UUID(uuidString: categoryRef.recordID.recordName)
+            ok = ok && (catID != nil && fetchCategory(id: catID!) != nil)
+        }
+        return ok
     }
     
     /// Create a Category from a CKRecord
@@ -580,6 +640,11 @@ public class CloudKitSyncEngine: ObservableObject {
         for id in resolvedIDs { pendingItemRelationships.removeValue(forKey: id) }
         // Save if we made any changes
         if !resolvedIDs.isEmpty { saveContext("resolvePendingRelationships") }
+        
+        // Also try to process buffered items now that relationships may be resolved
+        Task {
+            await self.processBufferedItems()
+        }
     }
     
     /// Clean up duplicate items with the same ID
@@ -767,6 +832,7 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                 if let uuid = UUID(uuidString: recordName) {
                     // Clear any pending relationships for deleted items
                     pendingItemRelationships.removeValue(forKey: uuid)
+                    bufferedItems.removeValue(forKey: uuid)
                     
                     // Use helper to delete appropriate entity
                     deleteEntity(for: uuid, zoneID: recordID.zoneID)
@@ -780,6 +846,9 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
             
             // Attempt to resolve any cross-zone pending relationships
             resolvePendingRelationships()
+            
+            // Attempt to process buffered items that may now have relationships resolved
+            await processBufferedItems()
             
             // Clean up any duplicates
             cleanupDuplicateItems()
@@ -894,3 +963,4 @@ public enum CloudKitSyncError: LocalizedError {
         }
     }
 }
+
