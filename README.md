@@ -4,7 +4,7 @@
 
 Keep track on what you have and where you have it. Keep your stuff in your new mobile inventory.<sup>[*](#footnote1)</sup> Built with Swift and SwiftUI, targetting all Apple devices so that you can access your inventory across your devices.
 
-#### Features (Tentative!!)
+#### Features
 - **Item entries**
 ![Item Card](https://github.com/user-attachments/assets/30c6107e-33dd-44fc-93ef-d69759815391)
   - Keep track with the name, location, amount, and an image or symbol of the item
