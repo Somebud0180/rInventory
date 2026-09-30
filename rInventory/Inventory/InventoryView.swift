@@ -157,6 +157,9 @@ struct InventoryView: View {
             .scrollDisabled(items.isEmpty)
             .navigationTitle("rInventory")
             .navigationBarTitleDisplayMode(.large)
+            .refreshable {
+                await syncEngine.manualSync()
+            }
             .sheet(isPresented: $showItemView) {
                 ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
@@ -187,9 +190,6 @@ struct InventoryView: View {
                             .labelStyle(.iconOnly)
                     }
                 }
-            }
-            .refreshable {
-                await syncEngine.manualSync()
             }
             .onAppear {
                 initializeSortOrders()

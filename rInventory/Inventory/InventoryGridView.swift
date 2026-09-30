@@ -94,11 +94,11 @@ struct InventoryGridView: View {
             .padding(.horizontal, 16)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showItemView) {
-                ItemView(syncEngine: syncEngine, item: $selectedItem)
-            }
             .refreshable {
                 viewModel.updateDisplayedItems(from: modelItems, predicate: predicate)
+            }
+            .sheet(isPresented: $showItemView) {
+                ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .toolbar {
                 if editMode?.wrappedValue.isEditing == true && !viewModel.selectedItemIDs.isEmpty {
