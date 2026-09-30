@@ -140,6 +140,21 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                             }
                         }
                     }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
+                    
+                    Button(action: {
+                        Task {
+                            await syncEngine.forceFullResync()
+                        }
+                    }) {
+                        HStack {
+                            Text("Repair & Re-sync from iCloud")
+                            Spacer()
+                            if syncEngine.syncState == .syncing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            }
+                        }
+                    }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
                 }
 #if DEBUG
                 Section("Debug") {

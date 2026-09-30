@@ -59,11 +59,15 @@ public class CloudKitSyncEngine: ObservableObject {
     // Logger for debug information
     private let logger = Logger(subsystem: "com.lagera.Inventory", category: "CloudKitSync")
     
+    // In-flight task tracking to prevent concurrent cancellation collisions
+    private var currentSyncTask: Task<Void, Never>?
+    
     // Persistence Keys
     private let tombstoneKey = "CloudKitTombstones_v2"
     private let pendingRelationshipsKey = "CloudKitPendingItemRelationships"
     private let syncEngineStateKey = "CloudKitSyncEngineStateSerialization"
     private let initialUploadKey = "CloudKitInitialUploadDone_v2"
+    private let relationshipRepairKey = "CloudKitRelationshipRepair_v2"
     private let tombstoneRetentionDays = 30
     
     // Tombstone entry tracking both recordName and its source zone
@@ -97,27 +101,98 @@ public class CloudKitSyncEngine: ObservableObject {
             setupSyncEngine()
             startAutoSync()
             resolvePendingRelationships()
+            await repairRelationshipsIfNeeded()
         }
     }
     
     // MARK: - Public / Internal Methods
     
-    /// Manually trigger a full sync operation
+    /// Manually trigger a full sync operation with concurrency de-duplication
     public func manualSync() async {
         guard isAccountAvailable else {
             syncState = .error(CloudKitSyncError.accountNotAvailable.localizedDescription)
             return
         }
         
+        // If a sync is already running, wait for it rather than causing cancellation collisions
+        if let existingTask = currentSyncTask {
+            _ = await existingTask.value
+            return
+        }
+        
         syncState = .syncing
         
-        do {
-            try await performSync()
-            syncState = .success
-            lastSyncDate = Date()
-        } catch {
-            syncState = .error(error.localizedDescription)
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.currentSyncTask = nil }
+            do {
+                try await self.performSync()
+                self.syncState = .success
+                self.lastSyncDate = Date()
+            } catch is CancellationError {
+                self.logger.info("Manual sync cancelled")
+                self.syncState = .idle
+            } catch let ckError as CKError where ckError.code == .operationCancelled {
+                self.logger.info("CloudKit operation cancelled")
+                self.syncState = .idle
+            } catch {
+                if (error as NSError).domain == CKErrorDomain && (error as NSError).code == 20 {
+                    self.logger.info("CloudKit task cancelled")
+                    self.syncState = .idle
+                } else {
+                    self.logger.error("Manual sync failed: \(error.localizedDescription)")
+                    self.syncState = .error(error.localizedDescription)
+                }
+            }
         }
+        
+        currentSyncTask = task
+        _ = await task.value
+    }
+    
+    /// Forces a complete fresh re-fetch and reconciliation from CloudKit, repairing any missing relationships
+    public func forceFullResync() async {
+        guard isAccountAvailable else {
+            syncState = .error(CloudKitSyncError.accountNotAvailable.localizedDescription)
+            return
+        }
+        
+        if let existingTask = currentSyncTask {
+            _ = await existingTask.value
+        }
+        
+        syncState = .syncing
+        
+        // Reset persisted CKSyncEngine server change tokens
+        UserDefaults.standard.removeObject(forKey: syncEngineStateKey)
+        setupSyncEngine(stateSerialization: nil)
+        
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.currentSyncTask = nil }
+            do {
+                try await self.performSync()
+                self.syncState = .success
+                self.lastSyncDate = Date()
+                #if DEBUG
+                self.logger.info("Full re-sync completed successfully")
+                #endif
+            } catch is CancellationError {
+                self.syncState = .idle
+            } catch let ckError as CKError where ckError.code == .operationCancelled {
+                self.syncState = .idle
+            } catch {
+                if (error as NSError).domain == CKErrorDomain && (error as NSError).code == 20 {
+                    self.syncState = .idle
+                } else {
+                    self.logger.error("Full re-sync failed: \(error.localizedDescription)")
+                    self.syncState = .error(error.localizedDescription)
+                }
+            }
+        }
+        
+        currentSyncTask = task
+        _ = await task.value
     }
     
     /// Update the model context (useful when environment changes)
@@ -225,9 +300,10 @@ public class CloudKitSyncEngine: ObservableObject {
         }
     }
     
-    /// Set up the CKSyncEngine with restored state serialization
-    private func setupSyncEngine() {
+    /// Set up the CKSyncEngine with optional restored state serialization
+    private func setupSyncEngine(stateSerialization: CKSyncEngine.State.Serialization? = nil) {
         let serializedState: CKSyncEngine.State.Serialization? = {
+            if let stateSerialization { return stateSerialization }
             guard let data = UserDefaults.standard.data(forKey: syncEngineStateKey) else { return nil }
             do {
                 return try PropertyListDecoder().decode(CKSyncEngine.State.Serialization.self, from: data)
@@ -251,6 +327,17 @@ public class CloudKitSyncEngine: ObservableObject {
         ensureInitialChangesQueuedIfNeeded()
     }
     
+    /// Perform a one-time relationship repair re-sync if upgrading from a version with unlinked relationships
+    private func repairRelationshipsIfNeeded() async {
+        guard isAccountAvailable else { return }
+        let alreadyRepaired = UserDefaults.standard.bool(forKey: relationshipRepairKey)
+        if !alreadyRepaired {
+            UserDefaults.standard.set(true, forKey: relationshipRepairKey)
+            logger.info("Executing one-time full re-sync to repair unlinked relationships")
+            await forceFullResync()
+        }
+    }
+    
     /// Queues local records for upload if this device has unsynced records
     private func ensureInitialChangesQueuedIfNeeded() {
         if !UserDefaults.standard.bool(forKey: initialUploadKey) {
@@ -272,14 +359,27 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Perform automatic sync (less intrusive than manual sync)
     private func performAutoSync() async {
-        guard isAccountAvailable && syncState != .syncing else { return }
+        guard isAccountAvailable && syncState != .syncing && currentSyncTask == nil else { return }
         
-        do {
-            try await performSync()
-            lastSyncDate = Date()
-        } catch {
-            logger.error("Auto-sync failed: \(error.localizedDescription)")
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.currentSyncTask = nil }
+            do {
+                try await self.performSync()
+                self.lastSyncDate = Date()
+            } catch is CancellationError {
+                // Ignore cancellation
+            } catch let ckError as CKError where ckError.code == .operationCancelled {
+                // Ignore cancellation
+            } catch {
+                if (error as NSError).domain != CKErrorDomain || (error as NSError).code != 20 {
+                    self.logger.error("Auto-sync failed: \(error.localizedDescription)")
+                }
+            }
         }
+        
+        currentSyncTask = task
+        _ = await task.value
     }
     
     /// Perform complete fetch and send cycle
@@ -291,20 +391,41 @@ public class CloudKitSyncEngine: ObservableObject {
         syncState = .syncing
         
         // 1. Fetch changes from CloudKit first
-        try await syncEngine.fetchChanges()
+        do {
+            try await syncEngine.fetchChanges()
+        } catch is CancellationError {
+            logger.info("fetchChanges cancelled")
+        } catch let error as CKError where error.code == .operationCancelled {
+            logger.info("fetchChanges operation cancelled")
+        } catch {
+            if (error as NSError).domain == CKErrorDomain && (error as NSError).code == 20 {
+                logger.info("fetchChanges task cancelled")
+            } else {
+                throw error
+            }
+        }
         
         // 2. Send outstanding tombstones to confirm deletions
         try await sendTombstonesToCloudKit()
         
         // 3. Send local changes to CloudKit
-        try await syncEngine.sendChanges()
+        do {
+            try await syncEngine.sendChanges()
+        } catch is CancellationError {
+            logger.info("sendChanges cancelled")
+        } catch let error as CKError where error.code == .operationCancelled {
+            logger.info("sendChanges operation cancelled")
+        } catch {
+            if (error as NSError).domain == CKErrorDomain && (error as NSError).code == 20 {
+                logger.info("sendChanges task cancelled")
+            } else {
+                throw error
+            }
+        }
         
         // 4. Resolve cross-entity relationships
         resolvePendingRelationships()
         saveContext("performSync: final resolve")
-        
-        syncState = .success
-        lastSyncDate = Date()
     }
     
     /// Send tombstones to CloudKit to confirm deletions across correct zones
@@ -472,10 +593,8 @@ public class CloudKitSyncEngine: ObservableObject {
         }
         
         // Parse relationship references
-        let locationRef = record["CD_location"] as? CKRecord.Reference
-        let categoryRef = record["CD_category"] as? CKRecord.Reference
-        let targetLocationUUID = locationRef.flatMap { UUID(uuidString: $0.recordID.recordName) }
-        let targetCategoryUUID = categoryRef.flatMap { UUID(uuidString: $0.recordID.recordName) }
+        let targetLocationUUID = extractUUID(from: record["CD_location"] ?? record["location"])
+        let targetCategoryUUID = extractUUID(from: record["CD_category"] ?? record["category"])
         
         let item: Item
         if let existingItem = fetchItem(id: id) {
@@ -525,7 +644,7 @@ public class CloudKitSyncEngine: ObservableObject {
             } else {
                 pendingLocation = locUUID
             }
-        } else if locationRef == nil {
+        } else if record["CD_location"] == nil && record["location"] == nil {
             item.location = nil
         }
         
@@ -537,18 +656,18 @@ public class CloudKitSyncEngine: ObservableObject {
             } else {
                 pendingCategory = catUUID
             }
-        } else if categoryRef == nil {
+        } else if record["CD_category"] == nil && record["category"] == nil {
             item.category = nil
         }
         
         // Update pending relationships mapping
         if pendingLocation != nil || pendingCategory != nil {
-            pendingItemRelationships[id] = PendingRefs(locationID: pendingLocation, categoryID: pendingCategory)
-            savePendingRelationships()
+            var existing = pendingItemRelationships[id] ?? PendingRefs(locationID: nil, categoryID: nil)
+            if let pendingLocation { existing.locationID = pendingLocation }
+            if let pendingCategory { existing.categoryID = pendingCategory }
+            pendingItemRelationships[id] = existing
         } else {
-            if pendingItemRelationships.removeValue(forKey: id) != nil {
-                savePendingRelationships()
-            }
+            pendingItemRelationships.removeValue(forKey: id)
         }
         
         return item
@@ -693,10 +812,11 @@ public class CloudKitSyncEngine: ObservableObject {
     private func resolvePendingRelationships() {
         guard !pendingItemRelationships.isEmpty else { return }
         var resolvedIDs: [UUID] = []
+        var didModify = false
         
         for (itemID, refs) in pendingItemRelationships {
             guard let item = fetchItem(id: itemID) else {
-                resolvedIDs.append(itemID)
+                // Do NOT discard! Item might be saved or arrived in another batch.
                 continue
             }
             
@@ -704,10 +824,12 @@ public class CloudKitSyncEngine: ObservableObject {
             if let locID = refs.locationID, let location = fetchLocation(id: locID) {
                 item.location = location
                 updatedRefs.locationID = nil
+                didModify = true
             }
             if let catID = refs.categoryID, let category = fetchCategory(id: catID) {
                 item.category = category
                 updatedRefs.categoryID = nil
+                didModify = true
             }
             
             if updatedRefs.locationID == nil && updatedRefs.categoryID == nil {
@@ -721,13 +843,33 @@ public class CloudKitSyncEngine: ObservableObject {
             pendingItemRelationships.removeValue(forKey: id)
         }
         
-        if !resolvedIDs.isEmpty {
+        if didModify || !resolvedIDs.isEmpty {
             savePendingRelationships()
             saveContext("resolvePendingRelationships")
         }
     }
     
     // MARK: - Small Model Helpers
+    
+    /// Extract UUID from CKRecord.Reference or String, stripping prefixes if present
+    private func extractUUID(from value: Any?) -> UUID? {
+        guard let value else { return nil }
+        if let ref = value as? CKRecord.Reference {
+            let name = ref.recordID.recordName
+            if let id = UUID(uuidString: name) { return id }
+            let cleaned = name.replacingOccurrences(of: "CD_Location_", with: "")
+                              .replacingOccurrences(of: "CD_Category_", with: "")
+                              .replacingOccurrences(of: "CD_Item_", with: "")
+            return UUID(uuidString: cleaned)
+        } else if let str = value as? String {
+            if let id = UUID(uuidString: str) { return id }
+            let cleaned = str.replacingOccurrences(of: "CD_Location_", with: "")
+                             .replacingOccurrences(of: "CD_Category_", with: "")
+                             .replacingOccurrences(of: "CD_Item_", with: "")
+            return UUID(uuidString: cleaned)
+        }
+        return nil
+    }
     
     /// Safely parse the model UUID from a CKRecord, preferring CD_id and falling back to recordID.recordName
     private func uuid(from record: CKRecord) -> UUID? {
@@ -779,7 +921,17 @@ public class CloudKitSyncEngine: ObservableObject {
         guard let allItems = try? modelContext.fetch(descriptor) else { return }
         let grouped = Dictionary(grouping: allItems, by: { $0.id })
         for (_, group) in grouped where group.count > 1 {
-            for duplicate in group.dropFirst() {
+            // Sort to prioritize keeping the item that already has resolved location/category/image
+            let sorted = group.sorted { a, b in
+                let scoreA = (a.location != nil ? 4 : 0) + (a.category != nil ? 2 : 0) + (a.imageData != nil ? 1 : 0)
+                let scoreB = (b.location != nil ? 4 : 0) + (b.category != nil ? 2 : 0) + (b.imageData != nil ? 1 : 0)
+                return scoreA > scoreB
+            }
+            let keeper = sorted[0]
+            for duplicate in sorted.dropFirst() {
+                if keeper.location == nil, let loc = duplicate.location { keeper.location = loc }
+                if keeper.category == nil, let cat = duplicate.category { keeper.category = cat }
+                if keeper.imageData == nil, let img = duplicate.imageData { keeper.imageData = img }
                 modelContext.delete(duplicate)
             }
         }
@@ -834,14 +986,26 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func loadPendingRelationships() {
-        if let savedData = UserDefaults.standard.data(forKey: pendingRelationshipsKey),
-           let savedPending = try? JSONDecoder().decode([UUID: PendingRefs].self, from: savedData) {
+        guard let savedData = UserDefaults.standard.data(forKey: pendingRelationshipsKey) else { return }
+        if let dict = try? JSONDecoder().decode([String: PendingRefs].self, from: savedData) {
+            var loaded: [UUID: PendingRefs] = [:]
+            for (key, refs) in dict {
+                if let uuid = UUID(uuidString: key) {
+                    loaded[uuid] = refs
+                }
+            }
+            self.pendingItemRelationships = loaded
+        } else if let savedPending = try? JSONDecoder().decode([UUID: PendingRefs].self, from: savedData) {
             self.pendingItemRelationships = savedPending
         }
     }
     
     private func savePendingRelationships() {
-        if let encodedData = try? JSONEncoder().encode(pendingItemRelationships) {
+        var dict: [String: PendingRefs] = [:]
+        for (uuid, refs) in pendingItemRelationships {
+            dict[uuid.uuidString] = refs
+        }
+        if let encodedData = try? JSONEncoder().encode(dict) {
             UserDefaults.standard.set(encodedData, forKey: pendingRelationshipsKey)
         }
     }
@@ -925,10 +1089,16 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                 }
             }
             
-            // 2. Ingest Items now that related entities are present
+            // Persist newly ingested categories and locations so fetchDescriptor can see them
+            saveContext("afterIngestingCategoriesAndLocations")
+            
+            // 2. Ingest Items now that related entities are present and saved in context
             for modification in itemModifications {
                 _ = await recordToItem(modification.record)
             }
+            
+            // Persist newly ingested items before resolving cross-zone relationships
+            saveContext("afterIngestingItems")
             
             // 3. Process deletions
             for deletion in changes.deletions {
@@ -953,6 +1123,7 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
             cleanupDuplicateItems()
             cleanupDuplicateCategories()
             cleanupDuplicateLocations()
+            savePendingRelationships()
             saveContext("fetchedRecordZoneChanges")
             
         case .sentRecordZoneChanges(let changes):

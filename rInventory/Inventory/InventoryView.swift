@@ -208,8 +208,12 @@ struct InventoryView: View {
                 }
             }
             .onChange(of: syncEngine.syncState) {
-                if case .error = syncEngine.syncState {
-                    showingSyncError = true
+                if case .error(let message) = syncEngine.syncState {
+                    // Suppress normal cancellation alerts e.g. from pull-to-refresh or superseded sync
+                    let lower = message.lowercased()
+                    if !lower.contains("cancelled") && !lower.contains("cancellation") {
+                        showingSyncError = true
+                    }
                 }
                 // Show spinner while syncing, hide when done
                 showingSyncSpinner = syncEngine.syncState == .syncing

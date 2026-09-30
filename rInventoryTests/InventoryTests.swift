@@ -6,7 +6,7 @@
 //
 
 import Testing
-@testable import Inventory
+@testable import rInventory
 
 struct InventoryTests {
 
