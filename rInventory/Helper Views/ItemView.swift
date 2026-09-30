@@ -598,7 +598,9 @@ struct ItemView: View {
                         
                         TextField("Category", text: $editCategoryName)
                             .focused($focusedField, equals: .category)
+                            .foregroundStyle(.white)
                             .font(.system(.headline, design: .rounded))
+                            .shadow(radius: 2)
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
                             .autocapitalization(.words)
@@ -623,6 +625,7 @@ struct ItemView: View {
             } else {
                 if !category.name.isEmpty {
                     Text(category.name)
+                        .foregroundStyle(.white)
                         .font(.system(.callout, design: .rounded))
                         .fontWeight(.semibold)
                         .lineLimit(2)
@@ -664,6 +667,7 @@ struct ItemView: View {
             } else {
                 if quantity > 0 {
                     Text(String(quantity))
+                        .foregroundStyle(.white)
                         .font(.system(.body, design: .rounded))
                         .bold()
                         .lineLimit(1)
@@ -722,6 +726,7 @@ struct ItemView: View {
                         
                         TextField("Location", text: $editLocationName)
                             .focused($focusedField, equals: .location)
+                            .foregroundStyle(.white)
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.semibold)
                             .minimumScaleFactor(0.75)
@@ -779,6 +784,7 @@ struct ItemView: View {
             if quantityVar > 0 {
                 Stepper(value: quantityBind, in: 1...1000, step: 1) {
                     Text("Quantity: \(quantityVar)")
+                        .foregroundStyle(.white)
                         .font(.system(.body, design: .rounded))
                         .bold()
                 }
