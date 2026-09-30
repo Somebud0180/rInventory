@@ -47,12 +47,14 @@ struct Inventory_WatchApp: App {
     static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            Location.self,
+            Category.self,
         ])
         let containerURL = URL.applicationGroupContainerURL
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .private("iCloud.com.lagera.Inventory")
+            cloudKitDatabase: .none
         )
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

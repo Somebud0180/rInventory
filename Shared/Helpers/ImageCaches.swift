@@ -21,7 +21,7 @@ enum ImageCaches {
     /// Setup memory pressure monitoring that clears caches when system is under memory pressure
     static func setupMemoryPressureHandling() {
 #if os(watchOS) // WatchOS uses a different notification for memory pressure
-        memoryPressureSubscription = NotificationCenter.default.publisher(for: WKExtension.applicationWillResignActiveNotification)
+        memoryPressureSubscription = NotificationCenter.default.publisher(for: WKApplication.willResignActiveNotification)
             .sink { _ in
                 ImageCaches.purgeMemoryCaches(aggressive: true)
             }
@@ -40,9 +40,7 @@ enum ImageCaches {
         AsyncItemImage.cache.removeAllObjects()
         
         // Cancel any prefetch tasks to stop in-progress work
-        Task {
-            await AsyncItemImage.prefetcher.cancelAllPrefetching()
-        }
+        AsyncItemImage.prefetcher.cancelAllPrefetching()
         
         // Clear in-flight requests and explicitly cancel them
         Task {

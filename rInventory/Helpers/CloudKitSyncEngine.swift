@@ -2,9 +2,10 @@
 //  CloudKitSyncEngine.swift
 //  rInventory
 //
-//  Created by GitHub Copilot on 7/16/25.
+//  Created by Ethan John Lagera on 7/16/25.
 //
 //  A CloudKit sync engine for managing automatic and manual synchronization of inventory data.
+//
 
 import Foundation
 import CloudKit
@@ -32,9 +33,12 @@ public enum SyncState: Equatable {
     }
 }
 
-/// A comprehensive CloudKit sync engine that leverages CKSyncEngine for efficient synchronization
+/// A comprehensive CloudKit sync engine that leverages CKSyncEngine for robust synchronization across devices
 @MainActor
 public class CloudKitSyncEngine: ObservableObject {
+    // MARK: - Shared Accessor
+    public static weak var shared: CloudKitSyncEngine?
+    
     // MARK: - Properties
     @Published public var syncState: SyncState = .idle
     @Published public var lastSyncDate: Date?
@@ -48,46 +52,57 @@ public class CloudKitSyncEngine: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // Zone identifiers for different data types
-    private let itemsZoneID = CKRecordZone.ID(zoneName: "InventoryItems")
-    private let categoriesZoneID = CKRecordZone.ID(zoneName: "InventoryCategories")
-    private let locationsZoneID = CKRecordZone.ID(zoneName: "InventoryLocations")
+    public let itemsZoneID = CKRecordZone.ID(zoneName: "InventoryItems")
+    public let categoriesZoneID = CKRecordZone.ID(zoneName: "InventoryCategories")
+    public let locationsZoneID = CKRecordZone.ID(zoneName: "InventoryLocations")
     
     // Logger for debug information
     private let logger = Logger(subsystem: "com.lagera.Inventory", category: "CloudKitSync")
     
-    // Tombstone management
-    private var tombstones: [String: Date] = [:]
-    private let tombstoneKey = "CloudKitTombstones"
+    // Persistence Keys
+    private let tombstoneKey = "CloudKitTombstones_v2"
+    private let pendingRelationshipsKey = "CloudKitPendingItemRelationships"
+    private let syncEngineStateKey = "CloudKitSyncEngineStateSerialization"
+    private let initialUploadKey = "CloudKitInitialUploadDone_v2"
     private let tombstoneRetentionDays = 30
     
+    // Tombstone entry tracking both recordName and its source zone
+    private struct Tombstone: Codable {
+        var recordName: String
+        var zoneName: String
+        var timestamp: Date
+    }
+    private var tombstones: [String: Tombstone] = [:]
+    
     // Pending relationship resolution for items across zone batches
-    private struct PendingRefs {
+    private struct PendingRefs: Codable {
         var locationID: UUID?
         var categoryID: UUID?
     }
     private var pendingItemRelationships: [UUID: PendingRefs] = [:]
-    
-    // Buffer for items pending relationship resolution
-    private var bufferedItems: [UUID: CKRecord] = [:]
     
     // MARK: - Initialization
     public init(modelContext: ModelContext, containerIdentifier: String = "iCloud.com.lagera.Inventory") {
         self.modelContext = modelContext
         self.container = CKContainer(identifier: containerIdentifier)
         self.database = container.privateCloudDatabase
+        Self.shared = self
+        
+        loadTombstones()
+        loadPendingRelationships()
         
         Task {
             await checkAccountStatus()
             try? await createZonesIfNeeded()
             setupSyncEngine()
             startAutoSync()
-            loadTombstones()
+            resolvePendingRelationships()
         }
     }
     
-    // MARK: - Public Methods
+    // MARK: - Public / Internal Methods
     
-    /// Manually trigger a sync operation
+    /// Manually trigger a full sync operation
     public func manualSync() async {
         guard isAccountAvailable else {
             syncState = .error(CloudKitSyncError.accountNotAvailable.localizedDescription)
@@ -110,13 +125,70 @@ public class CloudKitSyncEngine: ObservableObject {
         self.modelContext = newContext
     }
     
-    /// Add a record ID to the tombstone list (public for DataModel)
-    public func addTombstone(_ recordID: String) {
-        addToTombstones(recordID)
+    /// Add a record ID to the tombstone list and queue deletion in CloudKit
+    public func addTombstone(_ recordID: String, zoneName: String = "InventoryItems") {
+        let tombstone = Tombstone(recordName: recordID, zoneName: zoneName, timestamp: Date())
+        tombstones[recordID] = tombstone
+        saveTombstones()
         
-        // Run a quick cleanup to immediately handle any inconsistencies
+        let zoneID = CKRecordZone.ID(zoneName: zoneName)
+        queueDelete(recordID: recordID, zoneID: zoneID)
+        
         Task {
             await cleanupOrphanedData()
+        }
+    }
+    
+    /// Queue an Item record to be saved to CloudKit
+    func queueSave(for item: Item) {
+        let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: itemsZoneID)
+        syncEngine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
+    }
+    
+    /// Queue a Category record to be saved to CloudKit
+    func queueSave(for category: Category) {
+        let recordID = CKRecord.ID(recordName: category.id.uuidString, zoneID: categoriesZoneID)
+        syncEngine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
+    }
+    
+    /// Queue a Location record to be saved to CloudKit
+    func queueSave(for location: Location) {
+        let recordID = CKRecord.ID(recordName: location.id.uuidString, zoneID: locationsZoneID)
+        syncEngine?.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
+    }
+    
+    /// Queue a record deletion in CloudKit
+    public func queueDelete(recordID: String, zoneID: CKRecordZone.ID) {
+        let ckRecordID = CKRecord.ID(recordName: recordID, zoneID: zoneID)
+        syncEngine?.state.add(pendingRecordZoneChanges: [.deleteRecord(ckRecordID)])
+    }
+    
+    /// Queue all existing local entities for initial synchronization
+    public func queueAllLocalEntities() {
+        guard let syncEngine = syncEngine else { return }
+        let items = (try? modelContext.fetch(FetchDescriptor<Item>())) ?? []
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        let locations = (try? modelContext.fetch(FetchDescriptor<Location>())) ?? []
+        
+        var changes: [CKSyncEngine.PendingRecordZoneChange] = []
+        for item in items {
+            let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: itemsZoneID)
+            changes.append(.saveRecord(recordID))
+        }
+        for category in categories {
+            let recordID = CKRecord.ID(recordName: category.id.uuidString, zoneID: categoriesZoneID)
+            changes.append(.saveRecord(recordID))
+        }
+        for location in locations {
+            let recordID = CKRecord.ID(recordName: location.id.uuidString, zoneID: locationsZoneID)
+            changes.append(.saveRecord(recordID))
+        }
+        
+        if !changes.isEmpty {
+            syncEngine.state.add(pendingRecordZoneChanges: changes)
+            #if DEBUG
+            logger.info("Queued \(changes.count) existing local entities for upload")
+            #endif
         }
     }
     
@@ -134,7 +206,6 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Create the required CloudKit zones if they don't exist
     private func createZonesIfNeeded() async throws {
-        // Create record zones if they don't exist
         let zones = [
             CKRecordZone(zoneID: itemsZoneID),
             CKRecordZone(zoneID: categoriesZoneID),
@@ -147,30 +218,50 @@ public class CloudKitSyncEngine: ObservableObject {
             logger.info("Successfully created/verified record zones")
             #endif
         } catch let error as CKError {
-            // Ignore benign cases where zones are not yet present or a referenced item is missing
-            if error.code != .zoneNotFound && error.code != .unknownItem {
+            if error.code != .zoneNotFound && error.code != .unknownItem && error.code != .serverRecordChanged {
+                logger.error("Failed to modify record zones: \(error.localizedDescription)")
                 throw error
             }
         }
     }
     
-    /// Set up the CKSyncEngine
+    /// Set up the CKSyncEngine with restored state serialization
     private func setupSyncEngine() {
-        // Create a configuration for the sync engine
+        let serializedState: CKSyncEngine.State.Serialization? = {
+            guard let data = UserDefaults.standard.data(forKey: syncEngineStateKey) else { return nil }
+            do {
+                return try PropertyListDecoder().decode(CKSyncEngine.State.Serialization.self, from: data)
+            } catch {
+                logger.error("Failed to decode CKSyncEngine state: \(error.localizedDescription)")
+                return nil
+            }
+        }()
+        
         let configuration = CKSyncEngine.Configuration(
             database: database,
-            stateSerialization: nil,
+            stateSerialization: serializedState,
             delegate: self
         )
         
         syncEngine = CKSyncEngine(configuration)
         #if DEBUG
-        logger.info("Initialized sync engine")
+        logger.info("Initialized sync engine. Resumed from serialization: \(serializedState != nil)")
         #endif
+        
+        ensureInitialChangesQueuedIfNeeded()
     }
     
-    /// Start automatic synchronization
+    /// Queues local records for upload if this device has unsynced records
+    private func ensureInitialChangesQueuedIfNeeded() {
+        if !UserDefaults.standard.bool(forKey: initialUploadKey) {
+            queueAllLocalEntities()
+            UserDefaults.standard.set(true, forKey: initialUploadKey)
+        }
+    }
+    
+    /// Start automatic background synchronization loop
     private func startAutoSync() {
+        syncTimer?.invalidate()
         syncTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task {
@@ -187,12 +278,11 @@ public class CloudKitSyncEngine: ObservableObject {
             try await performSync()
             lastSyncDate = Date()
         } catch {
-            // Silent failure for auto-sync
             logger.error("Auto-sync failed: \(error.localizedDescription)")
         }
     }
     
-    /// Perform complete sync operation
+    /// Perform complete fetch and send cycle
     private func performSync() async throws {
         guard let syncEngine = syncEngine else {
             throw CloudKitSyncError.syncEngineNotInitialized
@@ -200,16 +290,16 @@ public class CloudKitSyncEngine: ObservableObject {
         
         syncState = .syncing
         
-        // First fetch changes from CloudKit
+        // 1. Fetch changes from CloudKit first
         try await syncEngine.fetchChanges()
         
-        // Send tombstones to CloudKit to confirm deletions
+        // 2. Send outstanding tombstones to confirm deletions
         try await sendTombstonesToCloudKit()
         
-        // Then send any local changes to CloudKit
+        // 3. Send local changes to CloudKit
         try await syncEngine.sendChanges()
         
-        // Final pass to resolve any pending relationships after all batches
+        // 4. Resolve cross-entity relationships
         resolvePendingRelationships()
         saveContext("performSync: final resolve")
         
@@ -217,46 +307,45 @@ public class CloudKitSyncEngine: ObservableObject {
         lastSyncDate = Date()
     }
     
-    /// Send tombstones to CloudKit to confirm deletions
+    /// Send tombstones to CloudKit to confirm deletions across correct zones
     private func sendTombstonesToCloudKit() async throws {
         var tombstonesToRemove: [String] = []
-        for (recordID, _) in tombstones {
-            let ckRecordID = CKRecord.ID(recordName: recordID, zoneID: itemsZoneID)
+        
+        for (recordName, tombstone) in tombstones {
+            let zoneID = CKRecordZone.ID(zoneName: tombstone.zoneName)
+            let ckRecordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
+            
             do {
                 try await database.deleteRecord(withID: ckRecordID)
                 #if DEBUG
-                logger.info("Confirmed deletion of record: \(recordID)")
+                logger.info("Confirmed deletion of record: \(recordName) in zone \(tombstone.zoneName)")
                 #endif
-                tombstonesToRemove.append(recordID)
+                tombstonesToRemove.append(recordName)
             } catch let error as CKError {
                 if error.code == .unknownItem {
                     #if DEBUG
-                    logger.info("Confirmed deletion of record (already gone): \(recordID)")
+                    logger.info("Confirmed deletion of record (already removed in CloudKit): \(recordName)")
                     #endif
-                    tombstonesToRemove.append(recordID)
+                    tombstonesToRemove.append(recordName)
                 } else {
-                    logger.error("Failed to delete record: \(recordID) - \(error.localizedDescription)")
-                    throw error
+                    logger.error("Failed to delete record: \(recordName) - \(error.localizedDescription)")
                 }
+            } catch {
+                logger.error("Unknown error deleting tombstone: \(error.localizedDescription)")
             }
         }
-        // Remove all cleared tombstones at once and persist
-        for recordID in tombstonesToRemove {
-            tombstones.removeValue(forKey: recordID)
+        
+        if !tombstonesToRemove.isEmpty {
+            for recordID in tombstonesToRemove {
+                tombstones.removeValue(forKey: recordID)
+            }
+            saveTombstones()
         }
-        saveTombstones()
-    }
-    
-    /// Add a record ID to the tombstone list and delete it locally
-    private func deleteItem(_ item: Item) {
-        addToTombstones(item.id.uuidString)
-        modelContext.delete(item)
-        saveContext("deleteItem")
     }
     
     // MARK: - Record Conversion Methods
     
-    /// Convert an Item to a CKRecord
+    /// Convert an Item to a CKRecord, using CKAsset for large images to avoid the 1 MB record limit
     private func itemToRecord(_ item: Item) -> CKRecord {
         let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: itemsZoneID)
         let record = CKRecord(recordType: "CD_Item", recordID: recordID)
@@ -274,8 +363,30 @@ public class CloudKitSyncEngine: ObservableObject {
         if let symbol = item.symbol {
             record["CD_symbol"] = symbol
         }
-        if let imageData = item.imageData {
-            record["CD_imageData"] = imageData
+        
+        // Handle images: Use CKAsset for files > 500KB to prevent CKError.recordSizeExceeded
+        if let imageData = item.imageData, !imageData.isEmpty {
+            if imageData.count > 500_000 {
+                let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("CloudKitAssets", isDirectory: true)
+                try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                let tempFileURL = tempDir.appendingPathComponent("\(item.id.uuidString).dat")
+                
+                do {
+                    try imageData.write(to: tempFileURL, options: .atomic)
+                    record["CD_imageAsset"] = CKAsset(fileURL: tempFileURL)
+                    record["CD_imageData"] = nil
+                } catch {
+                    logger.error("Failed to write image to temp file for CKAsset: \(error.localizedDescription)")
+                    record["CD_imageData"] = imageData
+                    record["CD_imageAsset"] = nil
+                }
+            } else {
+                record["CD_imageData"] = imageData
+                record["CD_imageAsset"] = nil
+            }
+        } else {
+            record["CD_imageData"] = nil
+            record["CD_imageAsset"] = nil
         }
         
         // Handle relationships
@@ -328,7 +439,9 @@ public class CloudKitSyncEngine: ObservableObject {
         return record
     }
     
-    /// Create an Item from a CKRecord
+    /// Ingest an Item from a CKRecord.
+    /// Crucially, NEVER blocks or buffers the item if Category/Location are not yet available;
+    /// saves the item immediately so images and core fields are never lost on new devices.
     private func recordToItem(_ record: CKRecord) async -> Item? {
         guard let id = uuid(from: record),
               let name = record["CD_name"] as? String,
@@ -336,135 +449,124 @@ public class CloudKitSyncEngine: ObservableObject {
             return nil
         }
         
-        // Check if record has location and/or category references that must be resolved
-        let locationRef = record["CD_location"] as? CKRecord.Reference
-        let categoryRef = record["CD_category"] as? CKRecord.Reference
-        
-        // If location or category references exist, check if they are locally available
-        if locationRef != nil || categoryRef != nil {
-            // If any referenced relationship is missing, buffer the record and return nil
-            if !checkRelationshipsAvailable(for: record) {
-                // Store in bufferedItems for later resolution
-                bufferedItems[id] = record
-                return nil
-            }
+        // Prevent resurrecting tombstoned items
+        if isInTombstones(id.uuidString) {
+            logger.info("Ignoring modification for tombstoned item: \(id.uuidString)")
+            return nil
         }
         
-        // Stash desired relationships for later resolution as well
-        updatePendingRelationships(from: record)
+        // Retrieve image data: check CKAsset first, then fallback to inline data
+        var retrievedImageData: Data? = nil
+        if let asset = record["CD_imageAsset"] as? CKAsset, let fileURL = asset.fileURL {
+            do {
+                let assetData = try Data(contentsOf: fileURL)
+                if !assetData.isEmpty {
+                    retrievedImageData = assetData
+                }
+            } catch {
+                logger.error("Failed to read image data from CKAsset: \(error.localizedDescription)")
+            }
+        }
+        if retrievedImageData == nil, let inlineData = record["CD_imageData"] as? Data {
+            retrievedImageData = inlineData
+        }
         
-        // Check if item exists locally
+        // Parse relationship references
+        let locationRef = record["CD_location"] as? CKRecord.Reference
+        let categoryRef = record["CD_category"] as? CKRecord.Reference
+        let targetLocationUUID = locationRef.flatMap { UUID(uuidString: $0.recordID.recordName) }
+        let targetCategoryUUID = categoryRef.flatMap { UUID(uuidString: $0.recordID.recordName) }
+        
+        let item: Item
         if let existingItem = fetchItem(id: id) {
             // Update existing item
             existingItem.name = name
             existingItem.quantity = quantity
-            existingItem.modifiedDate = record.modificationDate ?? Date()
+            existingItem.modifiedDate = record.modificationDate ?? (record["CD_modifiedDate"] as? Date) ?? Date()
             
-            // Update other fields
+            if let sortOrder = record["CD_sortOrder"] as? Int {
+                existingItem.sortOrder = sortOrder
+            }
             if let symbolColorData = record["CD_symbolColorData"] as? Data {
                 existingItem.symbolColorData = symbolColorData
             }
             if let symbol = record["CD_symbol"] as? String {
                 existingItem.symbol = symbol
             }
-            if let imageData = record["CD_imageData"] as? Data {
-                existingItem.imageData = imageData
-            }
-            if let sortOrder = record["CD_sortOrder"] as? Int {
-                existingItem.sortOrder = sortOrder
+            if let retrievedImageData {
+                existingItem.imageData = retrievedImageData
             }
             
-            // Handle relationships (only set if found; don't overwrite with nil)
-            if let locationReference = locationRef,
-               let uuid = UUID(uuidString: locationReference.recordID.recordName),
-               let location = fetchLocation(id: uuid) {
-                existingItem.location = location
-            }
-            if let categoryReference = categoryRef,
-               let uuid = UUID(uuidString: categoryReference.recordID.recordName),
-               let category = fetchCategory(id: uuid) {
-                existingItem.category = category
-            }
-            
-            return existingItem
+            item = existingItem
         } else {
-            // Create new item
+            // Create new item immediately so it is available locally
             let newItem = Item(
                 id,
                 name: name,
                 quantity: quantity,
                 sortOrder: record["CD_sortOrder"] as? Int ?? 0,
-                modifiedDate: record.modificationDate ?? Date(),
+                modifiedDate: record.modificationDate ?? (record["CD_modifiedDate"] as? Date) ?? Date(),
                 itemCreationDate: record["CD_itemCreationDate"] as? Date ?? Date()
             )
             
-            // Set optional fields
-            if let symbolColorData = record["CD_symbolColorData"] as? Data {
-                newItem.symbolColorData = symbolColorData
-            }
-            if let symbol = record["CD_symbol"] as? String {
-                newItem.symbol = symbol
-            }
-            if let imageData = record["CD_imageData"] as? Data {
-                newItem.imageData = imageData
-            }
+            newItem.symbolColorData = record["CD_symbolColorData"] as? Data
+            newItem.symbol = record["CD_symbol"] as? String
+            newItem.imageData = retrievedImageData
             
-            // Relationships will be resolved later (after all entities are present)
             modelContext.insert(newItem)
-            return newItem
+            item = newItem
         }
-    }
-    
-    /// Check if all relationships for this item record are available locally
-    private func checkRelationshipsAvailable(for record: CKRecord) -> Bool {
-        var ok = true
-        if let locationRef = record["CD_location"] as? CKRecord.Reference {
-            let locID = UUID(uuidString: locationRef.recordID.recordName)
-            ok = ok && (locID != nil && fetchLocation(id: locID!) != nil)
+        
+        // Resolve or queue Location relationship
+        var pendingLocation: UUID? = nil
+        if let locUUID = targetLocationUUID {
+            if let location = fetchLocation(id: locUUID) {
+                item.location = location
+            } else {
+                pendingLocation = locUUID
+            }
+        } else if locationRef == nil {
+            item.location = nil
         }
-        if let categoryRef = record["CD_category"] as? CKRecord.Reference {
-            let catID = UUID(uuidString: categoryRef.recordID.recordName)
-            ok = ok && (catID != nil && fetchCategory(id: catID!) != nil)
+        
+        // Resolve or queue Category relationship
+        var pendingCategory: UUID? = nil
+        if let catUUID = targetCategoryUUID {
+            if let category = fetchCategory(id: catUUID) {
+                item.category = category
+            } else {
+                pendingCategory = catUUID
+            }
+        } else if categoryRef == nil {
+            item.category = nil
         }
-        return ok
-    }
-    
-    /// Try to resolve any buffered items whose relationships are now available
-    private func processBufferedItems() async {
-        guard !bufferedItems.isEmpty else { return }
-        var resolved: [UUID] = []
-        for (uuid, record) in bufferedItems {
-            if let item = await recordToItem(record),
-               checkItemRelationshipsAvailable(for: item, record: record) {
-                resolved.append(uuid)
+        
+        // Update pending relationships mapping
+        if pendingLocation != nil || pendingCategory != nil {
+            pendingItemRelationships[id] = PendingRefs(locationID: pendingLocation, categoryID: pendingCategory)
+            savePendingRelationships()
+        } else {
+            if pendingItemRelationships.removeValue(forKey: id) != nil {
+                savePendingRelationships()
             }
         }
-        for uuid in resolved { bufferedItems.removeValue(forKey: uuid) }
-        if !resolved.isEmpty { saveContext("processBufferedItems") }
+        
+        return item
     }
     
-    /// Check if all relationships for this item are available
-    private func checkItemRelationshipsAvailable(for item: Item, record: CKRecord) -> Bool {
-        // If the record has location/category references, ensure they are satisfied locally
-        var ok = true
-        if let locationRef = record["CD_location"] as? CKRecord.Reference {
-            let locID = UUID(uuidString: locationRef.recordID.recordName)
-            ok = ok && (locID != nil && fetchLocation(id: locID!) != nil)
-        }
-        if let categoryRef = record["CD_category"] as? CKRecord.Reference {
-            let catID = UUID(uuidString: categoryRef.recordID.recordName)
-            ok = ok && (catID != nil && fetchCategory(id: catID!) != nil)
-        }
-        return ok
-    }
-    
-    /// Create a Category from a CKRecord
+    /// Ingest a Category from a CKRecord and link any pending items
     private func recordToCategory(_ record: CKRecord) async -> Category? {
         guard let id = uuid(from: record),
               let name = record["CD_name"] as? String else {
             return nil
         }
         
+        if isInTombstones(id.uuidString) {
+            logger.info("Ignoring modification for tombstoned category: \(id.uuidString)")
+            return nil
+        }
+        
+        let category: Category
         if let existingCategory = fetchCategory(id: id) {
             existingCategory.name = name
             if let sortOrder = record["CD_sortOrder"] as? Int {
@@ -473,7 +575,7 @@ public class CloudKitSyncEngine: ObservableObject {
             if let displayInRow = record["CD_displayInRow"] as? Bool {
                 existingCategory.displayInRow = displayInRow
             }
-            return existingCategory
+            category = existingCategory
         } else {
             let newCategory = Category(
                 id,
@@ -482,17 +584,36 @@ public class CloudKitSyncEngine: ObservableObject {
                 displayInRow: record["CD_displayInRow"] as? Bool ?? true
             )
             modelContext.insert(newCategory)
-            return newCategory
+            category = newCategory
         }
+        
+        // Immediately link any items awaiting this category
+        resolvePendingCategory(category)
+        return category
     }
     
-    /// Create a Location from a CKRecord
+    /// Ingest a Location from a CKRecord and link any pending items
     private func recordToLocation(_ record: CKRecord) async -> Location? {
         guard let id = uuid(from: record),
               let name = record["CD_name"] as? String else {
             return nil
         }
         
+        if isInTombstones(id.uuidString) {
+            logger.info("Ignoring modification for tombstoned location: \(id.uuidString)")
+            return nil
+        }
+        
+        let color: Color = {
+            if let colorData = record["CD_colorData"] as? Data,
+               let decoded = Color(rgbaData: colorData) {
+                return decoded
+            } else {
+                return .white
+            }
+        }()
+        
+        let location: Location
         if let existingLocation = fetchLocation(id: id) {
             existingLocation.name = name
             if let sortOrder = record["CD_sortOrder"] as? Int {
@@ -504,17 +625,8 @@ public class CloudKitSyncEngine: ObservableObject {
             if let colorData = record["CD_colorData"] as? Data {
                 existingLocation.colorData = colorData
             }
-            return existingLocation
+            location = existingLocation
         } else {
-            let color: Color = {
-                if let colorData = record["CD_colorData"] as? Data,
-                   let decoded = Color(rgbaData: colorData) {
-                    return decoded
-                } else {
-                    return .white
-                }
-            }()
-            
             let newLocation = Location(
                 id,
                 name: name,
@@ -523,54 +635,100 @@ public class CloudKitSyncEngine: ObservableObject {
                 color: color
             )
             modelContext.insert(newLocation)
-            return newLocation
+            location = newLocation
+        }
+        
+        // Immediately link any items awaiting this location
+        resolvePendingLocation(location)
+        return location
+    }
+    
+    // MARK: - Relationship Resolution Helpers
+    
+    /// Resolve pending relationships for items waiting for a specific category
+    private func resolvePendingCategory(_ category: Category) {
+        var didResolveAny = false
+        for (itemID, refs) in pendingItemRelationships where refs.categoryID == category.id {
+            if let item = fetchItem(id: itemID) {
+                item.category = category
+                didResolveAny = true
+                var updatedRefs = refs
+                updatedRefs.categoryID = nil
+                if updatedRefs.locationID == nil {
+                    pendingItemRelationships.removeValue(forKey: itemID)
+                } else {
+                    pendingItemRelationships[itemID] = updatedRefs
+                }
+            }
+        }
+        if didResolveAny {
+            savePendingRelationships()
+            saveContext("resolvePendingCategory")
         }
     }
     
-    /// Process relationships after all entities are created/updated
-    private func processRelationships(for items: [Item], with records: [CKRecord]) {
-        for (item, record) in zip(items, records) {
-            if let locationReference = record["CD_location"] as? CKRecord.Reference {
-                let locationId = locationReference.recordID.recordName
-                if let uuid = UUID(uuidString: locationId) {
-                    let locationDescriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == uuid })
-                    if let location = ((try? modelContext.fetch(locationDescriptor))?.first) {
-                        item.location = location
-                    }
+    /// Resolve pending relationships for items waiting for a specific location
+    private func resolvePendingLocation(_ location: Location) {
+        var didResolveAny = false
+        for (itemID, refs) in pendingItemRelationships where refs.locationID == location.id {
+            if let item = fetchItem(id: itemID) {
+                item.location = location
+                didResolveAny = true
+                var updatedRefs = refs
+                updatedRefs.locationID = nil
+                if updatedRefs.categoryID == nil {
+                    pendingItemRelationships.removeValue(forKey: itemID)
+                } else {
+                    pendingItemRelationships[itemID] = updatedRefs
                 }
+            }
+        }
+        if didResolveAny {
+            savePendingRelationships()
+            saveContext("resolvePendingLocation")
+        }
+    }
+    
+    /// Attempt to resolve any pending item relationships now that more data is present
+    private func resolvePendingRelationships() {
+        guard !pendingItemRelationships.isEmpty else { return }
+        var resolvedIDs: [UUID] = []
+        
+        for (itemID, refs) in pendingItemRelationships {
+            guard let item = fetchItem(id: itemID) else {
+                resolvedIDs.append(itemID)
+                continue
             }
             
-            if let categoryReference = record["CD_category"] as? CKRecord.Reference {
-                let categoryId = categoryReference.recordID.recordName
-                if let uuid = UUID(uuidString: categoryId) {
-                    let categoryDescriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == uuid })
-                    if let category = ((try? modelContext.fetch(categoryDescriptor))?.first) {
-                        item.category = category
-                    }
-                }
+            var updatedRefs = refs
+            if let locID = refs.locationID, let location = fetchLocation(id: locID) {
+                item.location = location
+                updatedRefs.locationID = nil
             }
+            if let catID = refs.categoryID, let category = fetchCategory(id: catID) {
+                item.category = category
+                updatedRefs.categoryID = nil
+            }
+            
+            if updatedRefs.locationID == nil && updatedRefs.categoryID == nil {
+                resolvedIDs.append(itemID)
+            } else {
+                pendingItemRelationships[itemID] = updatedRefs
+            }
+        }
+        
+        for id in resolvedIDs {
+            pendingItemRelationships.removeValue(forKey: id)
+        }
+        
+        if !resolvedIDs.isEmpty {
+            savePendingRelationships()
+            saveContext("resolvePendingRelationships")
         }
     }
     
-    /// Extract and store desired relationships from an item record for later resolution
-    private func updatePendingRelationships(from record: CKRecord) {
-        guard record.recordType == "CD_Item" else { return }
-        // Prefer CD_id, fall back to recordID.recordName for robustness
-        let itemID: UUID? = {
-            if let idString = record["CD_id"] as? String, let id = UUID(uuidString: idString) { return id }
-            return UUID(uuidString: record.recordID.recordName)
-        }()
-        guard let itemID else { return }
-        let locID: UUID? = (record["CD_location"] as? CKRecord.Reference).flatMap { UUID(uuidString: $0.recordID.recordName) }
-        let catID: UUID? = (record["CD_category"] as? CKRecord.Reference).flatMap { UUID(uuidString: $0.recordID.recordName) }
-        let existing = pendingItemRelationships[itemID] ?? PendingRefs(locationID: nil, categoryID: nil)
-        pendingItemRelationships[itemID] = PendingRefs(
-            locationID: locID ?? existing.locationID,
-            categoryID: catID ?? existing.categoryID
-        )
-    }
+    // MARK: - Small Model Helpers
     
-    // MARK: - Small Helpers
     /// Safely parse the model UUID from a CKRecord, preferring CD_id and falling back to recordID.recordName
     private func uuid(from record: CKRecord) -> UUID? {
         if let idString = record["CD_id"] as? String, let id = UUID(uuidString: idString) {
@@ -580,16 +738,18 @@ public class CloudKitSyncEngine: ObservableObject {
     }
     
     private func fetchItem(id: UUID) -> Item? {
-        let d = FetchDescriptor<Item>(predicate: #Predicate { $0.id == id })
-        return ((try? modelContext.fetch(d))?.first)
+        let descriptor = FetchDescriptor<Item>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(descriptor))?.first)
     }
+    
     private func fetchCategory(id: UUID) -> Category? {
-        let d = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
-        return ((try? modelContext.fetch(d))?.first)
+        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(descriptor))?.first)
     }
+    
     private func fetchLocation(id: UUID) -> Location? {
-        let d = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
-        return ((try? modelContext.fetch(d))?.first)
+        let descriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == id })
+        return ((try? modelContext.fetch(descriptor))?.first)
     }
     
     /// Delete a local entity by UUID based on the zoneID it belongs to
@@ -605,49 +765,15 @@ public class CloudKitSyncEngine: ObservableObject {
     
     /// Attempt to save the model context and log any errors
     private func saveContext(_ reason: String) {
-        do { try modelContext.save() } catch {
+        do {
+            try modelContext.save()
+        } catch {
             logger.error("ModelContext save failed (\(reason)): \(error.localizedDescription)")
         }
     }
     
-    /// Attempt to resolve any pending item relationships now that more data may be present
-    private func resolvePendingRelationships() {
-        guard !pendingItemRelationships.isEmpty else { return }
-        var resolvedIDs: [UUID] = []
-        for (itemID, refs) in pendingItemRelationships {
-            let itemDescriptor = FetchDescriptor<Item>(predicate: #Predicate { $0.id == itemID })
-            guard let item = ((try? modelContext.fetch(itemDescriptor))?.first) else { continue }
-            var resolvedAll = true
-            if let locID = refs.locationID {
-                let locationDescriptor = FetchDescriptor<Location>(predicate: #Predicate { $0.id == locID })
-                if let location = ((try? modelContext.fetch(locationDescriptor))?.first) {
-                    item.location = location
-                } else {
-                    resolvedAll = false
-                }
-            }
-            if let catID = refs.categoryID {
-                let categoryDescriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == catID })
-                if let category = ((try? modelContext.fetch(categoryDescriptor))?.first) {
-                    item.category = category
-                } else {
-                    resolvedAll = false
-                }
-            }
-            if resolvedAll { resolvedIDs.append(itemID) }
-        }
-        // Remove fully-resolved entries
-        for id in resolvedIDs { pendingItemRelationships.removeValue(forKey: id) }
-        // Save if we made any changes
-        if !resolvedIDs.isEmpty { saveContext("resolvePendingRelationships") }
-        
-        // Also try to process buffered items now that relationships may be resolved
-        Task {
-            await self.processBufferedItems()
-        }
-    }
+    // MARK: - Duplicate Cleanup
     
-    /// Clean up duplicate items with the same ID
     private func cleanupDuplicateItems() {
         let descriptor = FetchDescriptor<Item>()
         guard let allItems = try? modelContext.fetch(descriptor) else { return }
@@ -659,7 +785,6 @@ public class CloudKitSyncEngine: ObservableObject {
         }
     }
     
-    /// Clean up duplicate categories with the same ID
     private func cleanupDuplicateCategories() {
         let descriptor = FetchDescriptor<Category>()
         guard let allCategories = try? modelContext.fetch(descriptor) else { return }
@@ -671,7 +796,6 @@ public class CloudKitSyncEngine: ObservableObject {
         }
     }
     
-    /// Clean up duplicate locations with the same ID
     private func cleanupDuplicateLocations() {
         let descriptor = FetchDescriptor<Location>()
         guard let allLocations = try? modelContext.fetch(descriptor) else { return }
@@ -683,86 +807,63 @@ public class CloudKitSyncEngine: ObservableObject {
         }
     }
     
-    // MARK: - Tombstone Management
+    // MARK: - State & Tombstone Persistence
     
-    /// Load deleted record IDs from UserDefaults
     private func loadTombstones() {
         if let savedData = UserDefaults.standard.data(forKey: tombstoneKey),
-           let savedTombstones = try? JSONDecoder().decode([String: Date].self, from: savedData) {
+           let savedTombstones = try? JSONDecoder().decode([String: Tombstone].self, from: savedData) {
             self.tombstones = savedTombstones
-            // Purge old tombstones
-            self.purgeTombstones()
+            purgeTombstones()
         }
     }
     
-    /// Save deleted record IDs to UserDefaults
     private func saveTombstones() {
         if let encodedData = try? JSONEncoder().encode(tombstones) {
             UserDefaults.standard.set(encodedData, forKey: tombstoneKey)
         }
     }
     
-    /// Add a record ID to the tombstone list
-    private func addToTombstones(_ recordID: String) {
-        tombstones[recordID] = Date()
-        saveTombstones()
-    }
-    
-    /// Check if a record ID is in the tombstone list
     private func isInTombstones(_ recordID: String) -> Bool {
         return tombstones[recordID] != nil
     }
     
-    /// Remove expired tombstones (older than retention period)
     private func purgeTombstones() {
-        let cutoffDate = Calendar.current.date(byAdding: .day, value: -tombstoneRetentionDays, to: Date())!
-        tombstones = tombstones.filter { $0.value > cutoffDate }
+        guard let cutoffDate = Calendar.current.date(byAdding: .day, value: -tombstoneRetentionDays, to: Date()) else { return }
+        tombstones = tombstones.filter { $0.value.timestamp > cutoffDate }
         saveTombstones()
+    }
+    
+    private func loadPendingRelationships() {
+        if let savedData = UserDefaults.standard.data(forKey: pendingRelationshipsKey),
+           let savedPending = try? JSONDecoder().decode([UUID: PendingRefs].self, from: savedData) {
+            self.pendingItemRelationships = savedPending
+        }
+    }
+    
+    private func savePendingRelationships() {
+        if let encodedData = try? JSONEncoder().encode(pendingItemRelationships) {
+            UserDefaults.standard.set(encodedData, forKey: pendingRelationshipsKey)
+        }
+    }
+    
+    nonisolated private func cleanUpTempAssetFiles() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("CloudKitAssets", isDirectory: true)
+        try? FileManager.default.removeItem(at: tempDir)
     }
     
     /// Comprehensive cleanup of orphaned relationships and invalid data
     private func cleanupOrphanedData() async {
-        #if DEBUG
-        logger.info("Performing safe orphaned data cleanup")
-        #endif
+        guard isAccountAvailable && lastSyncDate != nil else { return }
         
-        // IMPORTANT: Don't clean up when not synced properly
-        guard isAccountAvailable else {
-            #if DEBUG
-            logger.info("Skipping cleanup - CloudKit account not available")
-            #endif
-            return
-        }
-        
-        // Only clean up if we've had at least one successful sync
-        guard lastSyncDate != nil else {
-            #if DEBUG
-            logger.info("Skipping cleanup - No successful sync yet")
-            #endif
-            return
-        }
-        
-        // Clean up items that are in the tombstone list (these are definitively deleted)
         let itemDescriptor = FetchDescriptor<Item>()
         if let items = try? modelContext.fetch(itemDescriptor) {
-            for item in items {
-                // Only delete items that are in the tombstone list
-                if isInTombstones(item.id.uuidString) {
-                    logger.info("Removing tombstoned item: \(item.id)")
-                    modelContext.delete(item)
-                }
+            for item in items where isInTombstones(item.id.uuidString) {
+                logger.info("Removing tombstoned item: \(item.id)")
+                modelContext.delete(item)
             }
         }
         
-        // Instead of automatically deleting empty categories/locations,
-        // only do so if they've been empty for multiple sync cycles
-        // This requires tracking empty categories/locations over time,
-        // which would need to be implemented as a separate feature.
-        
-        // Save changes
         saveContext("cleanupOrphanedData")
-        
-        // Clean up duplicates as a final step - this is still safe to do
         cleanupDuplicateItems()
         cleanupDuplicateCategories()
         cleanupDuplicateLocations()
@@ -770,6 +871,7 @@ public class CloudKitSyncEngine: ObservableObject {
     
     deinit {
         syncTimer?.invalidate()
+        cleanUpTempAssetFiles()
     }
 }
 
@@ -782,8 +884,8 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
         #endif
         
         switch event {
-        case .accountChange(let event):
-            switch event.changeType {
+        case .accountChange(let accountEvent):
+            switch accountEvent.changeType {
             case .signIn(_):
                 isAccountAvailable = true
             case .signOut(_):
@@ -794,83 +896,75 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                 break
             }
             
-        case .fetchedRecordZoneChanges(let changes):
-            // Process record changes from CloudKit
-            var itemsToProcess = [Item]()
-            var itemRecords = [CKRecord]()
+        case .stateUpdate(let stateEvent):
+            // Persist the state serialization so CKSyncEngine can resume with correct tokens on next launch
+            do {
+                let serializedData = try PropertyListEncoder().encode(stateEvent.stateSerialization)
+                UserDefaults.standard.set(serializedData, forKey: syncEngineStateKey)
+                #if DEBUG
+                logger.debug("Saved CKSyncEngine state serialization (\(serializedData.count) bytes)")
+                #endif
+            } catch {
+                logger.error("Failed to encode CKSyncEngine state: \(error.localizedDescription)")
+            }
             
-            // Process modifications
-            for modification in changes.modifications {
+        case .fetchedRecordZoneChanges(let changes):
+            // 1. Ingest Categories and Locations FIRST so Items can immediately link them
+            let categoriesAndLocations = changes.modifications.filter { $0.record.recordType != "CD_Item" }
+            let itemModifications = changes.modifications.filter { $0.record.recordType == "CD_Item" }
+            
+            for modification in categoriesAndLocations {
                 let record = modification.record
                 switch record.recordType {
-                case "CD_Item":
-                    if let item = await recordToItem(record) {
-                        itemsToProcess.append(item)
-                        itemRecords.append(record)
-                    }
                 case "CD_Category":
                     _ = await recordToCategory(record)
-                    // After categories arrive, try resolving pending relationships
-                    resolvePendingRelationships()
                 case "CD_Location":
                     _ = await recordToLocation(record)
-                    // After locations arrive, try resolving pending relationships
-                    resolvePendingRelationships()
                 default:
                     logger.warning("Unknown record type: \(record.recordType)")
                 }
             }
             
-            // Process deletions
+            // 2. Ingest Items now that related entities are present
+            for modification in itemModifications {
+                _ = await recordToItem(modification.record)
+            }
+            
+            // 3. Process deletions
             for deletion in changes.deletions {
                 let recordID = deletion.recordID
                 let recordName = recordID.recordName
+                let zoneName = recordID.zoneID.zoneName
                 
-                // Add to tombstones to prevent reappearing
-                addToTombstones(recordName)
+                let tombstone = Tombstone(recordName: recordName, zoneName: zoneName, timestamp: Date())
+                tombstones[recordName] = tombstone
+                saveTombstones()
                 
                 if let uuid = UUID(uuidString: recordName) {
-                    // Clear any pending relationships for deleted items
                     pendingItemRelationships.removeValue(forKey: uuid)
-                    bufferedItems.removeValue(forKey: uuid)
-                    
-                    // Use helper to delete appropriate entity
                     deleteEntity(for: uuid, zoneID: recordID.zoneID)
                 }
             }
             
-            // Process relationships for items in this batch immediately when possible
-            if !itemsToProcess.isEmpty && !itemRecords.isEmpty {
-                processRelationships(for: itemsToProcess, with: itemRecords)
-            }
-            
-            // Attempt to resolve any cross-zone pending relationships
+            // 4. Resolve any remaining cross-zone relationships
             resolvePendingRelationships()
             
-            // Attempt to process buffered items that may now have relationships resolved
-            await processBufferedItems()
-            
-            // Clean up any duplicates
+            // 5. Clean up duplicates and save
             cleanupDuplicateItems()
             cleanupDuplicateCategories()
             cleanupDuplicateLocations()
-            
             saveContext("fetchedRecordZoneChanges")
             
         case .sentRecordZoneChanges(let changes):
-            // Log the results of sending records to CloudKit
             logger.info("Sent \(changes.savedRecords.count) records to CloudKit")
-            
             for failedSave in changes.failedRecordSaves {
                 logger.error("Failed to save record: \(failedSave.record.recordID) - \(failedSave.error.localizedDescription)")
             }
+            cleanUpTempAssetFiles()
             
         case .fetchedDatabaseChanges(let changes):
-            // Handle database level changes (e.g., deleted zones)
             for deletion in changes.deletions {
                 logger.info("Zone deleted: \(deletion.zoneID)")
-                
-                // If a zone was deleted, we should clear all data in that zone
                 if deletion.zoneID == itemsZoneID {
                     let descriptor = FetchDescriptor<Item>()
                     if let items = try? modelContext.fetch(descriptor) {
@@ -888,15 +982,13 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
                     }
                 }
             }
-            
             if !changes.deletions.isEmpty {
                 saveContext("fetchedDatabaseChanges: zone deletions")
             }
             
-        case .stateUpdate, .willFetchChanges, .didFetchChanges, .willSendChanges,
-                .didSendChanges, .willFetchRecordZoneChanges, .didFetchRecordZoneChanges,
-                .sentDatabaseChanges:
-            // These events are informational and don't require specific handling
+        case .willFetchChanges, .didFetchChanges, .willSendChanges,
+             .didSendChanges, .willFetchRecordZoneChanges, .didFetchRecordZoneChanges,
+             .sentDatabaseChanges:
             break
             
         @unknown default:
@@ -905,37 +997,58 @@ extension CloudKitSyncEngine: CKSyncEngineDelegate {
     }
     
     public func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
+        let pendingChanges = syncEngine.state.pendingRecordZoneChanges.filter { change in
+            context.options.scope.contains(change)
+        }
+        guard !pendingChanges.isEmpty else {
+            return nil
+        }
+        
+        let batch = Array(pendingChanges.prefix(100))
+        
         #if DEBUG
-        logger.info("Preparing next record change batch")
+        logger.info("Preparing next record change batch with \(batch.count) changes")
         #endif
         
-        // Fetch all entities from the model context
-        let itemDescriptor = FetchDescriptor<Item>()
-        let categoryDescriptor = FetchDescriptor<Category>()
-        let locationDescriptor = FetchDescriptor<Location>()
-        
-        let items = (try? modelContext.fetch(itemDescriptor)) ?? []
-        let categories = (try? modelContext.fetch(categoryDescriptor)) ?? []
-        let locations = (try? modelContext.fetch(locationDescriptor)) ?? []
-        
-        // Generate records for all entities
-        let itemRecords = items.map { self.itemToRecord($0) }
-        let categoryRecords = categories.map { self.categoryToRecord($0) }
-        let locationRecords = locations.map { self.locationToRecord($0) }
-        
-        // Combine all records
-        let allRecords = itemRecords + categoryRecords + locationRecords
-        
-        // Create a record map for the batch
-        let recordMap: [CKRecord.ID: CKRecord] = allRecords.reduce(into: [CKRecord.ID: CKRecord]()) { dict, record in
-            // Keep the last occurrence for duplicate keys
-            dict[record.recordID] = record
+        // Build the records dictionary on the main actor before entering the escaping closure
+        var mutableRecordsToSave: [CKRecord.ID: CKRecord] = [:]
+        for change in batch {
+            switch change {
+            case .saveRecord(let recordID):
+                if let record = self.record(for: recordID) {
+                    mutableRecordsToSave[recordID] = record
+                }
+            case .deleteRecord:
+                break
+            @unknown default:
+                break
+            }
         }
+        let recordsToSave = mutableRecordsToSave
         
-        // Create batch with the pendingChanges parameter as suggested by the compiler
-        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: [CKSyncEngine.PendingRecordZoneChange]()) { recordID in
-            return recordMap[recordID]
+        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: batch) { recordID in
+            return recordsToSave[recordID]
         }
+    }
+    
+    /// Resolve the CKRecord for a given recordID to send in a change batch
+    private func record(for recordID: CKRecord.ID) -> CKRecord? {
+        guard let uuid = UUID(uuidString: recordID.recordName) else { return nil }
+        
+        if recordID.zoneID == itemsZoneID {
+            if let item = fetchItem(id: uuid) {
+                return itemToRecord(item)
+            }
+        } else if recordID.zoneID == categoriesZoneID {
+            if let category = fetchCategory(id: uuid) {
+                return categoryToRecord(category)
+            }
+        } else if recordID.zoneID == locationsZoneID {
+            if let location = fetchLocation(id: uuid) {
+                return locationToRecord(location)
+            }
+        }
+        return nil
     }
 }
 
@@ -963,4 +1076,3 @@ public enum CloudKitSyncError: LocalizedError {
         }
     }
 }
-

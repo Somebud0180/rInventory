@@ -29,6 +29,7 @@ extension Item {
     
 #if !os(watchOS) // Disable modification functions on watchOS
     /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
+    @MainActor
     static func saveItem(
         name: String,
         quantity: Int,
@@ -78,9 +79,15 @@ extension Item {
         )
         context.insert(item)
         try? context.save()
+        
+        let engine = CloudKitSyncEngine.shared
+        engine?.queueSave(for: item)
+        if let location { engine?.queueSave(for: location) }
+        if let category { engine?.queueSave(for: category) }
     }
     
     /// Updates this Item and persists, cleaning up orphans.
+    @MainActor
     func updateItem(
         name: String? = nil,
         quantity: Int? = nil,
@@ -118,7 +125,7 @@ extension Item {
         if let location = newLocation {
             let oldLocation = self.location
             self.location = location
-            await oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+            oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         }
         if let category = newCategory {
             let oldCategory = self.category
@@ -127,7 +134,7 @@ extension Item {
             } else {
                 self.category = category
             }
-            await oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+            oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         }
         if let background = background {
             switch background {
@@ -150,9 +157,15 @@ extension Item {
         self.modifiedDate = Date()
         
         try? context.save()
+        
+        let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
+        engine?.queueSave(for: self)
+        if let location = self.location { engine?.queueSave(for: location) }
+        if let category = self.category { engine?.queueSave(for: category) }
     }
     
     /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
+    @MainActor
     func deleteItem(
         context: ModelContext,
         cloudKitSyncEngine: CloudKitSyncEngine? = nil
@@ -163,15 +176,14 @@ extension Item {
         let deletedOrder = self.sortOrder
         
         // Add to tombstones in CloudKit if available
-        if let syncEngine = cloudKitSyncEngine {
-            await syncEngine.addTombstone(self.id.uuidString)
-        }
+        let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
+        engine?.addTombstone(self.id.uuidString, zoneName: "InventoryItems")
         
         context.delete(self)
         
         // Clean up old location/category if they are empty
-        await oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        await oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+        oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
+        oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
         
         // Cascade sortOrder
         let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
@@ -196,16 +208,19 @@ extension Location {
     /// - context: The ModelContext to insert new locations into.
     /// - Returns: The existing or newly created Location.
     /// This method is useful for ensuring that locations are unique by name while allowing color updates.
+    @MainActor
     static func findOrCreate(name: String, color: Color, context: ModelContext) -> Location {
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
         
         if let existing = locations.first(where: { $0.name == name }) {
             existing.color = color
+            CloudKitSyncEngine.shared?.queueSave(for: existing)
             return existing
         } else {
             let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
             let newLocation = Location(name: name, sortOrder: nextSortOrder, color: color)
             context.insert(newLocation)
+            CloudKitSyncEngine.shared?.queueSave(for: newLocation)
             return newLocation
         }
     }
@@ -215,9 +230,8 @@ extension Location {
         try? context.save()
         
         if location.items?.isEmpty ?? true {
-            if let syncEngine = cloudKitSyncEngine {
-                syncEngine.addTombstone(self.id.uuidString)
-            }
+            let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
+            engine?.addTombstone(self.id.uuidString, zoneName: "InventoryLocations")
             
             context.delete(location)
         }
@@ -235,6 +249,7 @@ extension Category {
     /// - categories: The list of existing categories to check against.
     /// - Returns: The existing or newly created Category.
     /// This method is useful for ensuring that categories are unique by name.
+    @MainActor
     static func findOrCreate(name: String, context: ModelContext) -> Category {
         let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
         
@@ -244,6 +259,7 @@ extension Category {
             let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
             let newCategory = Category(name: name, sortOrder: nextSortOrder)
             context.insert(newCategory)
+            CloudKitSyncEngine.shared?.queueSave(for: newCategory)
             return newCategory
         }
     }
@@ -254,9 +270,8 @@ extension Category {
         try? context.save()
         
         if category.items?.isEmpty ?? true {
-            if let syncEngine = cloudKitSyncEngine {
-                syncEngine.addTombstone(self.id.uuidString)
-            }
+            let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
+            engine?.addTombstone(self.id.uuidString, zoneName: "InventoryCategories")
             
             context.delete(category)
         }
