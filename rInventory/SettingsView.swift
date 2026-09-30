@@ -69,23 +69,21 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
     var body: some View {
         NavigationStack {
             Form {
-                VStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.ultraThickMaterial)
+                Section {
+                    VStack(alignment: usesLiquidGlass ? .leading : .center, spacing: 10) {
+                        Image("AppIcon")
+                            .resizable()
+                            .scaledToFit()
                             .frame(width: 64, height: 64)
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.secondary)
+                        Text("rInventory")
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(.primary)
+                        Text("Customize the app and manage syncing options.")
+                            .font(.subheadline)
                     }
-                    Text("Settings")
-                        .font(.title)
-                        .bold()
-                        .foregroundColor(.primary)
-                    Text("Customize the app and manage syncing options.")
-                        .font(.subheadline)
+                    .frame(maxWidth: usesLiquidGlass ? nil : .infinity)
                 }
-                .frame(maxWidth: .infinity)
                 
                 Section("Visuals") {
                     LazyVGrid(
@@ -186,6 +184,7 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                 }
                 .padding(.bottom)
             }
+            .navigationBarTitle("Settings", displayMode: .inline)
             .onAppear {
                 checkiCloudAccountStatus()
             }
