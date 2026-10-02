@@ -161,6 +161,12 @@ public final class CloudKitSyncEngine: ObservableObject {
                 if reset || self.needsTokenReset {
                     await self.transport.stop()
                     try Task.checkCancellation()
+                    // Discard callbacks from the old engines, including expired CKAsset URLs.
+                    // Fresh engines will replay inventory and markers from the beginning.
+                    self.finishAutomaticFetch(schedule: false)
+                    self.stagedRecords.removeAll()
+                    self.stagedDeletions.removeAll()
+                    self.deferredMarkerState = nil
                     for key in ["inventoryState", "markerState"] {
                         try SyncPersistence.checkpoint(key, context: self.modelContext).data = nil
                     }
@@ -257,8 +263,10 @@ public final class CloudKitSyncEngine: ObservableObject {
     func beginAutomaticFetch() { automaticFetchInProgress = true }
 
     func stageAutomaticInventory(records: [CKRecord], deletions: [CKRecord.ID]) {
-        stagedRecords.append(contentsOf: records)
-        stagedDeletions.append(contentsOf: deletions)
+        let zones = [itemsZoneID, categoriesZoneID, locationsZoneID]
+        // The database subscription also sees legacy SwiftData and unrelated zones.
+        stagedRecords.append(contentsOf: records.filter { zones.contains($0.recordID.zoneID) })
+        stagedDeletions.append(contentsOf: deletions.filter { zones.contains($0.zoneID) })
     }
 
     func finishAutomaticFetch(schedule: Bool = true) {

@@ -571,6 +571,37 @@ struct InventoryTests {
         await engine.stop()
     }
 
+    @Test func automaticFetchIgnoresUnrelatedCloudKitZones() async throws {
+        let container = try store(); let transport = FakeSyncTransport()
+        let engine = CloudKitSyncEngine(modelContext: container.mainContext, mode: .downloadOnly, transport: transport)
+        try engine.start(); await engine.manualSync()
+        let unrelated = CKRecord(recordType: "CD_Item", recordID: CKRecord.ID(recordName: "legacy-record", zoneID: CKRecordZone.ID(zoneName: "com.apple.coredata.cloudkit.zone")))
+        let valid = record()
+        engine.beginAutomaticFetch()
+        engine.stageAutomaticInventory(records: [unrelated, valid], deletions: [unrelated.recordID])
+        engine.finishAutomaticFetch()
+        let scheduled = try #require(engine.scheduledSyncTask)
+        await scheduled.value
+        #expect(engine.syncState == .success)
+        #expect(try container.mainContext.fetch(FetchDescriptor<Item>()).map(\.id) == [UUID(uuidString: valid.recordID.recordName)!])
+        await engine.stop()
+    }
+
+    @Test func repairDiscardsFailedStagedBatchAndFetchesFreshRecords() async throws {
+        let container = try store(); let transport = FakeSyncTransport()
+        let engine = CloudKitSyncEngine(modelContext: container.mainContext, mode: .downloadOnly, transport: transport)
+        try engine.start(); await engine.manualSync()
+        let invalid = record(); invalid["CD_quantity"] = nil
+        engine.stageAutomaticInventory(records: [invalid], deletions: [])
+        await engine.manualSync()
+        if case .error = engine.syncState {} else { Issue.record("Expected failed staged batch") }
+        transport.remoteRecords = [record(UUID(uuidString: invalid.recordID.recordName)!)]
+        await engine.forceFullResync()
+        #expect(engine.syncState == .success)
+        #expect(try container.mainContext.fetch(FetchDescriptor<Item>()).first?.quantity == 3)
+        await engine.stop()
+    }
+
     @Test func initialSignInEventsDoNotCancelVerifiedAccountSync() async throws {
         let container = try store(); let transport = FakeSyncTransport()
         let engine = CloudKitSyncEngine(modelContext: container.mainContext, transport: transport)
