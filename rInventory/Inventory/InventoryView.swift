@@ -84,9 +84,6 @@ struct InventoryView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    headerSection
-                        .padding(.leading, 4)
-                    
                     if items.isEmpty {
                         emptyItemsView
                     } else if appDefaults.showInventoryAsRows {
@@ -155,8 +152,7 @@ struct InventoryView: View {
                 .padding(.horizontal, 16)
             }
             .scrollDisabled(items.isEmpty)
-            .navigationTitle("rInventory")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await syncEngine.manualSync()
             }
@@ -167,13 +163,24 @@ struct InventoryView: View {
                 InventoryOptionsView()
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .principal) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("rInventory")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        Text(greetingTime())
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                    .accessibilityAddTraits(.isHeader)
+                }
+                
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     if showingSyncSpinner {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                     }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
+                    
                     Button(action: {
                         if appDefaults.useInteractiveCreation {
                             showInteractiveCreationView = true
@@ -183,14 +190,14 @@ struct InventoryView: View {
                     }) {
                         Label("Add", systemImage: "plus.circle")
                     }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
+                    
                     Button(action: { showInventoryOptionsView = true }) {
                         Label("Edit", systemImage: "arrow.up.arrow.down")
                             .labelStyle(.iconOnly)
                     }
                 }
             }
+            .toolbarRole(.editor)
             .onChange(of: isActive) {
                 if !isActive {
                     // Cancel all prefetching operations when view disappears
@@ -222,15 +229,6 @@ struct InventoryView: View {
         }
     }
     
-    /// Returns a header section with a greeting based on the time of day.
-    private var headerSection: some View {
-        Text(greetingTime())
-            .font(.subheadline)
-            .bold()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, -10)
-    }
-    
     private var emptyItemsView: some View {
         Group {
             Group {
@@ -240,7 +238,6 @@ struct InventoryView: View {
             .foregroundColor(.gray)
             .font(.subheadline)
             .padding(12)
-            
             
             // Pseudo-grid to display app feel
             VStack(spacing: 16) {
