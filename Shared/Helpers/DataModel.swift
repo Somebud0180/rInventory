@@ -101,3 +101,14 @@ final class Category {
         self.items = items
     }
 }
+
+/// Display-only location values; a missing location never creates a persistent model.
+struct LocationDisplay {
+    let name: String
+    let color: Color
+
+    init(_ location: Location?) {
+        name = location?.name ?? "The Void"
+        color = location?.color ?? .gray
+    }
+}

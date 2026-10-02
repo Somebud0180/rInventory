@@ -92,6 +92,21 @@ extension Item {
 #if !os(watchOS)
 extension Location {
     @MainActor
+    func deleteLocation(context: ModelContext) {
+        guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
+        let removed = items.filter { $0.location?.id == id }
+        let removedIDs = Set(removed.map(\.id))
+        let affectedCategories = removed.compactMap(\.category).uniqued(by: \.id)
+        for item in removed { context.delete(item) }
+        context.delete(self)
+        for category in affectedCategories { category.checkAndCleanup(category: category, context: context) }
+        for (index, item) in items.filter({ !removedIDs.contains($0.id) }).sorted(by: { $0.sortOrder < $1.sortOrder }).enumerated() {
+            item.sortOrder = index
+        }
+        SyncPersistence.saveReporting(context)
+    }
+
+    @MainActor
     static func findOrCreate(name: String, color: Color, context: ModelContext) -> Location {
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
         let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
@@ -104,13 +119,23 @@ extension Location {
         return value
     }
     @MainActor
-    func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+    func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil, keepEmpty: Bool? = nil) {
+        guard !(keepEmpty ?? AppDefaults.shared.keepEmptyLocations) else { return }
         guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
         let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
         if !items.contains(where: { !deletedIDs.contains($0.persistentModelID) && $0.location?.id == location.id }) { context.delete(location) }
     }
 }
 extension Category {
+    @MainActor
+    func deleteCategory(context: ModelContext) {
+        guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
+        // Explicitly clear relationships before saving so sync records carry the removal.
+        for item in items where item.category?.id == id { item.category = nil }
+        context.delete(self)
+        SyncPersistence.saveReporting(context)
+    }
+
     @MainActor
     static func findOrCreate(name: String, context: ModelContext) -> Category {
         let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
@@ -121,7 +146,8 @@ extension Category {
         return value
     }
     @MainActor
-    func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+    func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil, keepEmpty: Bool? = nil) {
+        guard !(keepEmpty ?? AppDefaults.shared.keepEmptyCategories) else { return }
         guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
         let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
         if !items.contains(where: { !deletedIDs.contains($0.persistentModelID) && $0.category?.id == category.id }) { context.delete(category) }

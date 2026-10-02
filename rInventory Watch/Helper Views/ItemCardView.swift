@@ -41,8 +41,9 @@ struct FontConfig {
 ///   - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
-    Group {
+func itemCard(name: String, quantity: Int, location: Location?, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+    let location = LocationDisplay(location)
+    return Group {
         ZStack {
             RoundedRectangle(cornerRadius: ItemCardConstants.cornerRadius)
                 .aspectRatio(contentMode: .fill)
@@ -146,7 +147,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
 ///  - Returns: A view representing the item card with the item's properties.
 ///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
 func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
-    let location = item.location ?? Location(name: "Unknown", color: .white)
+    let location = item.location
     let category = item.category ?? Category(name: "")
     
     let background: ItemCardBackground

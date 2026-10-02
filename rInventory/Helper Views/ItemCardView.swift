@@ -110,7 +110,8 @@ struct ItemCardButton<Content: View>: View {
 ///   - showCounterForSingleItems: Optional boolean to show counter for single items.
 ///   - Returns: A view representing the item card with the specified properties.
 ///   This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
-func itemCard(name: String, quantity: Int, location: Location, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+func itemCard(name: String, quantity: Int, location: Location?, category: Category, background: ItemCardBackground, symbolColor: Color? = nil, colorScheme: ColorScheme, largeFont: Bool? = false, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
+    let location = LocationDisplay(location)
     let fontConfig = FontConfig(isLarge: largeFont ?? false)
     let primaryColor = (colorScheme == .dark || (symbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.accentDark.opacity(0.9) : Color.accentLight.opacity(0.9)
     let secondaryColor = (colorScheme == .dark || (symbolColor ?? .white).isColorWhite(sensitivity: 0.3)) ? Color.black.opacity(0.9) : Color.gray.opacity(0.9)
@@ -214,7 +215,7 @@ func itemCard(name: String, quantity: Int, location: Location, category: Categor
 ///  - Returns: A view representing the item card with the item's properties.
 ///  This function creates a visually appealing card that can be used in layouts, with adaptive glass background effects and responsive design.
 func itemCard(item: Item, colorScheme: ColorScheme, hideQuantity: Bool = false, simplified: Bool = false, showCounterForSingleItems: Bool = true) -> some View {
-    let location = item.location ?? Location(name: "Unknown", color: .white)
+    let location = item.location
     let category = item.category ?? Category(name: "")
     
     let background: ItemCardBackground

@@ -26,6 +26,8 @@ class AppDefaults: ObservableObject {
     @Published var showRecentlyAdded: Bool
     @Published var showCategories: Bool
     @Published var showLocations: Bool
+    @Published var keepEmptyLocations: Bool
+    @Published var keepEmptyCategories: Bool
     
     private enum Keys {
         static let themeMode = "themeMode"
@@ -38,6 +40,8 @@ class AppDefaults: ObservableObject {
         static let showRecentlyAdded = "showRecentlyAdded"
         static let showCategories = "showCategories"
         static let showLocations = "showLocations"
+        static let keepEmptyLocations = "keepEmptyLocations"
+        static let keepEmptyCategories = "keepEmptyCategories"
     }
     
     private init() {
@@ -52,7 +56,12 @@ class AppDefaults: ObservableObject {
         showCategories = defaults.object(forKey: Keys.showCategories) as? Bool ?? true
         showLocations = defaults.object(forKey: Keys.showLocations) as? Bool ?? true
         
+        keepEmptyCategories = defaults.object(forKey: Keys.keepEmptyCategories) as? Bool ?? true
+        keepEmptyLocations = defaults.object(forKey: Keys.keepEmptyLocations) as? Bool ?? true
+
         // Add observers to save on change
+        $keepEmptyCategories.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.keepEmptyCategories) }.store(in: &cancellables)
+        $keepEmptyLocations.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.keepEmptyLocations) }.store(in: &cancellables)
         $themeMode.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.themeMode) }.store(in: &cancellables)
         $useInteractiveCreation.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.useInteractiveCreation) }.store(in: &cancellables)
         $showCounterForSingleItems.sink { [weak self] value in self?.defaults.set(value, forKey: Keys.showCounterForSingleItems) }.store(in: &cancellables)

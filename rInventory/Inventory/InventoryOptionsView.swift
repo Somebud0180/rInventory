@@ -23,6 +23,8 @@ struct InventoryOptionsView: View {
     @State private var isLocationSectionExpanded: Bool = true
     @State private var isReordering: Bool = false
     @State private var pendingSave: Bool = false
+    @State private var categoryToDelete: Category?
+    @State private var locationToDelete: Location?
     
     var body: some View {
         NavigationStack {
@@ -40,6 +42,30 @@ struct InventoryOptionsView: View {
             .listStyle(.sidebar)
             .navigationTitle("Inventory View Options")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Delete Category?", isPresented: Binding(
+                get: { categoryToDelete != nil },
+                set: { if !$0 { categoryToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { categoryToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    categoryToDelete?.deleteCategory(context: modelContext)
+                    categoryToDelete = nil
+                }
+            } message: {
+                Text("Deleting \(categoryToDelete?.name ?? "this category") will remove this category from all its items. The items will be kept.")
+            }
+            .alert("Delete Location?", isPresented: Binding(
+                get: { locationToDelete != nil },
+                set: { if !$0 { locationToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { locationToDelete = nil }
+                Button("Delete Location and Items", role: .destructive) {
+                    locationToDelete?.deleteLocation(context: modelContext)
+                    locationToDelete = nil
+                }
+            } message: {
+                Text("Deleting \(locationToDelete?.name ?? "this location") will permanently delete all items in this location.")
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -170,6 +196,14 @@ struct InventoryOptionsView: View {
                     Image(systemName: "line.3.horizontal")
                         .foregroundColor(.secondary)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        categoryToDelete = category
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                }
             }
             .onMove(perform: moveCategory)
         }
@@ -202,6 +236,14 @@ struct InventoryOptionsView: View {
                     Spacer()
                     Image(systemName: "line.3.horizontal")
                         .foregroundColor(.secondary)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        locationToDelete = location
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
                 }
             }
             .onMove(perform: moveLocation)

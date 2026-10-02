@@ -78,7 +78,7 @@ struct ItemView: View {
     // Item display variables - Original values
     @State private var name: String = ""
     @State private var quantity: Int = 0
-    @State private var location: Location = Location(name: "Unknown", color: .white)
+    @State private var location: LocationDisplay = LocationDisplay(nil)
     @State private var category: Category = Category(name: "")
     @State private var background: ItemCardBackground = .symbol("questionmark")
     @State private var symbolColor: Color? = nil
@@ -290,7 +290,7 @@ struct ItemView: View {
         if let item = item {
             name = item.name
             quantity = item.quantity
-            location = item.location ?? Location(name: "The Void", color: .gray)
+            location = LocationDisplay(item.location)
             category = item.category ?? Category(name: "")
             symbolColor = item.symbolColor
             
@@ -880,7 +880,7 @@ struct ItemView: View {
         if let item = item {
             editName = item.name
             editQuantity = item.quantity
-            editLocationName = item.location?.name ?? "The Void"
+            editLocationName = item.location?.name ?? ""
             editLocationColor = item.location?.color ?? .gray
             editCategoryName = item.category?.name ?? ""
             switch background {
@@ -917,7 +917,7 @@ struct ItemView: View {
             // Update display variables from saved data
             name = editName
             quantity = max(editQuantity, 0) // Ensure quantity is non-negative
-            location = Location(name: editLocationName, color: editLocationColor)
+            location = LocationDisplay(item.location)
             category = Category(name: editCategoryName)
             background = editBackground
             symbolColor = editSymbolColor

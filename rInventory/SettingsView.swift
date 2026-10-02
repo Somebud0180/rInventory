@@ -116,6 +116,11 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                     }
                 }
                 
+                Section(header: Text("Inventory"), footer: Text("Keep locations and categories when their last item is deleted or moved. When a setting is off, that type is automatically removed when it becomes empty.")) {
+                    Toggle("Keep Empty Locations", isOn: $appDefaults.keepEmptyLocations)
+                    Toggle("Keep Empty Categories", isOn: $appDefaults.keepEmptyCategories)
+                }
+
                 Section(header: Text("iCloud Sync"), footer: Text("Sync your inventory across all devices using iCloud.")) {
                     if let message = coordinator.errorMessage { Text(message).foregroundStyle(.secondary) }
                     if case .error(let message) = syncEngine.syncState { Text(message).foregroundStyle(.secondary) }

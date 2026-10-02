@@ -112,6 +112,84 @@ struct InventoryTests {
         return record
     }
 
+    @Test func emptyCategoryCleanupRespectsRetentionSetting() throws {
+        let container = try store()
+        let context = container.mainContext
+        let category = Category(name: "Tools")
+        context.insert(category)
+        try SyncPersistence.save(context)
+        category.checkAndCleanup(category: category, context: context, keepEmpty: true)
+        try SyncPersistence.save(context)
+        #expect(try context.fetch(FetchDescriptor<rInventory.Category>()).count == 1)
+        category.checkAndCleanup(category: category, context: context, keepEmpty: false)
+        try SyncPersistence.save(context)
+        #expect(try context.fetch(FetchDescriptor<rInventory.Category>()).isEmpty)
+    }
+
+    @Test func emptyLocationCleanupRespectsRetentionSetting() throws {
+        let container = try store()
+        let context = container.mainContext
+        let location = Location(name: "Garage")
+        context.insert(location)
+        try SyncPersistence.save(context)
+        location.checkAndCleanup(location: location, context: context, keepEmpty: true)
+        try SyncPersistence.save(context)
+        #expect(try context.fetch(FetchDescriptor<Location>()).count == 1)
+        location.checkAndCleanup(location: location, context: context, keepEmpty: false)
+        try SyncPersistence.save(context)
+        #expect(try context.fetch(FetchDescriptor<Location>()).isEmpty)
+    }
+
+    @Test func deletingCategoryKeepsItemsAndQueuesRelationshipRemoval() throws {
+        let container = try store()
+        let context = container.mainContext
+        let category = Category(name: "Tools")
+        let location = Location(name: "Garage")
+        let item = Item(name: "Hammer", quantity: 1, location: location, category: category)
+        context.insert(item)
+        try SyncPersistence.save(context)
+        category.deleteCategory(context: context)
+        #expect(try context.fetch(FetchDescriptor<rInventory.Category>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<Item>()).count == 1)
+        #expect(item.category == nil)
+        #expect(item.location?.id == location.id)
+        let state = try SyncPersistence.state(zone: SyncPersistence.itemsZone, record: item.id.uuidString, context: context)
+        #expect(state.categoryID == nil)
+        #expect(state.pendingSave)
+    }
+
+    @Test func deletingLocationDeletesOnlyItsItemsAndQueuesDeletions() throws {
+        let container = try store()
+        let context = container.mainContext
+        let location = Location(name: "Garage")
+        let removed = Item(name: "Hammer", quantity: 1, location: location)
+        let kept = Item(name: "Book", quantity: 1, sortOrder: 1)
+        let removedID = removed.id
+        let locationID = location.id
+        context.insert(removed)
+        context.insert(kept)
+        try SyncPersistence.save(context)
+        location.deleteLocation(context: context)
+        #expect(try context.fetch(FetchDescriptor<Location>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<Item>()).map(\.id) == [kept.id])
+        #expect(kept.sortOrder == 0)
+        #expect(try SyncPersistence.state(zone: SyncPersistence.itemsZone, record: removedID.uuidString, context: context).deleted)
+        #expect(try SyncPersistence.state(zone: SyncPersistence.locationsZone, record: locationID.uuidString, context: context).deleted)
+    }
+
+    @Test func editingMissingLocationDoesNotPersistDisplayFallback() async throws {
+        let container = try store()
+        let context = container.mainContext
+        let item = Item(name: "Book", quantity: 1)
+        context.insert(item)
+        try SyncPersistence.save(context)
+        #expect(LocationDisplay(item.location).name == "The Void")
+        await item.updateItem(name: "Novel", locationName: "", context: context)
+        #expect(item.location == nil)
+        #expect(try context.fetch(FetchDescriptor<Location>()).isEmpty)
+        #expect(LocationDisplay(item.location).name == "The Void")
+    }
+
     @Test func firstDeviceDownloadsBeforeSendingAndCompletesBootstrap() async throws {
         let container = try store(); let transport = FakeSyncTransport()
         transport.remoteRecords = [record()]
