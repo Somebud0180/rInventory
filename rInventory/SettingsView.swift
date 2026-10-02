@@ -153,7 +153,7 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                             }
                         }
                     }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
-                    
+#if DEBUG
                     Button(action: {
                         Task {
                             await syncEngine.forceFullResync()
@@ -168,6 +168,7 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                             }
                         }
                     }.disabled(syncEngine.syncState == .syncing || iCloudStatus != .available)
+#endif
                 }
 #if DEBUG
                 Section("Debug") {

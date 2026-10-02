@@ -100,10 +100,10 @@
 				Helpers/ImagePrefetcher.swift,
 				Helpers/ItemCardPrefetchHelper.swift,
 				Helpers/SharedCode.swift,
-				Sync/SyncPersistence.swift,
-				Sync/CloudKitTransport.swift,
 				Sync/CloudKitSyncEngine.swift,
+				Sync/CloudKitTransport.swift,
 				Sync/InventoryStoreCoordinator.swift,
+				Sync/SyncPersistence.swift,
 				Sync/WatchVisibilityPreferences.swift,
 			);
 			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;
@@ -747,7 +747,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = rInventory/rInventory.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -767,7 +767,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -787,7 +787,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = rInventory/rInventory.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -807,7 +807,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lagera.Inventory;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
