@@ -260,5 +260,5 @@ struct SearchView: View {
     @Previewable @State var isActive = true
     
     SearchView(isActive: isActive)
-        .modelContainer(for: [Item.self, Location.self, Category.self])
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
 }

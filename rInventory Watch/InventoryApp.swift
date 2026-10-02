@@ -44,38 +44,27 @@ class AppDefaults: ObservableObject {
 
 @main
 struct Inventory_WatchApp: App {
-    static let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            Location.self,
-            Category.self,
-        ])
-        let containerURL = URL.applicationGroupContainerURL
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .none
-        )
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-    
+    static var sharedModelContainer: ModelContainer { InventoryStoreCoordinator.shared.container }
+    @StateObject private var coordinator = InventoryStoreCoordinator.shared
     @StateObject private var appDefaults = AppDefaults.shared
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
-    
+    @StateObject private var visibility = WatchVisibilityPreferences.shared
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(syncEngine: coordinator.engine)
                 .environmentObject(appDefaults)
+                .environmentObject(visibility)
+                .id(coordinator.storeKey)
+                .environmentObject(coordinator)
+                .modelContainer(coordinator.container)
+                .task { await coordinator.refreshAccount() }
         }
-        .modelContainer(Inventory_WatchApp.sharedModelContainer)
+
         .onChange(of: scenePhase) {
-            if scenePhase == .background {
+            if scenePhase == .active {
+                Task { await coordinator.refreshAccount() }
+            } else if scenePhase == .background {
                 // Clear memory caches when app is backgrounded
                 ImageCaches.purgeMemoryCaches()
             }

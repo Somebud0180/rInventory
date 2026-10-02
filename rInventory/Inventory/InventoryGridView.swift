@@ -20,7 +20,7 @@ struct InventoryGridView: View {
     @Environment(\.editMode) private var editMode
     
     @EnvironmentObject var appDefaults: AppDefaults
-    @StateObject var syncEngine: CloudKitSyncEngine
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var modelItems: [Item]
     @Query private var modelCategories: [Category]
     @Query private var modelLocations: [Location]

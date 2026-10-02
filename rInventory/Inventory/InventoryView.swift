@@ -43,7 +43,7 @@ struct InventoryView: View {
     @Query(filter: #Predicate<Category> { $0.displayInRow == true }, sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
     @EnvironmentObject private var appDefaults: AppDefaults
-    @StateObject var syncEngine: CloudKitSyncEngine
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Binding var showItemCreationView: Bool
     @Binding var showInteractiveCreationView: Bool
     @State var isActive: Bool
@@ -62,7 +62,7 @@ struct InventoryView: View {
     private let prefetchBatchSize = 8 // Number of items to prefetch ahead in each row
     
     init(syncEngine: CloudKitSyncEngine, showItemCreationView: Binding<Bool>, showInteractiveCreationView: Binding<Bool>, isActive: Bool) {
-        self._syncEngine = StateObject(wrappedValue: syncEngine)
+        self._syncEngine = ObservedObject(wrappedValue: syncEngine)
         self._showItemCreationView = showItemCreationView
         self._showInteractiveCreationView = showInteractiveCreationView
         self._isActive = State(initialValue: isActive)
@@ -189,13 +189,6 @@ struct InventoryView: View {
                         Label("Edit", systemImage: "arrow.up.arrow.down")
                             .labelStyle(.iconOnly)
                     }
-                }
-            }
-            .onAppear {
-                initializeSortOrders()
-                // Re-initialize sync engine with current modelContext if needed
-                if syncEngine.modelContext != modelContext {
-                    syncEngine.updateModelContext(modelContext)
                 }
             }
             .onChange(of: isActive) {
@@ -432,33 +425,6 @@ struct InventoryView: View {
         return items
     }
     
-    /// Initializes sort orders for categories and items if they are not set.
-    private func initializeSortOrders() {
-        // Initialize category sort orders if there's multiple categories without a sort order
-        let categoriesNeedingOrder = categories.filter { $0.sortOrder == 0 }
-        if categoriesNeedingOrder.count > 1 {
-            for (index, category) in categoriesNeedingOrder.enumerated() {
-                category.sortOrder = index
-            }
-        }
-        
-        // Initialize location sort orders if there's multiple locations without a sort order
-        let locationsNeedingOrder = locations.filter { $0.sortOrder == 0 }
-        if locationsNeedingOrder.count > 1 {
-            for (index, location) in locationsNeedingOrder.enumerated() {
-                location.sortOrder = index
-            }
-        }
-        
-        // Initialize item sort orders if there's multiple items without a sort order
-        let itemsNeedingOrder = items.filter { $0.sortOrder == 0 }
-        if itemsNeedingOrder.count > 1 {
-            for (index, item) in itemsNeedingOrder.enumerated() {
-                item.sortOrder = index
-            }
-        }
-    }
-    
     /// Returns a greeting based on the current time of day.
     private func greetingTime() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -514,8 +480,8 @@ struct InventoryView: View {
     @Previewable @State var showItemCreationView: Bool = false
     @Previewable @State var showInteractiveCreationView: Bool = false
     @Previewable @State var isActive: Bool = true
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: SyncPersistence.schema, configurations: [ModelConfiguration(schema: SyncPersistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)])))
     
     InventoryView(syncEngine: syncEngine, showItemCreationView: $showItemCreationView, showInteractiveCreationView: $showInteractiveCreationView, isActive: isActive)
-        .modelContainer(for: [Item.self, Location.self, Category.self])
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
 }

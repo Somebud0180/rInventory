@@ -151,7 +151,7 @@ struct InventoryOptionsView: View {
                         // Toggle visibility
                         withAnimation {
                             category.displayInRow.toggle()
-                            try? modelContext.save()
+                            SyncPersistence.saveReporting(modelContext)
                         }
                     }) {
                         Image(systemName: category.displayInRow ? "checkmark.circle.fill" : "circle")
@@ -190,6 +190,7 @@ struct InventoryOptionsView: View {
                         // Toggle visibility
                         withAnimation {
                             location.displayInRow.toggle()
+                            SyncPersistence.saveReporting(modelContext)
                         }
                     }) {
                         Image(systemName: location.displayInRow ? "checkmark.circle.fill" : "circle")
@@ -227,7 +228,7 @@ struct InventoryOptionsView: View {
         }
         
         // Save after animation completes, with debouncing
-        debouncedSave()
+        SyncPersistence.saveReporting(modelContext)
         
         // Reset reordering state after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -254,7 +255,7 @@ struct InventoryOptionsView: View {
         }
         
         // Save after animation completes, with debouncing
-        debouncedSave()
+        SyncPersistence.saveReporting(modelContext)
         
         // Reset reordering state after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -262,30 +263,7 @@ struct InventoryOptionsView: View {
         }
     }
     
-    // MARK: - Helper Methods
-    private func debouncedSave() {
-        // Cancel any pending save
-        pendingSave = false
-        
-        // Schedule a new save after animation completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            guard !self.pendingSave else { return }
-            self.pendingSave = true
-            
-            do {
-                try self.modelContext.save()
-            } catch {
-                print("Error saving reorder: \(error)")
-            }
-            
-            // Reset pending save flag
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.pendingSave = false
-            }
-        }
-    }
 }
-
 
 #Preview {
     InventoryOptionsView()

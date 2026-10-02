@@ -10,11 +10,27 @@ import SwiftData
 import CloudKit
 
 struct SettingsView: View {
+    @EnvironmentObject private var syncEngine: CloudKitSyncEngine
+    @EnvironmentObject private var coordinator: InventoryStoreCoordinator
+    @EnvironmentObject private var visibility: WatchVisibilityPreferences
     @EnvironmentObject var appDefaults: AppDefaults
     
     var body: some View {
         NavigationStack {
             Form {
+                Section("iCloud Sync") {
+                    if let message = coordinator.errorMessage { Text(message).foregroundStyle(.secondary) }
+                    switch syncEngine.syncState {
+                    case .syncing: ProgressView("Syncing inventory")
+                    case .error(let message): Text(message).foregroundStyle(.secondary)
+                    default: Text(syncEngine.isAccountAvailable ? "iCloud connected" : "iCloud unavailable")
+                    }
+                    Button("Sync Now") { Task { await coordinator.refreshAccount(force: true) } }
+                        .disabled(syncEngine.syncState == .syncing)
+                    Button("Repair & Re-sync") { Task { await syncEngine.forceFullResync() } }
+                        .disabled(!syncEngine.isAccountAvailable || syncEngine.syncState == .syncing)
+                }
+
                 Group {
                     Section(header: Text("Visuals")) {
                         Toggle("Show Counter for Single Items", isOn: $appDefaults.showCounterForSingleItems)
@@ -49,6 +65,7 @@ struct SettingsView: View {
 }
 
 struct CategoriesSettingsView: View {
+    @EnvironmentObject private var visibility: WatchVisibilityPreferences
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.sortOrder, order: .forward) private var categories: [Category]
     
@@ -57,12 +74,12 @@ struct CategoriesSettingsView: View {
             ForEach(categories, id: \.id) { category in
                 Button(action: {
                     // Toggle visibility for just this category
-                    category.displayInRow.toggle()
+                    visibility.toggle(zone: SyncPersistence.categoriesZone, id: category.id, fallback: category.displayInRow)
                 }) {
                     HStack {
                         Text(category.name)
                         Spacer()
-                        Image(systemName: category.displayInRow ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: visibility.visible(zone: SyncPersistence.categoriesZone, id: category.id, fallback: category.displayInRow) ? "checkmark.circle.fill" : "circle")
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -73,6 +90,7 @@ struct CategoriesSettingsView: View {
 }
 
 struct LocationsSettingsView: View {
+    @EnvironmentObject private var visibility: WatchVisibilityPreferences
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Location.sortOrder, order: .forward) private var locations: [Location]
     
@@ -81,12 +99,12 @@ struct LocationsSettingsView: View {
             ForEach(locations, id: \.id) { location in
                 Button(action: {
                     // Toggle visibility for just this location
-                    location.displayInRow.toggle()
+                    visibility.toggle(zone: SyncPersistence.locationsZone, id: location.id, fallback: location.displayInRow)
                 }) {
                     HStack {
                         Text(location.name)
                         Spacer()
-                        Image(systemName: location.displayInRow ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: visibility.visible(zone: SyncPersistence.locationsZone, id: location.id, fallback: location.displayInRow) ? "checkmark.circle.fill" : "circle")
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -98,4 +116,9 @@ struct LocationsSettingsView: View {
 
 #Preview {
     SettingsView()
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
+        .environmentObject(AppDefaults.shared)
+        .environmentObject(InventoryStoreCoordinator.shared)
+        .environmentObject(WatchVisibilityPreferences.shared)
+        .environmentObject(InventoryStoreCoordinator.shared.engine)
 }

@@ -259,6 +259,7 @@ func handleDrop(_ items: [Item], filteredItems: [Item], draggedItem: Binding<Ite
             item.sortOrder = newOrder
         }
     }
+    if let context = droppedItem.modelContext { SyncPersistence.saveReporting(context) }
 }
 
 // MARK: - Item Card Views

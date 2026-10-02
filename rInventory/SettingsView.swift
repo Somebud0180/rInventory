@@ -15,7 +15,8 @@ let settingsActivityType = "com.lagera.Inventory.managingSettings"
 
 struct SettingsView: View {    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var appDefaults: AppDefaults
-    @StateObject var syncEngine: CloudKitSyncEngine
+    @EnvironmentObject private var coordinator: InventoryStoreCoordinator
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
     // MARK: - iCloud Variables
@@ -116,6 +117,15 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
                 }
                 
                 Section(header: Text("iCloud Sync"), footer: Text("Sync your inventory across all devices using iCloud.")) {
+                    if let message = coordinator.errorMessage { Text(message).foregroundStyle(.secondary) }
+                    if case .error(let message) = syncEngine.syncState { Text(message).foregroundStyle(.secondary) }
+                    if coordinator.hasOfflineInventory {
+                        Button("Import Offline Inventory") {
+                            do { try coordinator.importOfflineInventory() }
+                            catch { syncEngine.report(error) }
+                        }
+                        .disabled(!syncEngine.isAccountAvailable)
+                    }
                     HStack {
                         Text("iCloud Status:")
                         Spacer()
@@ -278,7 +288,10 @@ struct SettingsView: View {    @Environment(\.modelContext) private var modelCon
 
 #Preview {
     @Previewable @State var isActive = true
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: SyncPersistence.schema, configurations: [ModelConfiguration(schema: SyncPersistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)])))
     
     SettingsView(syncEngine: syncEngine, isActive: isActive)
+        .environmentObject(AppDefaults.shared)
+        .environmentObject(InventoryStoreCoordinator.shared)
+        .modelContainer(syncEngine.modelContext.container)
 }

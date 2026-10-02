@@ -78,45 +78,26 @@ class AppDefaults: ObservableObject {
 
 @main
 struct InventoryApp: App {
-    static let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            Location.self,
-            Category.self,
-        ])
-        let containerURL = URL.applicationGroupContainerURL
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            url: containerURL.appendingPathComponent("rInventory.store"),
-            cloudKitDatabase: .none
-        )
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-    
-    init() {
-        self._syncEngine = StateObject(wrappedValue: CloudKitSyncEngine(modelContext: InventoryApp.sharedModelContainer.mainContext))
-    }
-    
+    static var sharedModelContainer: ModelContainer { InventoryStoreCoordinator.shared.container }
+    @StateObject private var coordinator = InventoryStoreCoordinator.shared
     @StateObject private var appDefaults = AppDefaults.shared
-    @StateObject private var syncEngine: CloudKitSyncEngine
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
-    
+
     var body: some Scene {
         WindowGroup {
-            ContentView(syncEngine: syncEngine)
-                .id(appDefaults.themeMode)
+            ContentView(syncEngine: coordinator.engine)
+                .id("\(coordinator.storeKey)-\(appDefaults.themeMode)")
                 .environmentObject(appDefaults)
+                .environmentObject(coordinator)
+                .modelContainer(coordinator.container)
+                .task { await coordinator.refreshAccount() }
                 .preferredColorScheme(appDefaults.resolvedColorScheme())
         }
-        .modelContainer(InventoryApp.sharedModelContainer)
+
         .onChange(of: scenePhase) {
-            if scenePhase == .background {
+            if scenePhase == .active {
+                Task { await coordinator.refreshAccount() }
+            } else if scenePhase == .background {
                 // Clear memory caches when app is backgrounded
                 ImageCaches.purgeMemoryCaches()
             }

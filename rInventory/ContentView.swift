@@ -145,8 +145,10 @@ struct ContentView: View {
 }
 
 #Preview {
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: SyncPersistence.schema, configurations: [ModelConfiguration(schema: SyncPersistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)])))
     
     ContentView(syncEngine: syncEngine)
-        .modelContainer(for: [Item.self, Location.self, Category.self])
+        .environmentObject(AppDefaults.shared)
+        .environmentObject(InventoryStoreCoordinator.shared)
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
 }

@@ -101,7 +101,7 @@ class InventoryViewModel: ObservableObject {
         }
         
         do {
-            try modelContext.save()
+            try SyncPersistence.save(modelContext)
         } catch {
             print("Failed to delete items: \(error.localizedDescription)")
         }

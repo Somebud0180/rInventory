@@ -55,6 +55,7 @@ struct SortPickerView: View {
 }
 
 struct InventoryView: View {
+    @EnvironmentObject private var visibility: WatchVisibilityPreferences
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     
@@ -95,7 +96,7 @@ struct InventoryView: View {
             filteredItems = filteredItems.filter { item in
                 // Keep items that either have no category or have a category with displayInRow = true
                 guard let category = item.category else { return true }
-                return category.displayInRow
+                return visibility.visible(zone: SyncPersistence.categoriesZone, id: category.id, fallback: category.displayInRow)
             }
         }
         
@@ -103,7 +104,7 @@ struct InventoryView: View {
             filteredItems = filteredItems.filter { item in
                 // Keep items that either have no location or have a location with displayInRow = true
                 guard let location = item.location else { return true }
-                return location.displayInRow
+                return visibility.visible(zone: SyncPersistence.locationsZone, id: location.id, fallback: location.displayInRow)
             }
         }
         
@@ -217,5 +218,9 @@ func sortSymbol(for sortType: SortType) -> String {
     @Previewable @State var isActive: Bool = true
     
     InventoryView(selectedSortType: $selectedSortType, showSortPicker: $showSortPicker, isActive: isActive)
-        .modelContainer(for: [Item.self, Location.self, Category.self])
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
+        .environmentObject(AppDefaults.shared)
+        .environmentObject(InventoryStoreCoordinator.shared)
+        .environmentObject(WatchVisibilityPreferences.shared)
+        .environmentObject(InventoryStoreCoordinator.shared.engine)
 }

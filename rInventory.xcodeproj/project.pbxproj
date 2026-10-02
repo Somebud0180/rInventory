@@ -100,6 +100,11 @@
 				Helpers/ImagePrefetcher.swift,
 				Helpers/ItemCardPrefetchHelper.swift,
 				Helpers/SharedCode.swift,
+				Sync/SyncPersistence.swift,
+				Sync/CloudKitTransport.swift,
+				Sync/CloudKitSyncEngine.swift,
+				Sync/InventoryStoreCoordinator.swift,
+				Sync/WatchVisibilityPreferences.swift,
 			);
 			target = AABFF4C32E4A325E000B491E /* rInventory Watch */;
 		};
@@ -662,7 +667,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inventoryBuddy Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inventoryBuddy Watch App";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rInventory Watch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rInventory Watch";
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -685,7 +690,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inventoryBuddy Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inventoryBuddy Watch App";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rInventory Watch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rInventory Watch";
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
@@ -707,7 +712,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "inventoryBuddy Watch App";
+				TEST_TARGET_NAME = "rInventory Watch";
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -729,7 +734,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "inventoryBuddy Watch App";
+				TEST_TARGET_NAME = "rInventory Watch";
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;

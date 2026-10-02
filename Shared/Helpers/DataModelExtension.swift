@@ -27,259 +27,107 @@ extension Item {
         }
     }
     
-#if !os(watchOS) // Disable modification functions on watchOS
-    /// Creates and inserts a new Item into the context, including creating or finding location/category as needed, and sets proper sort order.
+#if !os(watchOS)
     @MainActor
-    static func saveItem(
-        name: String,
-        quantity: Int,
-        locationName: String,
-        locationColor: Color,
-        categoryName: String,
-        background: ItemCardBackground,
-        symbolColor: Color,
-        context: ModelContext
-    ) {
-        // Fetch existing items
-        let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
-        
-        // Trim and validate names
-        let trimmedName = name.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Find or create location and category
-        let trimmedLocationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedCategoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-        let location = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, context: context) : nil
-        let category = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : nil
-        
-        // Extract background
-        let (imageData, symbol, usedSymbolColor): (Data?, String?, Color?) = {
-            switch background {
-            case let .symbol(symbol):
-                return (nil, symbol, symbolColor)
-            case let .image(data):
-                return (data, nil, nil)
-            }
-        }()
-        
-        // Determine the next sort order
-        let sortOrder = (items.map { $0.sortOrder }.max() ?? -1) + 1
-        
-        let item = Item(
-            name: trimmedName,
-            quantity: max(quantity, 0),
-            location: location,
-            category: category,
-            imageData: imageData,
-            symbol: symbol,
-            symbolColor: usedSymbolColor,
-            sortOrder: sortOrder,
-            modifiedDate: Date(),
-            itemCreationDate: Date()
-        )
+    static func saveItem(name: String, quantity: Int, locationName: String, locationColor: Color,
+                         categoryName: String, background: ItemCardBackground, symbolColor: Color, context: ModelContext) {
+        let locationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        let categoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+        let location = locationName.isEmpty ? nil : Location.findOrCreate(name: locationName, color: locationColor, context: context)
+        let category = categoryName.isEmpty ? nil : Category.findOrCreate(name: categoryName, context: context)
+        let order = ((try? context.fetch(FetchDescriptor<Item>())) ?? []).map(\.sortOrder).max() ?? -1
+        let item = Item(name: name.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines), quantity: max(quantity, 0),
+                        location: location, category: category, sortOrder: order + 1)
+        switch background {
+        case .image(let data): item.imageData = data; item.symbol = nil; item.symbolColorData = nil
+        case .symbol(let symbol): item.symbol = symbol; item.symbolColor = symbolColor
+        }
         context.insert(item)
-        try? context.save()
-        
-        let engine = CloudKitSyncEngine.shared
-        engine?.queueSave(for: item)
-        if let location { engine?.queueSave(for: location) }
-        if let category { engine?.queueSave(for: category) }
+        SyncPersistence.saveReporting(context)
     }
-    
-    /// Updates this Item and persists, cleaning up orphans.
+
     @MainActor
-    func updateItem(
-        name: String? = nil,
-        quantity: Int? = nil,
-        locationName: String? = nil,
-        locationColor: Color? = nil,
-        categoryName: String? = nil,
-        background: ItemCardBackground? = nil,
-        symbolColor: Color? = nil,
-        context: ModelContext,
-        cloudKitSyncEngine: CloudKitSyncEngine? = nil
-    ) async {
-        // Trim and validate name
-        let trimmedName = name?.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Find or create Location
-        var newLocation: Location?
-        if let locationName = locationName, !locationName.isEmpty, let locationColor = locationColor {
-            let trimmedLocationName = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-            newLocation = !trimmedLocationName.isEmpty ? Location.findOrCreate(name: trimmedLocationName, color: locationColor, context: context) : nil
+    func updateItem(name: String? = nil, quantity: Int? = nil, locationName: String? = nil,
+                    locationColor: Color? = nil, categoryName: String? = nil, background: ItemCardBackground? = nil,
+                    symbolColor: Color? = nil, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) async {
+        let oldLocation = self.location
+        let oldCategory = self.category
+        if let name { self.name = name.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines) }
+        if let quantity { self.quantity = max(quantity, 0) }
+        if let locationName {
+            let trimmed = locationName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+            self.location = trimmed.isEmpty ? nil : Location.findOrCreate(name: trimmed, color: locationColor ?? self.location?.color ?? .white, context: context)
         }
-        
-        // Find or create Category
-        var newCategory: Category?
-        if let categoryName = categoryName {
-            let trimmedCategoryName = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
-            newCategory = !trimmedCategoryName.isEmpty ? Category.findOrCreate(name: trimmedCategoryName, context: context) : Category(name: "nil")
+        if let categoryName {
+            let trimmed = categoryName.prefix(40).trimmingCharacters(in: .whitespacesAndNewlines)
+            self.category = trimmed.isEmpty ? nil : Category.findOrCreate(name: trimmed, context: context)
         }
-        
-        if let name = trimmedName {
-            self.name = name
-        }
-        if let quantity = quantity {
-            self.quantity = quantity
-        }
-        if let location = newLocation {
-            let oldLocation = self.location
-            self.location = location
-            oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        }
-        if let category = newCategory {
-            let oldCategory = self.category
-            if category.name == "nil" {
-                self.category = nil
-            } else {
-                self.category = category
-            }
-            oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        }
-        if let background = background {
+        if let background {
             switch background {
-            case let .symbol(symbol):
-                self.symbol = symbol
-                if let color = symbolColor {
-                    self.symbolColor = color
-                }
-                self.imageData = nil
-            case let .image(data):
-                self.imageData = data
-                self.symbol = nil
-                self.symbolColor = .accentColor
+            case .symbol(let symbol): self.symbol = symbol; self.imageData = nil; self.symbolColor = symbolColor ?? .accentColor
+            case .image(let data): self.imageData = data; self.symbol = nil; self.symbolColorData = nil
             }
-        } else if let color = symbolColor {
-            // Allow updating symbolColor if passed without background
-            self.symbolColor = color
-        }
-        
-        self.modifiedDate = Date()
-        
-        try? context.save()
-        
-        let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
-        engine?.queueSave(for: self)
-        if let location = self.location { engine?.queueSave(for: location) }
-        if let category = self.category { engine?.queueSave(for: category) }
+        } else if let symbolColor { self.symbolColor = symbolColor }
+        if let oldLocation, oldLocation.id != self.location?.id { oldLocation.checkAndCleanup(location: oldLocation, context: context) }
+        if let oldCategory, oldCategory.id != self.category?.id { oldCategory.checkAndCleanup(category: oldCategory, context: context) }
+        SyncPersistence.saveReporting(context)
     }
-    
-    /// Deletes this Item, handles orphaned category/location, and cascades sortOrder.
+
     @MainActor
-    func deleteItem(
-        context: ModelContext,
-        cloudKitSyncEngine: CloudKitSyncEngine? = nil
-    ) async {
-        let items = (try? context.fetch(FetchDescriptor<Item>())) ?? []
+    func deleteItem(context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) async {
         let oldLocation = self.location
         let oldCategory = self.category
         let deletedOrder = self.sortOrder
-        
-        // Add to tombstones in CloudKit if available
-        let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
-        engine?.addTombstone(self.id.uuidString, zoneName: "InventoryItems")
-        
         context.delete(self)
-        
-        // Clean up old location/category if they are empty
-        oldLocation?.checkAndCleanup(location: oldLocation!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        oldCategory?.checkAndCleanup(category: oldCategory!, context: context, cloudKitSyncEngine: cloudKitSyncEngine)
-        
-        // Cascade sortOrder
-        let itemsToUpdate = items.filter { $0.sortOrder > deletedOrder }
-        for otherItem in itemsToUpdate {
-            otherItem.sortOrder -= 1
+        if let oldLocation { oldLocation.checkAndCleanup(location: oldLocation, context: context) }
+        if let oldCategory { oldCategory.checkAndCleanup(category: oldCategory, context: context) }
+        for item in (try? context.fetch(FetchDescriptor<Item>())) ?? [] where item.id != self.id && item.sortOrder > deletedOrder {
+            item.sortOrder -= 1
         }
-        
-        try? context.save()
+        SyncPersistence.saveReporting(context)
     }
-#endif // !os(watchOS)
+#endif
 }
 
-#if !os(watchOS) // Disable modification functions on watchOS
+#if !os(watchOS)
 extension Location {
-    /// Finds an existing location by name or creates a new one with the specified color and next available sort order.
-    /// - If a location with the given name exists, it updates its color and returns it.
-    /// - If no such location exists, it creates a new one with the next available sort order.
-    /// - Parameters:
-    /// - name: The name of the location to find or create.
-    /// - color: The color to assign to the location.
-    /// - locations: The list of existing locations to check against.
-    /// - context: The ModelContext to insert new locations into.
-    /// - Returns: The existing or newly created Location.
-    /// This method is useful for ensuring that locations are unique by name while allowing color updates.
     @MainActor
     static func findOrCreate(name: String, color: Color, context: ModelContext) -> Location {
         let locations = (try? context.fetch(FetchDescriptor<Location>())) ?? []
-        
-        if let existing = locations.first(where: { $0.name == name }) {
-            existing.color = color
-            CloudKitSyncEngine.shared?.queueSave(for: existing)
+        let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
+        if let existing = locations.first(where: { $0.name == name && !deletedIDs.contains($0.persistentModelID) }) {
+            if existing.colorData != color.rgbaData { existing.color = color }
             return existing
-        } else {
-            let nextSortOrder = (locations.map { $0.sortOrder }.max() ?? 0) + 1
-            let newLocation = Location(name: name, sortOrder: nextSortOrder, color: color)
-            context.insert(newLocation)
-            CloudKitSyncEngine.shared?.queueSave(for: newLocation)
-            return newLocation
         }
+        let value = Location(name: name, sortOrder: (locations.map(\.sortOrder).max() ?? -1) + 1, color: color)
+        context.insert(value)
+        return value
     }
-    
-    @MainActor func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
-        // Save changes before cleanup
-        try? context.save()
-        
-        if location.items?.isEmpty ?? true {
-            let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
-            engine?.addTombstone(self.id.uuidString, zoneName: "InventoryLocations")
-            
-            context.delete(location)
-        }
-        
-        try? context.save()
+    @MainActor
+    func checkAndCleanup(location: Location, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+        guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
+        let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
+        if !items.contains(where: { !deletedIDs.contains($0.persistentModelID) && $0.location?.id == location.id }) { context.delete(location) }
     }
 }
-
 extension Category {
-    /// Finds an existing category by name or creates a new one with the next available sort order.
-    /// - If a category with the given name exists, it returns that category.
-    /// - If no such category exists, it creates a new one with the next available sort order.
-    /// - Parameters:
-    /// - name: The name of the category to find or create.
-    /// - categories: The list of existing categories to check against.
-    /// - Returns: The existing or newly created Category.
-    /// This method is useful for ensuring that categories are unique by name.
     @MainActor
     static func findOrCreate(name: String, context: ModelContext) -> Category {
         let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
-        
-        if let existing = categories.first(where: { $0.name == name }) {
-            return existing
-        } else {
-            let nextSortOrder = (categories.map { $0.sortOrder }.max() ?? 0) + 1
-            let newCategory = Category(name: name, sortOrder: nextSortOrder)
-            context.insert(newCategory)
-            CloudKitSyncEngine.shared?.queueSave(for: newCategory)
-            return newCategory
-        }
+        let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
+        if let existing = categories.first(where: { $0.name == name && !deletedIDs.contains($0.persistentModelID) }) { return existing }
+        let value = Category(name: name, sortOrder: (categories.map(\.sortOrder).max() ?? -1) + 1)
+        context.insert(value)
+        return value
     }
-    
-    /// Checks if this category has no items and deletes it if empty.
-    @MainActor func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
-        // Save changes before cleanup
-        try? context.save()
-        
-        if category.items?.isEmpty ?? true {
-            let engine = cloudKitSyncEngine ?? CloudKitSyncEngine.shared
-            engine?.addTombstone(self.id.uuidString, zoneName: "InventoryCategories")
-            
-            context.delete(category)
-        }
-        
-        try? context.save()
+    @MainActor
+    func checkAndCleanup(category: Category, context: ModelContext, cloudKitSyncEngine: CloudKitSyncEngine? = nil) {
+        guard let items = try? context.fetch(FetchDescriptor<Item>()) else { return }
+        let deletedIDs = Set(context.deletedModelsArray.map(\.persistentModelID))
+        if !items.contains(where: { !deletedIDs.contains($0.persistentModelID) && $0.category?.id == category.id }) { context.delete(category) }
     }
 }
-#endif // !os(watchOS)
+#endif
 
 extension Color {
     /// Returns the RGBA components packed into Data (8 bits per channel)

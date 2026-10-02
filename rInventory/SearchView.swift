@@ -21,7 +21,7 @@ struct SearchView: View {
     @Query private var categories: [Category]
     @Query private var locations: [Location]
     
-    @StateObject var syncEngine: CloudKitSyncEngine
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @State var isActive: Bool
     
     @SceneStorage("SearchView.selectedCategory") private var selectedCategoryName: String = ""
@@ -336,7 +336,7 @@ struct SearchView: View {
 #Preview {
     // Provide a constant true for isActive to represent the view being active in preview
     @Previewable @State var isActive: Bool = true
-    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: Item.self, Location.self, Category.self)))
+    @Previewable @StateObject var syncEngine = CloudKitSyncEngine(modelContext: ModelContext(try! ModelContainer(for: SyncPersistence.schema, configurations: [ModelConfiguration(schema: SyncPersistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)])))
     
     SearchView(syncEngine: syncEngine, isActive: isActive)
         .modelContainer(for: Item.self)

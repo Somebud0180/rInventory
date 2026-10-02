@@ -22,6 +22,7 @@ final class Item {
     var symbolColorData: Data?
     var sortOrder: Int = 0
     var modifiedDate: Date = Date()
+    var revision: String = ""
     var itemCreationDate: Date = Date()
     
     init(_ id: UUID = UUID(), name: String, quantity: Int, location: Location? = nil, category: Category? = nil, imageData: Data? = nil, symbol: String? = nil, symbolColor: Color? = .white, sortOrder: Int = 0, modifiedDate: Date = Date(), itemCreationDate: Date = Date()) {
@@ -54,6 +55,8 @@ final class Location {
     var id: UUID = UUID()
     var name: String = ""
     var sortOrder: Int = 0 // Used for sorting the location rows
+    var modifiedDate: Date = Date(timeIntervalSince1970: 0)
+    var revision: String = ""
     var displayInRow: Bool = true // Whether to show this location in the main list
     var colorData: Data?
     @Relationship(deleteRule: .nullify, inverse: \Item.location)
@@ -84,6 +87,8 @@ final class Category {
     var id: UUID = UUID()
     var name: String = ""
     var sortOrder: Int = 0 // Used for sorting the category rows
+    var modifiedDate: Date = Date(timeIntervalSince1970: 0)
+    var revision: String = ""
     var displayInRow: Bool = true // Whether to show this category in the main list
     @Relationship(deleteRule: .nullify, inverse: \Item.category)
     var items: [Item]?

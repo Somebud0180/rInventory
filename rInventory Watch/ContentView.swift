@@ -18,6 +18,7 @@ let usesLiquidGlass: Bool = {
 }()
 
 struct ContentView: View {
+    @ObservedObject var syncEngine: CloudKitSyncEngine
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     
@@ -29,6 +30,7 @@ struct ContentView: View {
         NavigationStack {
             tabView()
                 .navigationTitle(tabSelection == 0 ? "rInventory" : "Search")
+                .environmentObject(syncEngine)
                 .toolbar {
                     if tabSelection == 0 {
                         ToolbarItem(placement: .topBarLeading) {
@@ -44,11 +46,6 @@ struct ContentView: View {
                             Image(systemName: "gearshape")
                                 .font(.body)
                         }
-                    }
-                }
-                .onChange(of: scenePhase) {
-                    if scenePhase == .background {
-                        try? modelContext.save()
                     }
                 }
                 .fullScreenCover(isPresented: $showSortPicker) {
@@ -95,6 +92,10 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: [Item.self, Location.self, Category.self])
+    ContentView(syncEngine: InventoryStoreCoordinator.shared.engine)
+        .modelContainer(for: [Item.self, Location.self, Category.self, SyncRecordState.self, SyncCheckpoint.self], inMemory: true)
+        .environmentObject(AppDefaults.shared)
+        .environmentObject(InventoryStoreCoordinator.shared)
+        .environmentObject(WatchVisibilityPreferences.shared)
+        .environmentObject(InventoryStoreCoordinator.shared.engine)
 }
