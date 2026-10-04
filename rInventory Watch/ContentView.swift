@@ -30,7 +30,6 @@ struct ContentView: View {
         NavigationStack {
             tabView()
                 .navigationTitle(tabSelection == 0 ? "rInventory" : "Search")
-                .environmentObject(syncEngine)
                 .toolbar {
                     if tabSelection == 0 {
                         ToolbarItem(placement: .topBarLeading) {
@@ -52,6 +51,7 @@ struct ContentView: View {
                     SortPickerView(selectedSortType: $selectedSortType)
                 }
         }
+        .environmentObject(syncEngine)
     }
     
     private func tabView() -> some View {
