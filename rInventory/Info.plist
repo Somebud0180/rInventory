@@ -10,6 +10,17 @@
 		<string>com.lagera.Inventory.viewingGrid</string>
 		<string>com.lagera.Inventory.viewingInventory</string>
 	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeAdd</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Add new item</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.lagera.Inventory.addItem</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -87,6 +87,7 @@ class AppDefaults: ObservableObject {
 
 @main
 struct InventoryApp: App {
+    @UIApplicationDelegateAdaptor(InventoryAppDelegate.self) private var appDelegate
     static var sharedModelContainer: ModelContainer { InventoryStoreCoordinator.shared.container }
     @StateObject private var coordinator = InventoryStoreCoordinator.shared
     @StateObject private var appDefaults = AppDefaults.shared

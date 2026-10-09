@@ -21,6 +21,9 @@ let usesLiquidGlass: Bool = {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var actionRouter = InventoryActionRouter.shared
+    @EnvironmentObject private var appDefaults: AppDefaults
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var syncEngine: CloudKitSyncEngine
     @Query private var items: [Item]
     
@@ -36,6 +39,7 @@ struct ContentView: View {
         set { tabSelection = newValue.rawValue }
     }
     
+    @State private var routingReady = false
     @State private var continuedActivity: NSUserActivity? = nil
     @State private var showInventoryGridView: Bool = false
     @State private var showItemCreationView: Bool = false
@@ -45,12 +49,21 @@ struct ContentView: View {
     
     var body: some View {
         return tabView()
+            .task {
+                // Account refresh can replace this root view; keep the action pending until it settles.
+                await InventoryStoreCoordinator.shared.refreshAccount()
+                guard !Task.isCancelled else { return }
+                routingReady = true
+                handleNewItemRequest()
+            }
+            .onChange(of: actionRouter.newItemRequested) { handleNewItemRequest() }
+            .onChange(of: scenePhase) { handleNewItemRequest() }
             .onChange(of: selectedItem) {
                 if selectedItem != nil {
                     showItemView = true
                 }
             }
-            .sheet(isPresented: $showItemView) {
+            .sheet(isPresented: $showItemView, onDismiss: handleNewItemRequest) {
                 ItemView(syncEngine: syncEngine, item: $selectedItem)
             }
             .sheet(isPresented: $showItemCreationView) {
@@ -59,7 +72,7 @@ struct ContentView: View {
             .animatedFullscreenCover(isPresented: $showInteractiveCreationView) {
                 InteractiveCreationView(isPresented: $showInteractiveCreationView)
             }
-            .fullScreenCover(isPresented: $showInventoryGridView, onDismiss: { continuedActivity = nil }) {
+            .fullScreenCover(isPresented: $showInventoryGridView, onDismiss: { continuedActivity = nil; handleNewItemRequest() }) {
                 if let activity = continuedActivity {
                     InventoryGridView(
                         syncEngine: syncEngine,
@@ -93,6 +106,23 @@ struct ContentView: View {
     }
     
     
+    private func handleNewItemRequest() {
+        guard routingReady, actionRouter.newItemRequested, scenePhase == .active else { return }
+        tabSelection = TabSelection.home.rawValue
+        if showItemView || showInventoryGridView {
+            showItemView = false
+            showInventoryGridView = false
+            return // Finish dismissing before presenting the creation flow.
+        }
+        actionRouter.newItemRequested = false
+        guard !showItemCreationView, !showInteractiveCreationView else { return }
+        if appDefaults.useInteractiveCreation {
+            showInteractiveCreationView = true
+        } else {
+            showItemCreationView = true
+        }
+    }
+
     private func tabView() -> some View {
         if #available(iOS 18.0, *) {
             return TabView(selection: $tabSelection) {

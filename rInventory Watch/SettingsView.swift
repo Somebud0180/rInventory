@@ -27,8 +27,10 @@ struct SettingsView: View {
                     }
                     Button("Sync Now") { Task { await coordinator.refreshAccount(force: true) } }
                         .disabled(syncEngine.syncState == .syncing)
+#if DEBUG
                     Button("Repair & Re-sync") { Task { await syncEngine.forceFullResync() } }
                         .disabled(!syncEngine.isAccountAvailable || syncEngine.syncState == .syncing)
+#endif // Debug
                 }
 
                 Group {
